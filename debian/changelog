@@ -3,6 +3,10 @@ approx (1.07) unstable; urgency=low
   * Eliminate timeout for approx daemon callbacks
   * Make gc_approx handle "Filename: ./foo" correctly
   * Turn on all OCaml compiler warnings and clean up code
+  * Sven Luther :
+    - Preparing upload built with ocaml 3.08.3.
+    - Taking over maintainership of this package, since Eric is not a DD.
+    - Tested on my home setup since the past three weeks.
 
  -- Eric Cooper <ecc@cmu.edu>  Sat, 12 Mar 2005 17:27:43 -0500
 
