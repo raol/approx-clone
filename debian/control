@@ -1,0 +1,13 @@
+Source: approx
+Section: admin
+Priority: optional
+Maintainer: Eric Cooper <ecc@cmu.edu>
+Build-Depends: debhelper, ocaml-nox, libsyslog-ocaml-dev, libhttp-ocaml-dev, libocamlnet-ocaml-dev, libpcre-ocaml-dev, libcurl-ocaml-dev
+Standards-Version: 3.6.1
+
+Package: approx
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: proxy server for Debian archive files
+ Approx is an alternative to apt-proxy or apt-cacher.
+ It is written in OCaml so it is fast and robust.

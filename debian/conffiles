@@ -1,0 +1,3 @@
+/etc/approx/approx.conf
+/etc/init.d/approx
+/etc/cron.weekly/approx
