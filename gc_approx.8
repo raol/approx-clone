@@ -1,0 +1,80 @@
+.\" approx: proxy server for Debian archive files
+.\" Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
+.\" Released under the GNU General Public License
+.\" -*- nroff -*-
+.TH GC_APPROX 8 "January 2005"
+.\" Please adjust this date whenever revising the manpage.
+
+.SH NAME
+gc_approx \- garbage-collect the cache of Debian archive files
+
+.SH SYNOPSIS
+.PP
+.B gc_approx
+[\fIOPTION\fP]...
+
+.SH DESCRIPTION
+.PP
+.B gc_approx
+scans the cache created by
+.BR approx (8)
+and finds files that are corrupted or no longer needed.
+With no options specified, these files
+are listed on standard output and removed from the cache.
+.PP
+A corrupted file is one whose size or MD5 checksum
+does not match the value specified in the
+.I Packages
+file.
+An unneeded file is one that is not referenced from any distribution's
+.I Packages
+file.
+.PP
+.B gc_approx
+may take several minutes to finish.
+
+.SH OPTIONS
+.TP
+.BR \-f ", " \-\^\-fast
+MD5 checksum validation is not performed.
+.TP
+.BR \-k ", " \-\^\-keep
+Files are not removed from the cache.
+.TP
+.BR \-q ", " \-\^\-quiet
+File names are not printed.
+
+.SH EXAMPLES
+.IP
+gc_approx \-\^\-quiet
+.PP
+removes all unneeded or corrupted files from the cache.
+This is run as a weekly
+.BR cron (8)
+job.
+.IP
+gc_approx \-\^\-keep
+.PP
+lists the files that would be removed from the cache,
+without actually doing so.
+
+.SH FILES
+.TP
+.I /etc/approx/approx.conf
+.br
+Configuration file for
+.B approx
+and
+.BR gc_approx .
+.TP
+.I /var/cache/approx
+.br
+Cache directory for archive files.
+
+.SH SEE ALSO
+.IR approx.conf (5),
+.BR approx (8),
+.BR cron (8)
+
+.SH AUTHOR
+Eric Cooper <ecc@cmu.edu>

@@ -1,0 +1,102 @@
+.\" approx: proxy server for Debian archive files
+.\" Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
+.\" Released under the GNU General Public License
+.\" -*- nroff -*-
+.TH APPROX 8 "January 2005"
+.\" Please adjust this date whenever revising the manpage.
+
+.SH NAME
+approx \- proxy server for Debian archive files
+
+.SH SYNOPSIS
+.PP
+.B approx
+
+.SH DESCRIPTION
+.B approx
+listens for HTTP requests made by
+.BR apt\-get (8).
+It maintains a cache of Debian archive files that have been previously
+downloaded, so that it can respond with a local copy when possible.
+If a file not in the cache is requested,
+.B approx
+will download it from a remote Debian repository and deliver the
+contents to the client, simultaneously caching it for future use.
+
+Over time, the
+.B approx
+server cache will grow to contain multiple, unneeded versions of
+Debian packages.  The
+.BR gc_approx (8)
+program removes these from the cache.
+
+.SH EXAMPLES
+By default,
+.B approx
+listens on port 9999 (for compatibility with
+.BR apt\-cache (8)).
+Suppose that a client machine's
+.I /etc/apt/sources.list
+file contains the following lines:
+.IP
+deb     http://apt:9999/debian  testing main contrib
+.br
+deb     http://apt:9999/misc    testing main
+.br
+deb-src http://apt:9999/debian  unstable main contrib
+.PP
+In this example,
+.I apt
+is the hostname of the
+.B approx
+server machine on the local network.
+Each distribution, such as "debian" or "misc", is mapped
+to a remote repository in the
+.B approx
+server's configuration file.
+.PP
+For example, the
+.I approx.conf
+file on the
+.B approx
+server might contain the lines
+.IP
+debian  http://debian.mirrors.pair.com
+.br
+misc    ftp://ftp.nerim.net/debian-marillat
+
+.SH FILES
+.TP
+.I /etc/approx/approx.conf
+.br
+Configuration file for
+.B approx
+and
+.BR gc_approx .
+.TP
+.I /var/cache/approx
+.br
+Cache directory for archive files.
+
+.SH SEE ALSO
+.IR approx.conf (5),
+.BR gc_approx (8),
+.BR apt\-get (8),
+.IR sources.list (5)
+
+.SH BUGS
+.PP
+When a client uses
+.BR apt\-get (8)
+to install a package that is not in the
+.B approx
+server's cache,
+the transfer will occasionally fail with an MD5 checksum error.
+In all of the cases the author has observed, the file has been cached
+correctly on the server,
+and re-running
+.BR apt\-get (8)
+solves the problem.
+
+.SH AUTHOR
+Eric Cooper <ecc@cmu.edu>
