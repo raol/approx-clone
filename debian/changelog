@@ -1,3 +1,10 @@
+approx (1.08) unstable; urgency=low
+
+  * Removed trunk directory layer
+  * Add build-dependency on ocaml-tools (CLOSES #303774)
+
+ -- Eric Cooper <ecc@cmu.edu>  Fri,  8 Apr 2005 14:57:43 -0400
+
 approx (1.07) unstable; urgency=low
 
   * Eliminate timeout for approx daemon callbacks
