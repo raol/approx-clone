@@ -2,8 +2,8 @@ Source: approx
 Section: admin
 Priority: optional
 Maintainer: Eric Cooper <ecc@cmu.edu>
-Uploaders: Sven Luther <luther@debian.org>
-Build-Depends: debhelper, ocaml-nox-3.08.3, ocaml-tools, libsyslog-ocaml-dev, libhttp-ocaml-dev, libocamlnet-ocaml-dev, libpcre-ocaml-dev, libcurl-ocaml-dev
+Uploaders: Sven Luther <luther@debian.org>, Stefano Zacchiroli <zack@debian.org>
+Build-Depends: debhelper, ocaml-nox-3.08.3, ocaml-tools, libsyslog-ocaml-dev, libhttp-ocaml-dev (>= 0.1.0-3), libocamlnet-ocaml-dev (>= 1.0), libpcre-ocaml-dev, libcurl-ocaml-dev
 Standards-Version: 3.6.1
 
 Package: approx

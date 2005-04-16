@@ -1,3 +1,12 @@
+approx (1.09) unstable; urgency=low
+
+  * rebuilt against ocamlnet 1.0 and ocaml-http 0.1.0-3
+  * debian/control
+    - added me as an unploader
+    - bumped dependencies on ocamlnet and ocaml-http
+
+ -- Stefano Zacchiroli <zack@debian.org>  Sat, 16 Apr 2005 10:13:30 +0200
+
 approx (1.08) unstable; urgency=low
 
   * Removed trunk directory layer
