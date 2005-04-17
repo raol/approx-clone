@@ -1,8 +1,14 @@
+approx (1.10) unstable; urgency=low
+
+  * Bumped dependency on syslog-ocaml (closes #305019)
+
+ -- Eric Cooper <ecc@cmu.edu>  Sun, 17 Apr 2005 12:47:12 -0400
+
 approx (1.09) unstable; urgency=low
 
   * rebuilt against ocamlnet 1.0 and ocaml-http 0.1.0-3
   * debian/control
-    - added me as an unploader
+    - added me as an uploader
     - bumped dependencies on ocamlnet and ocaml-http
 
  -- Stefano Zacchiroli <zack@debian.org>  Sat, 16 Apr 2005 10:13:30 +0200
