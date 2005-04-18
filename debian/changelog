@@ -1,3 +1,9 @@
+approx (1.11) unstable; urgency=low
+
+  * Daemonize correctly (closes #305102)
+
+ -- Eric Cooper <ecc@cmu.edu>  Sun, 17 Apr 2005 19:57:56 -0400
+
 approx (1.10) unstable; urgency=low
 
   * Bumped dependency on syslog-ocaml (closes #305019)
