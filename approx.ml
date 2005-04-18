@@ -91,7 +91,7 @@ let is_stale name stats =
   (is_mutable name && minutes_old stats > interval)
 
 let serve_local dir path ims ochan =
-  let name = cache ^/ dir ^/ path in
+  let name = dir ^/ path in
   let stats = Unix.stat name in
   if debug then
     begin
@@ -292,9 +292,9 @@ let method_of_url url =
 
 let serve_remote dir path ims chan =
   try
-    let url = map_dir dir ^/ path  in
+    let local_name = dir ^/ path in
+    let url = map_dir dir ^/ path in
     message "%s" url;
-    let local_name = cache ^/ dir ^/ path in
     let handler = method_of_url url in
     handler url local_name ims chan
   with e ->
@@ -331,6 +331,9 @@ let callback req chan =
   | _ -> respond_forbidden ~url: req#path chan
 
 let daemon () =
+  Unix.chdir cache;
+  ignore (Unix.setsid ());
+  List.iter Unix.close [Unix.stdin; Unix.stdout; Unix.stderr];
   print_config ();
   main (daemon_spec ~port ~callback ~mode: `Single ~timeout: None ())
 
@@ -340,10 +343,7 @@ let write_pid_file pid =
   close_out chan
 
 let () =
-  match Unix.fork () with
-  | 0 ->
-      (match Unix.fork () with
-      | 0 -> daemon ()
-      | grandchild -> write_pid_file grandchild)
-  | child ->
-      ignore (Unix.waitpid [] child)
+  if Unix.fork () = 0 then
+    match Unix.fork () with
+    | 0 -> daemon ()
+    | pid -> write_pid_file pid
