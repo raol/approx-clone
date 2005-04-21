@@ -1,12 +1,12 @@
 approx (1.11) unstable; urgency=low
 
-  * Daemonize correctly (closes #305102)
+  * Daemonize correctly (closes: #305102)
 
  -- Eric Cooper <ecc@cmu.edu>  Sun, 17 Apr 2005 19:57:56 -0400
 
 approx (1.10) unstable; urgency=low
 
-  * Bumped dependency on syslog-ocaml (closes #305019)
+  * Bumped dependency on syslog-ocaml (closes: #305019)
 
  -- Eric Cooper <ecc@cmu.edu>  Sun, 17 Apr 2005 12:47:12 -0400
 
@@ -22,7 +22,7 @@ approx (1.09) unstable; urgency=low
 approx (1.08) unstable; urgency=low
 
   * Removed trunk directory layer
-  * Add build-dependency on ocaml-tools (CLOSES #303774)
+  * Add build-dependency on ocaml-tools (closes: #303774)
 
  -- Eric Cooper <ecc@cmu.edu>  Fri,  8 Apr 2005 14:57:43 -0400
 
