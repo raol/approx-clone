@@ -23,4 +23,9 @@ let explode_path path =
 
 let implode_path = String.concat "/"
 
+let split_path path =
+  match explode_path path with
+  | "" :: head :: tail -> head, implode_path tail
+  | _ -> failwith ("split_path: " ^ path)
+
 let (^/) = Filename.concat

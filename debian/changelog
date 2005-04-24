@@ -1,3 +1,10 @@
+approx (1.12) unstable; urgency=low
+
+  * New description, from suggestions by
+    Raphaël Berbain <raphael.berbain@free.fr>
+    
+  --
+
 approx (1.11) unstable; urgency=low
 
   * Daemonize correctly (closes: #305102)
