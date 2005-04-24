@@ -302,14 +302,6 @@ let serve_remote dir path ims chan =
     message "%s" (Printexc.to_string e);
     respond_not_found ~url: path chan
 
-(* Split absolute path into top-level directory and rest of path.
-   Example: split_path "/a/b/c" = ("a", "b/c") *)
-
-let split_path path =
-  match explode_path path with
-  | "" :: head :: tail -> head, implode_path tail
-  | _ -> failwith ("split_path: " ^ path)
-
 let serve_file path headers chan =
   try
     if debug then
@@ -331,19 +323,19 @@ let callback req chan =
   | _ -> respond_forbidden ~url: req#path chan
 
 let daemon () =
-  Unix.chdir cache;
   ignore (Unix.setsid ());
   List.iter Unix.close [Unix.stdin; Unix.stdout; Unix.stderr];
-  print_config ();
-  main (daemon_spec ~port ~callback ~mode: `Single ~timeout: None ())
-
-let write_pid_file pid =
-  let chan = open_out ("/var/run" ^/ prog ^ ".pid") in
-  fprintf chan "%d\n" pid;
-  close_out chan
+  try
+    Unix.chdir cache;
+    print_config ();
+    main (daemon_spec ~port ~callback ~mode: `Single ~timeout: None ())
+  with
+  | Unix.Unix_error (err, str, _) ->
+      message "%s: %s" str (Unix.error_message err)
+  | e ->
+      message "%s" (Printexc.to_string e)
 
 let () =
-  if Unix.fork () = 0 then
-    match Unix.fork () with
-    | 0 -> daemon ()
-    | pid -> write_pid_file pid
+  (* double fork to detach daemon *)
+  if Unix.fork () = 0 && Unix.fork () = 0 then
+    daemon ()

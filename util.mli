@@ -19,3 +19,8 @@ val implode_path : string list -> string
 (* Infix operator to concatenate two pathname components. *)
 
 val (^/) : string -> string -> string
+
+(* Split absolute path into top-level directory and rest of path.
+   Example: split_path "/a/b/c" = ("a", "b/c") *)
+
+val split_path : string -> string * string
