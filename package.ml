@@ -47,7 +47,7 @@ let read proc chan =
 
 let decompressed file =
   if Filename.check_suffix file ".gz" then
-    let cmd = Printf.sprintf "/bin/gunzip %s" file in
+    let cmd = Printf.sprintf "/bin/gunzip --force %s" file in
     if Sys.command cmd <> 0 then failwith "decompress";
     Filename.chop_suffix file ".gz"
   else
