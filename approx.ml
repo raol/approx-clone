@@ -330,8 +330,11 @@ let daemon () =
     print_config ();
     main (daemon_spec ~port ~callback ~mode: `Single ~timeout: None ())
   with
+  | Unix.Unix_error (Unix.EADDRINUSE, "bind", _) ->
+      message "Port %d is already in use" port;
+      if port = 9999 then message "Perhaps apt-proxy is already running?"
   | Unix.Unix_error (err, str, _) ->
-      message "%s: %s" str (Unix.error_message err)
+      message "%s: %s" str (Unix.error_message err);
   | e ->
       message "%s" (Printexc.to_string e)
 

@@ -1,0 +1,38 @@
+#!/bin/sh -e
+
+action="$1"
+oldversion="$2"
+
+if [ "$action" != "configure" ]; then
+    exit 0
+fi
+
+# add the approx user
+if ! getent passwd approx >/dev/null; then
+    adduser --quiet --system --group --no-create-home --home /var/cache/approx approx
+fi
+
+# make sure cache is owned by the approx user
+if dpkg --compare-versions "$oldversion" lt 1.12; then
+    chown -R approx:approx /var/cache/approx
+fi
+
+# check for potential conflict with apt-proxy
+if [ -x /etc/init.d/apt-proxy ]; then
+    default_approx_port=9999
+    approx_port=$(awk '/^[ \t]*port/{print $2}' /etc/approx/approx.conf) || true
+    if [ -z "$approx_port" ]; then
+	approx_port=$default_approx_port;
+    fi
+    if [ "$approx_port" = "$default_approx_port" ]; then
+	echo "Warning: apt-proxy appears to be installed also." >&2
+	echo "         For compatibility with client sources.list files," >&2
+	echo "         approx uses the same port (9999) by default." >&2
+	echo "         Please stop or remove apt-proxy, or configure" >&2
+	echo "         one of them to listen on a different port." >&2
+    fi
+fi
+
+#DEBHELPER#
+
+# -*- shell-script-mode -*-

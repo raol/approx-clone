@@ -15,30 +15,30 @@ SCRIPTNAME=/etc/init.d/$NAME
 test -x $DAEMON || exit 0
 
 # Read config file if it is present.
-#if [ -r /etc/default/$NAME ]
-#then
-#	. /etc/default/$NAME
-#fi
+if [ -r /etc/default/$NAME ]
+then
+	. /etc/default/$NAME
+fi
 
 #
 #	Function that starts the daemon/service.
 #
 d_start() {
-	start-stop-daemon --start --quiet --exec $DAEMON
+	start-stop-daemon --start --quiet --exec $DAEMON --chuid approx:approx
 }
 
 #
 #	Function that stops the daemon/service.
 #
 d_stop() {
-	start-stop-daemon --stop --quiet --name $NAME
+	start-stop-daemon --stop --quiet --exec $DAEMON
 }
 
 #
 #	Function that sends a SIGHUP to the daemon/service.
 #
 d_reload() {
-	start-stop-daemon --stop --quiet --name $NAME --signal 1
+	start-stop-daemon --stop --quiet --exec $DAEMON --signal 1
 }
 
 case "$1" in

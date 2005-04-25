@@ -2,8 +2,19 @@ approx (1.12) unstable; urgency=low
 
   * New description, from suggestions by
     Raphaël Berbain <raphael.berbain@free.fr>
-    
-  --
+  * approx
+    - run as unprivileged user (closes: #305451)
+    - added /etc/default/approx with example of setting
+      http_proxy environment variable (closes: #305453)
+    - detect possible conflict with apt-proxy at installation time
+      and at runtime if binding to port 9999 fails
+  * gc_approx
+    - remove unused distributions and empty parent directories from cache
+    - don't recheck files that have already been checked
+    - uncompress Packages.gz files to disk
+    - use wget to download Packages.gz file if decompression fails
+
+ -- Eric Cooper <ecc@cmu.edu>  Mon, 25 Apr 2005 09:01:56 -0400
 
 approx (1.11) unstable; urgency=low
 
