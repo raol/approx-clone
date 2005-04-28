@@ -41,20 +41,35 @@ let read proc chan =
   in
   loop ()
 
-(* Decompress a file in place, if necessary, and return its name.
-   This saves time during future runs of gc_approx (at the expense of
-   some disk space) and detects corrupted Packages.gz files. *)
+(* Return a temporary file name.
+   Assumes the caller is single-threaded. *)
 
-let decompressed file =
-  if Filename.check_suffix file ".gz" then
-    let cmd = Printf.sprintf "/bin/gunzip %s" file in
-    if Sys.command cmd <> 0 then failwith "decompress";
-    Filename.chop_suffix file ".gz"
-  else
-    file
+let tmp_file () =
+  Printf.sprintf "/tmp/gc_approx.%d" (Unix.getpid ())
+
+(* Return a channel for reading a compressed file.
+   To detect corrupted .gz files, we first decompress it
+   to a temporary file. *)
+
+let decompress file =
+  let tmp = tmp_file () in
+  let cmd = Printf.sprintf "/bin/gunzip --stdout %s > %s" file tmp in
+  if Sys.command cmd <> 0 then
+    begin
+      Sys.remove tmp;
+      failwith "decompress"
+    end;
+  let chan = open_in tmp in
+  Sys.remove tmp;
+  chan
 
 let with_open_file file proc =
-  let chan = open_in file in
+  let chan =
+    if Filename.check_suffix file ".gz" then
+      decompress file
+    else
+      open_in file
+  in
   try
     proc chan;
     close_in chan
@@ -63,4 +78,4 @@ let with_open_file file proc =
     raise e
 
 let iter proc file =
-  with_open_file (decompressed file) (read proc)
+  with_open_file file (read proc)

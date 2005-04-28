@@ -6,10 +6,13 @@ if [ "$action" != "purge" ]; then
     exit 0
 fi
 
-rm -r /var/cache/approx
+rm -rf /var/cache/approx
 
 if getent passwd approx >/dev/null; then
     deluser --quiet approx
+fi
+
+if getent group approx >/dev/null; then
     delgroup --quiet approx
 fi
 
