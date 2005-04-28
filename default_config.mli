@@ -3,7 +3,7 @@
    Released under the GNU General Public License *)
 
 val config_file : string
-val cache : string
+val cache_dir : string
 val port : int
 val interval : int
 val debug : bool

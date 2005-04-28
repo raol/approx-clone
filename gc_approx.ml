@@ -58,7 +58,7 @@ let find_roots () =
     | "Packages" | "Packages.gz" -> roots := file :: !roots
     | _ -> ()
   in
-  Config.iter (fun dir _ -> treewalk find (cache ^/ dir))
+  Config.iter (fun dir _ -> treewalk find (cache_dir ^/ dir))
 
 (* Extract the distribution and relative filename
    from the absolute pathname of a file in the cache.
@@ -68,7 +68,7 @@ let find_roots () =
        ("debian", "pool/main/...") *)
 
 let split_cache_pathname path =
-   split_path (substring path ~from: (String.length cache))
+   split_path (substring path ~from: (String.length cache_dir))
 
 (* The cache is probably only a small subset of all the files in
    the Debian archive, so  we start with a table of filenames
@@ -103,7 +103,7 @@ let record_files () =
   let record file =
     if is_candidate file then set_status file Unmarked
   in
-  treewalk record cache
+  treewalk record cache_dir
 
 (* Handle the case of filename fields of the form ./path  *)
 
@@ -152,7 +152,7 @@ let download dist file package =
 let mark_package package =
   if !verbose then (print_string "# "; print_endline package);
   let dist, file = split_cache_pathname package in
-  let prefix = cache ^/ dist in
+  let prefix = cache_dir ^/ dist in
   try
     Package.iter (mark_file prefix) package
   with Failure "decompress" ->

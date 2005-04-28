@@ -13,6 +13,20 @@ let log = Syslog.openlog ~facility: `LOG_DAEMON prog
 
 let message fmt = kprintf (Syslog.syslog log `LOG_INFO) fmt
 
+let error_message = function
+  | Unix.Unix_error (err, str, arg) ->
+      if err = Unix.EADDRINUSE && str = "bind" then
+	begin
+	  message "Port %d is already in use" port;
+	  if port = 9999 then message "Perhaps apt-proxy is already running?"
+	end
+      else
+	message "%s: %s%s"
+	  str (Unix.error_message err)
+	  (if arg = "" then "" else sprintf " (%s)" arg)
+  | e ->
+      message "%s" (Printexc.to_string e)
+
 let print_config () =
   let units u = function
     | 0 -> ""
@@ -21,7 +35,7 @@ let print_config () =
   in
   message "Config file: %s" config_file;
   message "Port: %d" port;
-  message "Cache: %s" cache;
+  message "Cache: %s" cache_dir;
   message "Interval:%s%s"
     (units "hour" (interval / 60)) (units "minute" (interval mod 60));
   message "Debug: %B" debug
@@ -145,7 +159,8 @@ let open_cache name =
     cache_chan := Some (create_file (name ^ ".tmp"));
     cache_file := name
   with e ->
-    message "Cannot cache %s (reason: %s)" name (Printexc.to_string e)
+    error_message e;
+    message "Cannot cache %s" name
 
 let write_cache str =
   match !cache_chan with
@@ -299,7 +314,7 @@ let serve_remote dir path ims chan =
     handler url local_name ims chan
   with e ->
     remove_cache ();
-    message "%s" (Printexc.to_string e);
+    error_message e;
     respond_not_found ~url: path chan
 
 let serve_file path headers chan =
@@ -326,17 +341,11 @@ let daemon () =
   ignore (Unix.setsid ());
   List.iter Unix.close [Unix.stdin; Unix.stdout; Unix.stderr];
   try
-    Unix.chdir cache;
+    Unix.chdir cache_dir;
     print_config ();
     main (daemon_spec ~port ~callback ~mode: `Single ~timeout: None ())
-  with
-  | Unix.Unix_error (Unix.EADDRINUSE, "bind", _) ->
-      message "Port %d is already in use" port;
-      if port = 9999 then message "Perhaps apt-proxy is already running?"
-  | Unix.Unix_error (err, str, _) ->
-      message "%s: %s" str (Unix.error_message err);
-  | e ->
-      message "%s" (Printexc.to_string e)
+  with e ->
+    error_message e
 
 let () =
   (* double fork to detach daemon *)
