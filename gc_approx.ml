@@ -14,7 +14,7 @@ open Printf
 
 let usage () =
   prerr_endline "Usage: gc_approx [options]";
-  prerr_endline "Garbage-collect the approx cache.";
+  prerr_endline "Garbage-collect the approx cache";
   prerr_endline "Options:";
   prerr_endline "    -f|--fast     do not validate MD5 checksums";
   prerr_endline "    -k|--keep     do not remove files";

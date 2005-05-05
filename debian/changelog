@@ -1,3 +1,9 @@
+approx (1.14) unstable; urgency=low
+
+  * added --foreground and --error options to approx (closes: #306898)
+
+ -- Eric Cooper <ecc@cmu.edu>  Thu,  5 May 2005 10:43:36 -0400
+
 approx (1.13) unstable; urgency=low
 
   * make sure /var/cache/approx exists before trying to chown it
