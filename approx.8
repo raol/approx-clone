@@ -11,6 +11,7 @@ approx \- proxy server for Debian archive files
 .SH SYNOPSIS
 .PP
 .B approx
+[\fIOPTION\fP]...
 
 .SH DESCRIPTION
 .B approx
@@ -29,6 +30,16 @@ server cache will grow to contain multiple, unneeded versions of
 Debian packages.  The
 .BR gc_approx (8)
 program removes these from the cache.
+
+.SH OPTIONS
+.TP
+.BR \-e ", " \-\^\-error
+Messages are printed to standard error instead of the system log.
+.TP
+.BR \-f ", " \-\^\-foreground
+The
+.B approx
+server runs in the foreground instead of detaching as a daemon.
 
 .SH EXAMPLES
 By default,

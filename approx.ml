@@ -6,14 +6,46 @@ open Util
 open Default_config
 open Http_daemon
 open Printf
+open Unix
+
+let usage () =
+  prerr_endline "Usage: approx [options]";
+  prerr_endline "Proxy server for Debian archive files";
+  prerr_endline "Options:";
+  prerr_endline "    -e|--error         log to stderr instead of syslog";
+  prerr_endline "    -f|--foreground    stay in foreground instead of detaching";
+  exit 1
+
+let use_stderr = ref false
+let foreground = ref false
+
+let () =
+  for i = 1 to Array.length Sys.argv - 1 do
+    match Sys.argv.(i) with
+    | "-e" | "--error" -> use_stderr := true
+    | "-f" | "--foreground" -> foreground := true
+    | _ -> usage ()
+  done
 
 let prog = Filename.basename Sys.argv.(0)
 
-let log = Syslog.openlog ~facility: `LOG_DAEMON prog
+let log =
+  if !use_stderr then
+    None
+  else
+    Some (Syslog.openlog ~facility: `LOG_DAEMON prog)
 
-let message fmt = kprintf (Syslog.syslog log `LOG_INFO) fmt
+let message fmt =
+  let print =
+    match log with
+    | Some conn -> Syslog.syslog conn `LOG_INFO
+    | None -> prerr_endline
+  in
+  kprintf print fmt
 
 let error_message = function
+  | Sys_error str ->
+      message "%s" str
   | Unix.Unix_error (err, str, arg) ->
       if err = Unix.EADDRINUSE && str = "bind" then
 	begin
@@ -337,17 +369,24 @@ let callback req chan =
   | [] -> serve_file req#path req#headers chan
   | _ -> respond_forbidden ~url: req#path chan
 
-let daemon () =
-  ignore (Unix.setsid ());
-  List.iter Unix.close [Unix.stdin; Unix.stdout; Unix.stderr];
+let server () =
   try
     Unix.chdir cache_dir;
     print_config ();
     main (daemon_spec ~port ~callback ~mode: `Single ~timeout: None ())
   with e ->
-    error_message e
+    error_message e;
+    exit 1
+
+let daemonize proc =
+  ignore (setsid ());
+  List.iter close [stdin; stdout; stderr];
+  (* double fork to detach daemon *)
+  if fork () = 0 && fork () = 0 then
+    proc ()
 
 let () =
-  (* double fork to detach daemon *)
-  if Unix.fork () = 0 && Unix.fork () = 0 then
-    daemon ()
+  if !foreground then
+    server ()
+  else
+    daemonize server
