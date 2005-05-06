@@ -1,7 +1,7 @@
 approx (1.14) unstable; urgency=low
 
-The --foreground and --error options allow approx to be run more
-easily from the command line, a debugger, or the runit init scheme.
+The --foreground option allows approx to be run more easily from
+the command line, a debugger, or the runit init scheme.
 
  -- Eric Cooper <ecc@cmu.edu>  Thu,  5 May 2005 10:43:36 -0400
 

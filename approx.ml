@@ -12,36 +12,27 @@ let usage () =
   prerr_endline "Usage: approx [options]";
   prerr_endline "Proxy server for Debian archive files";
   prerr_endline "Options:";
-  prerr_endline "    -e|--error         log to stderr instead of syslog";
   prerr_endline "    -f|--foreground    stay in foreground instead of detaching";
   exit 1
 
-let use_stderr = ref false
 let foreground = ref false
 
 let () =
   for i = 1 to Array.length Sys.argv - 1 do
     match Sys.argv.(i) with
-    | "-e" | "--error" -> use_stderr := true
     | "-f" | "--foreground" -> foreground := true
     | _ -> usage ()
   done
 
-let prog = Filename.basename Sys.argv.(0)
-
-let log =
-  if !use_stderr then
-    None
+let print_message =
+  if !foreground then
+    prerr_endline
   else
-    Some (Syslog.openlog ~facility: `LOG_DAEMON prog)
+    let prog = Filename.basename Sys.argv.(0) in
+    let log = Syslog.openlog ~facility: `LOG_DAEMON prog in
+    Syslog.syslog log `LOG_INFO
 
-let message fmt =
-  let print =
-    match log with
-    | Some conn -> Syslog.syslog conn `LOG_INFO
-    | None -> prerr_endline
-  in
-  kprintf print fmt
+let message fmt = kprintf print_message fmt
 
 let error_message = function
   | Sys_error str ->
