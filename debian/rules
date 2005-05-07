@@ -1,26 +1,22 @@
 #!/usr/bin/make -f
-# Based on /usr/share/doc/debhelper/examples/rules
 
-# Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
 build: build-stamp
 build-stamp:
 	dh_testdir
-
-	# Add here commands to compile the package.
-	$(MAKE)
-
+	if [ -x /usr/bin/ocamlopt ]; then \
+	    $(MAKE) native-code; \
+	else \
+	    $(MAKE) byte-code; \
+	fi
 	touch build-stamp
 
 clean:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp
-
-	# Add here commands to clean up after the build process.
 	-$(MAKE) clean
-
 	dh_clean
 
 DESTDIR = $(CURDIR)/debian/tmp/usr/bin
@@ -33,11 +29,8 @@ install: build
 	dh_install approx gc_approx usr/sbin
 	dh_install approx.conf etc/approx
 
-# Build architecture-independent files here.
 binary-indep: build install
-# We have nothing to do by default.
 
-# Build architecture-dependent files here.
 binary-arch: build install
 	dh_testdir
 	dh_testroot

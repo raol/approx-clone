@@ -18,7 +18,7 @@ Description: caching proxy server for Debian archive files
  upgrade Debian software for a number of machines on a local network.
  Each package is downloaded from a remote site only once,
  regardless of how many local clients install it.
- Approx's cache typically uses only a few gigabytes of disk space.
+ The approx cache typically requires a few gigabytes of disk space.
  .
  Approx also simplifies the administration of client machines:
  repository locations need only be changed in approx's configuration file,

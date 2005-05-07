@@ -1,14 +1,20 @@
+approx (1.15) unstable; urgency=low
+
+  * Build byte-code version on architectures with no ocamlopt
+
+ -- Eric Cooper <ecc@cmu.edu>  Sat,  7 May 2005 11:08:38 -0400
+
 approx (1.14) unstable; urgency=low
 
-  * added --foreground option to approx (closes: #306898)
+  * Added --foreground option to approx (closes: #306898)
 
  -- Eric Cooper <ecc@cmu.edu>  Thu,  5 May 2005 10:43:36 -0400
 
 approx (1.13) unstable; urgency=low
 
-  * make sure /var/cache/approx exists before trying to chown it
+  * Make sure /var/cache/approx exists before trying to chown it
     (closes: #306621)
-  * no longer allow the cache directory to be specified in approx.conf;
+  * No longer allow the cache directory to be specified in approx.conf;
     always use /var/cache/approx (which can be a symlink)
 
  -- Eric Cooper <ecc@cmu.edu>  Wed, 27 Apr 2005 18:39:13 -0400
