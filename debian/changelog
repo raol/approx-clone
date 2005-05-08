@@ -1,6 +1,7 @@
 approx (1.15) unstable; urgency=low
 
   * Build byte-code version on architectures with no ocamlopt
+  * Create /var/cache/approx directory in postinst script
 
  -- Eric Cooper <ecc@cmu.edu>  Sat,  7 May 2005 11:08:38 -0400
 

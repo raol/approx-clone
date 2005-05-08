@@ -21,6 +21,12 @@ if ! getent passwd approx >/dev/null; then
     adduser --quiet --system --group --no-create-home --home /var/cache/approx approx
 fi
 
+# create the approx cache directory if necessary
+if [ ! -d /var/cache/approx ]; then
+    mkdir /var/cache/approx
+    chown approx:approx /var/cache/approx
+fi
+
 # make sure the cache is owned by the approx user
 if dpkg --compare-versions "$oldversion" lt 1.12 && [ -d /var/cache/approx ]; then
     chown -R approx:approx /var/cache/approx/.
@@ -32,7 +38,7 @@ if dpkg --compare-versions "$oldversion" lt 1.13 && [ "$cache" != /var/cache/app
     cat >&2 <<EOF
 Warning: the location of the cache can no longer be set in approx.conf
          (you appear to have it set to $cache).
-	 See /usr/share/doc/approx/NEWS.Debian.gz for details.
+         See /usr/share/doc/approx/NEWS.Debian.gz for details.
 EOF
 fi
 
