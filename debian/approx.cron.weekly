@@ -1,5 +1,0 @@
-#!/bin/sh
-
-# Garbage collect the approx(8) cache
-
-gc_approx --quiet

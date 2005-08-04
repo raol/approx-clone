@@ -2,6 +2,8 @@
    Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
+open Util
+
 let lines_of_channel chan =
   let next () =
     try Some (input_line chan)
@@ -46,13 +48,13 @@ let set key value = map := (key, value) :: !map
 let iter f = List.iter (fun (k, v) -> f k v) !map
 
 let read filename =
-  let chan = open_in filename in
-  let lines = List.map words_of_line (lines_of_channel chan) in
-  close_in chan;
-  let enter = function
-    | [ key; value ] -> set key value
-    | [] -> ()
-    | words -> failwith ("malformed line in " ^ filename ^ ": " ^
-			 String.concat " " words)
-  in
-  List.iter enter lines
+  with_channel open_in filename (fun chan ->
+    let lines = List.map words_of_line (lines_of_channel chan) in
+    close_in chan;
+    let enter = function
+      | [ key; value ] -> set key value
+      | [] -> ()
+      | words -> failwith ("malformed line in " ^ filename ^ ": " ^
+			   String.concat " " words)
+    in
+    List.iter enter lines)

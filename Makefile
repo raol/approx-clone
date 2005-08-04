@@ -7,23 +7,31 @@ export OCAMLMAKEFILE = /usr/share/ocaml-tools/OCamlMakefile
 export OCAMLFLAGS = -w A
 
 define PROJ_server
-    SOURCES = util.ml config.ml default_config.ml url.ml approx.ml
-    LIBS = unix pcre syslog netstring http curl
+    SOURCES = util.ml config.ml default_config.ml url.ml control_file.ml release.ml approx.ml
     INCDIRS = +pcre +syslog +netstring +http +curl
+    LIBS = unix pcre syslog netstring http curl
     RESULT = approx
 endef
 export PROJ_server
 
 define PROJ_gc
-    SOURCES = util.ml config.ml default_config.ml package.ml gc_approx.ml
-    LIBS = unix pcre
+    SOURCES = util.ml config.ml default_config.ml control_file.ml gc_approx.ml
     INCDIRS = +pcre
+    LIBS = unix pcre
     RESULT = gc_approx
 endef
 export PROJ_gc
 
+define PROJ_fsck
+    SOURCES = util.ml config.ml default_config.ml control_file.ml release.ml fsck_approx.ml
+    INCDIRS = +pcre
+    LIBS = unix pcre
+    RESULT = fsck_approx
+endef
+export PROJ_fsck
+
 ifndef SUBPROJS
-    export SUBPROJS = server gc
+    export SUBPROJS = server gc fsck
 endif
 
 all: native-code
