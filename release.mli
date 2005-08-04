@@ -2,4 +2,7 @@
    Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-val iter : ((string * string) list -> unit) -> string -> unit
+(* Return a list of files that have been invalidated by
+   downloading the given file *)
+
+val files_invalidated_by : string -> string list

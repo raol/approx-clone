@@ -1,24 +1,36 @@
-(* URL access in OCaml using Curl
+(* approx: proxy server for Debian archive files
    Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
-   Released under the GNU Lesser General Public License *)
+   Released under the GNU General Public License *)
 
-let () = Curl.global_init Curl.CURLINIT_GLOBALALL
+open Curl
 
-let iter url ?header ?header_callback callback =
-  let connection = Curl.init () in
-  Curl.set_followlocation connection true;
-  Curl.set_connecttimeout connection 10;
-  Curl.set_url connection url;
-  (match header with
-  | Some str -> Curl.set_httpheader connection [str]
-  | None -> ());
-  (match header_callback with
-  | Some proc -> Curl.set_headerfunction connection proc
-  | None -> ());
-  Curl.set_writefunction connection callback;
-  try
-    Curl.perform connection;
-    Curl.cleanup connection
-  with Curl.CurlException (_, _, msg) ->
-    Curl.cleanup connection;
-    failwith msg
+let conn =
+  global_init CURLINIT_GLOBALALL;
+  let conn = init () in
+  set_followlocation conn true;
+  set_connecttimeout conn 10;
+  conn
+
+(* Since the following functions share the same Curl handle,
+   each one must reset any options the others might have set *)
+
+let iter url ?(headers=[]) ?(header_callback=ignore) callback =
+  set_httpget conn true;
+  set_nobody conn false;
+  set_url conn url;
+  set_httpheader conn headers;
+  set_headerfunction conn header_callback;
+  set_writefunction conn callback;
+  set_filetime conn false;
+  perform conn
+
+let mod_time url =
+  set_httpget conn false;
+  set_nobody conn true;
+  set_url conn url;
+  set_httpheader conn [];
+  set_headerfunction conn ignore;
+  set_writefunction conn ignore;
+  set_filetime conn true;
+  perform conn;
+  get_filetime conn

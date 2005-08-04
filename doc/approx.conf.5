@@ -27,6 +27,11 @@ server listens for HTTP requests (default: 9999)
 Specifies the time in minutes after which a cached file will be
 considered too old to deliver without first checking with the remote
 repository for a newer version (default: 720, or 12 hours)
+.IP max_wait
+Specifies how many seconds an
+.BR approx (8)
+process will wait for a concurrent download of a file to complete,
+before attempting to download the file itself (default: 10)
 .IP debug
 Specifies whether debugging messages should be printed
 (default:

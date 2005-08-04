@@ -4,6 +4,8 @@
 
 val config_file : string
 val cache_dir : string
+
 val port : int
-val interval : int
+val interval : int  (* minutes *)
+val max_wait : int  (* seconds *)
 val debug : bool
