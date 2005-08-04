@@ -1,0 +1,165 @@
+approx (1.18) unstable; urgency=low
+
+  * Secure APT imposes additional consistency requirements on the cache:
+    - Release and Release.gpg files must agree
+    - Packages and Sources files must agree with the Release file
+      that mentions them
+
+ -- Eric Cooper <ecc@cmu.edu>  Sun, 31 Jul 2005 16:10:13 -0400
+
+approx (1.17) unstable; urgency=low
+
+  * Incorporate patch by Flavio Stanchina <flavio@stanchina.net>
+    to recognize Release.gpg and *.bz2 files in gc_approx (closes: #313188)
+  * Include Last-Modified header in local responses
+  * Support If-Modified-Since for FTP requests using MDTM
+
+ -- Eric Cooper <ecc@cmu.edu>  Fri, 15 Jul 2005 15:34:21 -0400
+
+approx (1.16) unstable; urgency=low
+
+  * Support concurrent requests
+    - use http_daemon's Fork mode
+    - rely on atomic rename of foo.tmp -> foo in cache
+    - detect concurrent downloads in progress and wait for them
+  * Differentiate levels of syslog messages
+
+ -- Eric Cooper <ecc@cmu.edu>  Fri, 13 May 2005 12:23:37 -0400
+
+approx (1.15) unstable; urgency=low
+
+  * Build byte-code version on architectures with no ocamlopt
+  * Create /var/cache/approx directory in postinst script
+
+ -- Eric Cooper <ecc@cmu.edu>  Sat,  7 May 2005 11:08:38 -0400
+
+approx (1.14) unstable; urgency=low
+
+  * Added --foreground option to approx (closes: #306898)
+
+ -- Eric Cooper <ecc@cmu.edu>  Thu,  5 May 2005 10:43:36 -0400
+
+approx (1.13) unstable; urgency=low
+
+  * Make sure /var/cache/approx exists before trying to chown it
+    (closes: #306621)
+  * No longer allow the cache directory to be specified in approx.conf;
+    always use /var/cache/approx (which can be a symlink)
+
+ -- Eric Cooper <ecc@cmu.edu>  Wed, 27 Apr 2005 18:39:13 -0400
+
+approx (1.12) unstable; urgency=low
+
+  * New description, from suggestions by
+    Raphaël Berbain <raphael.berbain@free.fr>
+  * approx
+    - run as unprivileged user (closes: #305451)
+    - added /etc/default/approx with example of setting
+      http_proxy environment variable (closes: #305453)
+    - detect possible conflict with apt-proxy at installation time
+      and at runtime if binding to port 9999 fails
+  * gc_approx
+    - remove unused distributions and empty parent directories from cache
+    - don't recheck files that have already been checked
+    - uncompress Packages.gz files to disk
+    - use wget to download Packages.gz file if decompression fails
+
+ -- Eric Cooper <ecc@cmu.edu>  Mon, 25 Apr 2005 09:01:56 -0400
+
+approx (1.11) unstable; urgency=low
+
+  * Daemonize correctly (closes: #305102)
+
+ -- Eric Cooper <ecc@cmu.edu>  Sun, 17 Apr 2005 19:57:56 -0400
+
+approx (1.10) unstable; urgency=low
+
+  * Bumped dependency on syslog-ocaml (closes: #305019)
+
+ -- Eric Cooper <ecc@cmu.edu>  Sun, 17 Apr 2005 12:47:12 -0400
+
+approx (1.09) unstable; urgency=low
+
+  * rebuilt against ocamlnet 1.0 and ocaml-http 0.1.0-3
+  * debian/control
+    - added me as an uploader
+    - bumped dependencies on ocamlnet and ocaml-http
+
+ -- Stefano Zacchiroli <zack@debian.org>  Sat, 16 Apr 2005 10:13:30 +0200
+
+approx (1.08) unstable; urgency=low
+
+  * Removed trunk directory layer
+  * Add build-dependency on ocaml-tools (closes: #303774)
+
+ -- Eric Cooper <ecc@cmu.edu>  Fri,  8 Apr 2005 14:57:43 -0400
+
+approx (1.07) unstable; urgency=low
+
+  * Eliminate timeout for approx daemon callbacks
+  * Make gc_approx handle "Filename: ./foo" correctly
+  * Turn on all OCaml compiler warnings and clean up code
+  * Sven Luther :
+    - Preparing upload built with ocaml 3.08.3.
+    - Taking over maintainership of this package, since Eric is not a DD.
+    - Tested on my home setup since the past three weeks.
+
+ -- Eric Cooper <ecc@cmu.edu>  Sat, 12 Mar 2005 17:27:43 -0500
+
+approx (1.06) unstable; urgency=low
+
+  * Use native syslog client instead of piping output to logger
+  * Use open_process_in and gzip instead of camlzip to uncompress
+    package files in gc_approx
+  * gc_approx removes garbage files unless --keep option is specified
+  * APPROX_CONF environment variable no longer used;
+    pathname is now hard-coded in default_config.ml
+  * Write /var/run/approx.pid for use by init script
+
+ -- Eric Cooper <ecc@cmu.edu>  Thu, 24 Feb 2005 13:36:26 -0500
+
+approx (1.05) unstable; urgency=low
+
+  * Use proper content type and encoding when relaying *.gz files
+  * Log client IP address
+  * Install into /usr/sbin
+  * Add init.d and cron scripts
+  * Double fork to detach daemon
+  * Use distribution names from the config file as roots for GC,
+    to detect remote repositories no longer in use
+
+ -- Eric Cooper <ecc@cmu.edu>  Wed, 23 Feb 2005 23:59:35 -0500
+
+approx (1.04) unstable; urgency=low
+
+  * Add build-dependency on the version of ocamlnet
+    which fixes a problem with '+' characters in URLs
+  * Append ".tmp" to download in progress and rename it when complete,
+    to avoid invalid files in the cache if the daemon is interrupted
+
+ -- Eric Cooper <ecc@cmu.edu>  Sun,  6 Feb 2005 17:20:18 -0500
+
+approx (1.03) unstable; urgency=low
+
+  * Cleanup libcurl connection after each transfer
+
+ -- Eric Cooper <ecc@cmu.edu>  Fri,  4 Feb 2005 09:05:00 -0500
+
+approx (1.02) unstable; urgency=low
+
+  * Use libcurl-ocaml instead of my own wrapper
+
+ -- Eric Cooper <ecc@cmu.edu>  Thu,  3 Feb 2005 21:42:36 -0500
+
+approx (1.01) unstable; urgency=low
+
+  * Don't garbage collect only .deb files;
+    consider everything except Packages, Release, and Sources files
+
+ -- Eric Cooper <ecc@cmu.edu>  Tue,  1 Feb 2005 15:52:02 -0500
+
+approx (1.00) unstable; urgency=low
+
+  * Initial release
+
+ -- Eric Cooper <ecc@cmu.edu>  Sun, 23 Jan 2005 14:05:29 -0500

@@ -1,0 +1,21 @@
+#!/bin/sh -e
+
+action="$1"
+
+if [ "$action" != "purge" ]; then
+    exit 0
+fi
+
+rm -rf /var/cache/approx
+
+if getent passwd approx >/dev/null; then
+    deluser --quiet approx
+fi
+
+if getent group approx >/dev/null; then
+    delgroup --quiet approx
+fi
+
+#DEBHELPER#
+
+# -*- shell-script-mode -*-

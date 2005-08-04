@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# Garbage collect the approx(8) cache
+
+gc_approx --quiet
+
+# Remove any empty directories
+# The trailing /. makes it work when /var/cache/approx is a symlink
+
+find /var/cache/approx/. -type d -empty -exec rmdir {} ';'
