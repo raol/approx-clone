@@ -4,6 +4,7 @@ approx (1.18) unstable; urgency=low
     - Release and Release.gpg files must agree
     - Packages and Sources files must agree with the Release file
       that mentions them
+  * Closes: #322847
 
  -- Eric Cooper <ecc@cmu.edu>  Sun, 31 Jul 2005 16:10:13 -0400
 
