@@ -4,16 +4,27 @@
 
 open Util
 open Default_config
-open Http_daemon
 open Printf
+open Nethttpd_types
 open Unix
+open Log (* Log.error_message shadows Unix.error_message *)
 
 let usage () =
-  prerr_endline "Usage: approx [options]";
-  prerr_endline "Proxy server for Debian archive files";
-  prerr_endline "Options:";
-  prerr_endline "    -f|--foreground    stay in foreground instead of detaching";
+  prerr_endline
+    "Usage: approx [options]
+Proxy server for Debian archive files
+
+Options:
+    -f|--foreground    remain in foreground instead of detaching
+    -h|--help          display this message and exit
+    -v|--version       display version information and exit";
   exit 1
+
+let version () =
+  eprintf "%s %s\n" Version.name Version.number;
+  prerr_endline
+    "Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
+Released under the GNU General Public License"
 
 let foreground = ref false
 
@@ -21,22 +32,11 @@ let () =
   for i = 1 to Array.length Sys.argv - 1 do
     match Sys.argv.(i) with
     | "-f" | "--foreground" -> foreground := true
+    | "-v" | "--version" -> version ()
     | _ -> usage ()
   done
 
-let print_message =
-  if !foreground then
-    fun _ -> prerr_endline
-  else
-    let prog = Filename.basename Sys.argv.(0) in
-    let log = Syslog.openlog ~facility: `LOG_DAEMON prog in
-    Syslog.syslog log
-
-let message level fmt = kprintf (print_message level) fmt
-
-let error_message fmt = message `LOG_ERR fmt
-let info_message fmt = message `LOG_INFO fmt
-let debug_message fmt = message `LOG_DEBUG fmt
+let () = if not !foreground then use_syslog ()
 
 let exception_message exc =
   match exc with
@@ -48,12 +48,10 @@ let exception_message exc =
       error_message "Invalid argument: %s" str
   | Curl.CurlException (_, _, str) ->
       error_message "Curl exception: %s" str
+  | Unix_error (err, str, "") ->
+      error_message "%s: %s" str (Unix.error_message err)
   | Unix_error (err, str, arg) ->
-      if err = EADDRINUSE && str = "bind" then
-	error_message "Port %d is already in use" port
-      else
-	error_message "%s: %s%s" str (Unix.error_message err)
-	  (if arg = "" then "" else sprintf " (%s)" arg)
+      error_message "%s: %s (%s)" str (Unix.error_message err) arg
   | e ->
       error_message "%s" (Printexc.to_string e)
 
@@ -75,51 +73,6 @@ let http_time t =
   Netdate.format ~fmt: "%a, %d %b %Y %T GMT" (Netdate.create ~zone: 0 t)
 
 let string_of_time = http_time
-
-(* Note that if we include a Content-Length field in our response,
-   APT assumes that we will keep the connection alive.
-   If we close it instead, APT prints error messages of the form
-	Error reading from server - read (104 Connection reset by peer)
-   or passes partial files to gzip for decompression, resulting in
-	Sub-process gzip returned an error code (1) *)
-
-let has_header h =
-  let h = String.lowercase h in
-  let rec loop = function
-    | (name, _) :: rest ->
-	if String.lowercase name = h then true
-	else loop rest
-    | [] -> false
-  in
-  loop
-
-let response_headers ?(msg = "Local") code headers chan =
-  send_basic_headers chan ~code: (`Code code);
-  if debug then
-    begin
-      debug_message "%s response: %d" msg code;
-      List.iter (fun (x, y) -> debug_message "  %s: %s" x y) headers
-    end;
-  send_headers chan ~headers;
-  if not (has_header "Connection" headers) then
-    send_headers chan ~headers: [ "Connection", "keep-alive" ];
-  if code = 200 && not (has_header "Content-Length" headers) then
-    error_message "No HTTP Content-Length header";
-  send_CRLF chan
-
-let content_type file_name = "Content-Type", "text/plain"
-let content_lastmod time = "Last-Modified", http_time time
-let content_length length = "Content-Length", string_of_int length
-
-let proxy_headers file_name stats =
-  response_headers 200
-    [ content_type file_name;
-      content_lastmod stats.st_mtime;
-      content_length stats.st_size ]
-
-let relay_headers = response_headers ~msg: "HTTP proxy"
-
-let respond_not_modified = response_headers 304 []
 
 let in_progress name = name ^ ".tmp"  (* temporary name in case the download
 					 is interrupted *)
@@ -144,24 +97,21 @@ let wait_for_download_in_progress name =
   in
   wait 0
 
-let copy ~src ~dst =
-  let len = 4096 in
-  let buf = String.create len in
-  let rec loop () =
-    match input src buf 0 len with
-    | 0 -> ()
-    | n -> output dst buf 0 n; loop ()
-  in
-  loop ()
+let print_headers msg headers =
+  debug_message "%s" msg;
+  List.iter (fun (x, y) -> debug_message "  %s: %s" x y) headers
+
+let proxy_headers name env =
+  env#set_output_header_field "Content-Type" "text/plain";
+  env#set_output_header_field "Last-Modified" (http_time (file_modtime name));
+  if debug then print_headers "Local response" env#output_header_fields
 
 (* Deliver a file from the local cache *)
 
-let deliver_local name ochan =
-  wait_for_download_in_progress name;
+let deliver_local name env =
   if not debug then info_message "%s" name;
-  with_channel open_in name (fun ichan ->
-    proxy_headers name (fstat (descr_of_in_channel ichan)) ochan;
-    copy ~src: ichan ~dst: ochan)
+  proxy_headers name env;
+  `File (`Ok, None, cache_dir ^/ name, 0L, file_size name)
 
 (* Return the age of a file in minutes, using the last status change
    time (ctime) rather than the modification time (mtime).
@@ -192,23 +142,27 @@ let too_old stats =  minutes_old stats > interval
 
 (* Attempt to serve the requested file from the local cache *)
 
-exception Stale of float
+exception Cache_miss of float
 
-let serve_local name ims ochan =
+let not_found () = raise (Cache_miss 0.)
+
+let stale mod_time = raise (Cache_miss mod_time)
+
+let serve_local name ims env =
   wait_for_download_in_progress name;
   let stats =
     try stat name
-    with Unix_error (ENOENT, "stat", _) -> raise Not_found
+    with Unix_error (ENOENT, "stat", _) -> not_found ()
   in
   if debug then print_age name stats ims;
   if stats.st_kind <> S_REG then
-    raise Not_found
+    not_found ()
   else if is_mutable name && (always_refresh name || too_old stats) then
-    raise (Stale stats.st_mtime)
+    stale stats.st_mtime
   else if stats.st_mtime > ims then
-    deliver_local name ochan
+    deliver_local name env
   else
-    respond_not_modified ochan
+    `Std_response (`Not_modified, None, None)
 
 let make_directory path =
   let rec loop cwd = function
@@ -253,7 +207,7 @@ let write_cache str =
       output_string chan str;
       flush chan
 
-let close_cache ?(mod_time=0.) ?(size=(-1)) () =
+let close_cache ?(mod_time=0.) ?(size=(-1L)) () =
   match !cache_chan with
   | None -> assert false
   | Some chan ->
@@ -261,7 +215,7 @@ let close_cache ?(mod_time=0.) ?(size=(-1)) () =
       close_out chan;
       cache_chan := None;
       try
-	if size = -1 || size = file_size !tmp_cache_file then
+	if size = -1L || size = file_size !tmp_cache_file then
 	  begin
 	    Sys.rename !tmp_cache_file !cache_file;
 	    if mod_time <> 0. then
@@ -274,7 +228,7 @@ let close_cache ?(mod_time=0.) ?(size=(-1)) () =
 	  end
 	else
 	  begin
-	    error_message "Size of %s should be %d" !cache_file size;
+	    error_message "Size of %s should be %Ld" !cache_file size;
 	    Sys.remove !tmp_cache_file
 	  end
       with e ->
@@ -289,7 +243,7 @@ let remove_cache () =
       let name = !tmp_cache_file in
       close_out chan;
       cache_chan := None;
-      error_message "Removing %s (size: %d)" name (file_size name);
+      error_message "Removing %s (size: %Ld)" name (file_size name);
       Sys.remove name
 
 type download_status =
@@ -339,9 +293,9 @@ let once flag proc =
 
 (* Respond to a request for a file at an HTTP repository *)
 
-let serve_http url name ims chan =
+let serve_http url name ims env output =
   let header_list = ref [] in
-  let length = ref (-1) in
+  let length = ref (-1L) in
   let last_modified = ref 0. in
   let chunked = ref false in
   let add_header (header, value as pair) =
@@ -350,7 +304,7 @@ let serve_http url name ims chan =
 	header_list := pair :: !header_list
     | "content-length" ->
 	header_list := pair :: !header_list;
-	(try length := int_of_string value
+	(try length := Int64.of_string value
 	with Failure _ ->
 	  error_message "Cannot parse Content-Length value %s" value)
     | "last-modified" ->
@@ -380,10 +334,13 @@ let serve_http url name ims chan =
   in
   let body_seen = ref false in
   let start_transfer () =
-    open_cache name;
     if not !chunked then
       (* start our response now *)
-      relay_headers !status (List.rev !header_list) chan
+      begin
+	env#set_output_header_fields !header_list;
+	if debug then print_headers "Proxy response" env#output_header_fields
+      end;
+    open_cache name
   in
   let body_callback str =
     if !status = 200 then
@@ -392,10 +349,7 @@ let serve_http url name ims chan =
 	write_cache str;
 	if not !chunked then
 	  (* stream the data back to the client as we receive it *)
-	  begin
-	    output_string chan str;
-	    flush chan
-	  end
+	  output#output_string str
       end
   in
   let headers =
@@ -416,7 +370,7 @@ let serve_http url name ims chan =
 
 (* Respond to a request for a file at an FTP repository *)
 
-let serve_ftp url name ims chan =
+let serve_ftp url name ims env output =
   let mod_time = Url.mod_time url in
   if debug then
     debug_message "  ims %s  mtime %s"
@@ -456,39 +410,64 @@ let cleanup_after name =
   if Sys.file_exists name then
     List.iter remove (Release.files_invalidated_by name)
 
-let serve_remote url name ims ims' chan =
-  try
-    info_message "%s" url;
-    let status = serve_url url name (max ims ims') chan in
-    if debug then
-      debug_message "  status: %s" (string_of_download_status status);
-    match status with
-    | Delivered ->
-	cleanup_after name
-    | Cached ->
-	deliver_local name chan;
-	cleanup_after name
-    | Not_modified ->
-	update_ctime name;
-	if ims < ims' then
-	  deliver_local name chan
-	else
-	  respond_not_modified chan
-    | File_not_found ->
-	respond_not_found ~url: name chan
-  with e ->
-    remove_cache ();
-    exception_message e;
-    respond_not_found ~url: name chan
+let copy src dst =
+  let len = 4096 in
+  let buf = String.create len in
+  let rec loop () =
+    match input src buf 0 len with
+    | 0 -> dst#flush ()
+    | n -> dst#really_output buf 0 n; loop ()
+  in
+  loop ()
 
-let ims_time headers =
-  (* the OCaml HTTP library converts header names to lowercase *)
-  try Netdate.parse_epoch (List.assoc "if-modified-since" headers)
-  with Not_found | Invalid_argument _ -> 0.
+(* Similar to deliver_local, but we have to copy it ourselves *)
 
-let print_request path headers =
-  debug_message "Request %s" path;
-  List.iter (fun (x, y) -> debug_message "  %s: %s" x y) headers
+let copy_from_cache name env output =
+  wait_for_download_in_progress name;
+  env#set_output_header_field "Content-Length"
+    (Int64.to_string (file_size name));
+  proxy_headers name env;
+  with_channel open_in name (fun input -> copy input output)
+
+let serve_remote url name ims mod_time env output =
+  info_message "%s" url;
+  let status =
+    try serve_url url name (max ims mod_time) env output
+    with e ->
+      remove_cache ();
+      exception_message e;
+      raise (Standard_response (`Not_found, None, Some "Download failed"))
+  in
+  if debug then
+    debug_message "  status: %s" (string_of_download_status status);
+  match status with
+  | Delivered ->
+      cleanup_after name
+  | Cached ->
+      copy_from_cache name env output;
+      cleanup_after name
+  | Not_modified ->
+      update_ctime name;
+      if mod_time > ims then
+	(* the cached copy is newer than what the client has *)
+	copy_from_cache name env output
+      else
+	raise (Standard_response (`Not_modified, None, None))
+  | File_not_found ->
+      raise (Standard_response (`Not_found, None, None))
+
+let remote_service url name ims mod_time =
+  object
+    method process_body env =
+      let cgi =
+	Nethttpd_services.std_activation `Std_activation_buffered env
+      in
+      object
+	method generate_response env =
+	  serve_remote url name ims mod_time env cgi#output;
+	  cgi#output#commit_work ()
+      end
+  end
 
 let validate_path path =
   let name = relative_path path in
@@ -500,37 +479,51 @@ let validate_path path =
   | [] ->
       invalid_arg "invalid path"
 
-let serve_file path headers chan =
-  if debug then print_request path headers;
+let ims_time env =
+  try Netdate.parse_epoch (env#input_header#field "If-Modified-Since")
+  with Not_found | Invalid_argument _ -> 0.
+
+let serve_file env =
+  let path = env#cgi_request_uri in
+  let headers = env#input_header_fields in
+  if debug then print_headers (sprintf "Request %s" path) headers;
   try
     let name, url = validate_path path in
-    let ims = ims_time headers in
-    try
-      serve_local name ims chan
-    with
-    | Stale mtime ->
-	(* old version in the local cache *)
-	serve_remote url name ims mtime chan
-    | Not_found ->
-	(* file not in local cache *)
-	serve_remote url name ims ims chan
+    let ims = ims_time env in
+    try serve_local name ims env
+    with Cache_miss mod_time ->
+      (* The file is either not present (mod_time = 0)
+	 or it hasn't been verified recently enough.
+	 In either case, we must contact the remote repository. *)
+      `Accept_body (remote_service url name ims mod_time)
   with Invalid_argument msg ->
-    error_message "%s: %s" path msg;
-    respond_forbidden ~url: path chan
+    `Std_response (`Forbidden, None, Some msg)
 
-let callback req chan =
-  info_message "Connection from %s" req#clientAddr;
-  match req#params with
-  | [] -> serve_file req#path req#headers chan
-  | _ -> respond_forbidden ~url: req#path chan
+let proxy_service =
+  let version = Version.name ^/ Version.number in
+  object (self)
+    method name = "proxy_service"
+    method def_term = `Proxy_service
+    method print fmt = Format.fprintf fmt "%s" "proxy_service"
+
+    method process_header env =
+      (match env#remote_socket_addr with
+       | ADDR_INET (host, port) ->
+	   info_message "Connection from %s:%d" (string_of_inet_addr host) port
+       | ADDR_UNIX path ->
+	   failwith ("connection from UNIX socket " ^ path));
+      env#set_output_header_field "Server" version;
+      if env#cgi_request_method = "GET" && env#cgi_query_string = "" then
+	serve_file env
+      else
+	`Std_response (`Forbidden, None, Some "Invalid request line")
+  end
 
 let server () =
-  let mode = `Fork in
-  let root_dir = Some cache_dir in
-  let timeout = None in
   try
+    Sys.chdir cache_dir;
     print_config ();
-    main (daemon_spec ~callback ~mode ~port ~root_dir ~timeout ())
+    Server.main port proxy_service
   with e ->
     exception_message e;
     exit 1

@@ -67,6 +67,6 @@ let rec treewalk proc path =
 
 let file_modtime file = (stat file).st_mtime
 
-let file_size file = (stat file).st_size
+let file_size file = (LargeFile.stat file).LargeFile.st_size
 
 let file_md5sum file = Digest.to_hex (Digest.file file)

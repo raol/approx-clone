@@ -1,0 +1,9 @@
+#!/usr/bin/perl -w
+use strict;
+
+open(CHANGELOG, "dpkg-parsechangelog |") or exit 1;
+while (<CHANGELOG>) {
+    /^Source:\s+(\S+)/ && print "let name = \"$1\"\n";
+    /^Version:\s+(\S+)/ && print "let number = \"$1\"\n";
+}
+close(CHANGELOG);
