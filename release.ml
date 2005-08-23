@@ -13,7 +13,7 @@ let release_file file =
     let check_file md5sum size filename =
       let file = path ^/ filename in
       if Sys.file_exists file &&
-	 (file_size file <> int_of_string size || file_md5sum file <> md5sum)
+	 (file_size file <> Int64.of_string size || file_md5sum file <> md5sum)
       then
 	file :: invalid
       else

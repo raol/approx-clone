@@ -57,7 +57,7 @@ val file_modtime : string -> float
 
 (* Return the size of a file *)
 
-val file_size : string -> int
+val file_size : string -> int64
 
 (* Return the MD5 digest of a file *)
 

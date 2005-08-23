@@ -113,7 +113,7 @@ let canonical path =
 
 let mark_file prefix fields =
   let file = canonical (List.assoc "filename" fields) in
-  let size = int_of_string (List.assoc "size" fields) in
+  let size = Int64.of_string (List.assoc "size" fields) in
   let md5sum = List.assoc "md5sum" fields in
   let path = prefix ^/ file in
   try

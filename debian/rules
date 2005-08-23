@@ -5,6 +5,7 @@
 build: build-stamp
 build-stamp:
 	dh_testdir
+	./gen_version > version.ml
 	if [ -x /usr/bin/ocamlopt ]; then \
 	    $(MAKE) native-code; \
 	else \
@@ -17,6 +18,7 @@ clean:
 	dh_testroot
 	rm -f build-stamp
 	-$(MAKE) clean
+	rm -f version.ml
 	dh_clean
 
 install: build

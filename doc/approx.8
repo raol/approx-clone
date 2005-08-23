@@ -36,6 +36,11 @@ program removes these from the cache.
 .BR \-f ", " \-\^\-foreground
 Run in the foreground instead of detaching as a daemon,
 and print messages to standard error instead of the system log.
+.TP
+.BR \-v ", " \-\^\-version
+Display
+.B approx
+version information and exit.
 
 .SH EXAMPLES
 By default,
@@ -90,20 +95,6 @@ Cache directory for archive files.
 .BR gc_approx (8),
 .BR apt\-get (8),
 .IR sources.list (5)
-
-.SH BUGS
-.PP
-When a client uses
-.BR apt\-get (8)
-to install a package that is not in the
-.B approx
-server's cache,
-the transfer will occasionally fail with an MD5 checksum error.
-In all of the cases the author has observed, the file has been cached
-correctly on the server,
-and re-running
-.BR apt\-get (8)
-solves the problem.
 
 .SH AUTHOR
 Eric Cooper <ecc@cmu.edu>
