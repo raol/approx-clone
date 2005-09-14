@@ -2,10 +2,10 @@
    Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-val iter :
+val head : string -> (string -> unit) -> unit
+
+val download :
   string ->
   ?headers:string list ->
   ?header_callback:(string -> unit) ->
-  (string -> unit) -> unit
-
-val mod_time : string -> float
+  (string -> int -> int -> unit) -> unit

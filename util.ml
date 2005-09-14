@@ -29,6 +29,8 @@ let explode_path = split '/'
 
 let implode_path = String.concat "/"
 
+let quoted_string str = "\"" ^ String.escaped str ^ "\""
+
 let (^/) = Filename.concat
 
 let relative_path name =

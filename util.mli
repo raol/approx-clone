@@ -24,6 +24,10 @@ val explode_path : string -> string list
 
 val implode_path : string list -> string
 
+(* Return a quoted string *)
+
+val quoted_string : string -> string
+
 (* Infix operator to concatenate two pathname components *)
 
 val (^/) : string -> string -> string
