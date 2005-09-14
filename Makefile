@@ -8,8 +8,8 @@ export OCAMLFLAGS = -w A
 
 define PROJ_server
     SOURCES = util.ml config.ml default_config.ml log.ml url.ml control_file.ml release.ml server.ml version.ml approx.ml
-    INCDIRS = +pcre +syslog +netstring +cgi +nethttpd +curl
-    LIBS = unix pcre syslog netstring cgi nethttpd curl
+    INCDIRS = +pcre +syslog +netstring +cgi +nethttpd
+    LIBS = unix pcre syslog netstring cgi nethttpd
     RESULT = approx
 endef
 export PROJ_server

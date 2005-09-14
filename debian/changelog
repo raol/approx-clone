@@ -1,7 +1,13 @@
+approx (1.51) unstable; urgency=low
+
+  * Changed client to use curl subprocesses instead of ocurl
+  * For simplicity, all downloads are cached first, then sent to the client
+
+ -- Eric Cooper <ecc@cmu.edu>  Wed, 14 Sep 2005 09:37:54 -0400
+
 approx (1.50) unstable; urgency=low
 
-  * Changed server to use nethttpd from the ocamlnet library
-    instead of ocaml-http
+  * Changed server to use nethttpd instead of ocaml-http
 
  -- Eric Cooper <ecc@cmu.edu>  Mon, 22 Aug 2005 16:53:22 -0400
 
