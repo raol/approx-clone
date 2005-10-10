@@ -257,40 +257,43 @@ let close_cache ?(mod_time=0.) ?(size=(-1)) () =
   match !cache_chan with
   | None -> assert false
   | Some chan ->
-      if debug then debug_message "  close cache %s" !cache_file;
+      let real_name = !cache_file in
+      let tmp_name = !tmp_cache_file in
+      if debug then debug_message "  close cache %s" real_name;
       close_out chan;
       cache_chan := None;
       try
-	if size = -1 || size = file_size !tmp_cache_file then
+	if size = -1 || size = file_size tmp_name then
 	  begin
-	    Sys.rename !tmp_cache_file !cache_file;
+	    Sys.rename tmp_name real_name;
 	    if mod_time <> 0. then
 	      begin
 		if debug then
 		  debug_message "  setting mtime to %s"
 		    (string_of_time mod_time);
-		utimes !cache_file mod_time mod_time
+		utimes real_name mod_time mod_time
 	      end
 	  end
 	else
 	  begin
-	    error_message "Size of %s should be %d" !cache_file size;
-	    Sys.remove !tmp_cache_file
+	    error_message "Size of %s should be %d, not %d"
+	      real_name size (file_size tmp_name);
+	    Sys.remove tmp_name
 	  end
       with e ->
 	(* gc_approx or another approx process might have removed .tmp file *)
-	error_message "Cannot close cache file %s" !cache_file;
+	error_message "Cannot close cache file %s" real_name;
 	exception_message e
 
 let remove_cache () =
   match !cache_chan with
   | None -> ()
   | Some chan ->
-      let name = !tmp_cache_file in
+      let tmp_name = !tmp_cache_file in
       close_out chan;
       cache_chan := None;
-      error_message "Removing %s (size: %d)" name (file_size name);
-      Sys.remove name
+      error_message "Removing %s (size: %d)" tmp_name (file_size tmp_name);
+      Sys.remove tmp_name
 
 type download_status =
   | Delivered
