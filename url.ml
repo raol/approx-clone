@@ -34,12 +34,17 @@ let iter_headers chan proc =
   in
   loop ()
 
+let finish = function
+  | Unix.WEXITED 0 -> ()
+  | Unix.WEXITED _ | Unix.WSIGNALED _ | Unix.WSTOPPED _ ->
+      failwith "download failed"
+
 let head url callback =
   let cmd = head_command url in
   if debug then debug_message "Command: %s" cmd;
   let chan = Unix.open_process_in cmd in
   iter_headers chan callback;
-  ignore (Unix.close_process_in chan)
+  finish (Unix.close_process_in chan)
 
 let download_command url headers headers_wanted =
   let buf = Buffer.create 200 in
@@ -69,4 +74,4 @@ let download url ?(headers=[]) ?header_callback callback =
    | Some proc -> iter_headers chan proc
    | None -> ());
   iter_body chan callback;
-  ignore (Unix.close_process_in chan)
+  finish (Unix.close_process_in chan)

@@ -40,18 +40,14 @@ let () = if not !foreground then use_syslog ()
 
 let exception_message exc =
   match exc with
-  | Sys_error str ->
-      error_message "%s" str
-  | Failure str ->
-      error_message "Failure: %s" str
-  | Invalid_argument str ->
-      error_message "Invalid argument: %s" str
+  | Failure str -> error_message "%s" (String.capitalize str)
+  | Invalid_argument str -> error_message "Invalid argument: %s" str
+  | Sys_error str -> error_message "%s" str
   | Unix_error (err, str, "") ->
       error_message "%s: %s" str (Unix.error_message err)
   | Unix_error (err, str, arg) ->
       error_message "%s: %s (%s)" str (Unix.error_message err) arg
-  | e ->
-      error_message "%s" (Printexc.to_string e)
+  | e -> error_message "%s" (Printexc.to_string e)
 
 let print_config () =
   let units u = function
@@ -66,18 +62,6 @@ let print_config () =
     (units "hour" (interval / 60)) (units "minute" (interval mod 60));
   info_message "Max wait: %d" max_wait;
   info_message "Debug: %B" debug
-
-type download_status =
-  | Cached
-  | Not_modified
-  | File_not_found
-  | Wrong_size
-
-let string_of_download_status = function
-  | Cached -> "Cached"
-  | Not_modified -> "Not modified"
-  | File_not_found -> "File not found"
-  | Wrong_size -> "Wrong size"
 
 let http_time t =
   Netdate.format ~fmt: "%a, %d %b %Y %T GMT" (Netdate.create ~zone: 0 t)
@@ -111,18 +95,19 @@ let print_headers msg headers =
   debug_message "%s" msg;
   List.iter (fun (x, y) -> debug_message "  %s: %s" x y) headers
 
-let proxy_headers name =
+let proxy_headers size modtime =
   ["Content-Type", "text/plain";
-   "Content-Length", Int64.to_string (file_size name);
-   "Last-Modified", http_time (file_modtime name)]
+   "Content-Length", Int64.to_string size ] @
+  if modtime <> 0. then ["Last-Modified", http_time modtime] else []
 
 (* Deliver a file from the local cache *)
 
 let deliver_local name env =
   if not debug then info_message "%s" name;
-  env#set_output_header_fields (proxy_headers name);
+  let size = file_size name in
+  env#set_output_header_fields (proxy_headers size (file_modtime name));
   if debug then print_headers "Cache hit" env#output_header_fields;
-  `File (`Ok, None, cache_dir ^/ name, 0L, file_size name)
+  `File (`Ok, None, cache_dir ^/ name, 0L, size)
 
 (* Return the age of a file in minutes, using the last status change
    time (ctime) rather than the modification time (mtime).
@@ -180,10 +165,10 @@ let make_directory path =
     | dir :: rest ->
 	let name = cwd ^/ dir in
 	(try
-	  if (stat name).st_kind <> S_DIR then
-	    failwith (name ^ " exists but is not a directory")
-	with
-	  Unix_error (ENOENT, "stat", _) -> mkdir name 0o755);
+	   if (stat name).st_kind <> S_DIR then
+	     failwith ("file " ^ name ^ " is not a directory")
+	 with
+	   Unix_error (ENOENT, "stat", _) -> mkdir name 0o755);
 	loop name rest
     | [] -> ()
   in
@@ -208,16 +193,19 @@ let open_cache name =
     tmp_cache_file := in_progress name;
     cache_chan := Some (create_file !tmp_cache_file)
   with e ->
-    exception_message e;
-    error_message "Cannot cache %s" name
+    error_message "Cannot cache %s" name;
+    raise e
 
 let write_cache str pos len =
   match !cache_chan with
-  | Some chan -> output chan str pos len
   | None -> assert false
+  | Some chan -> output chan str pos len
+
+exception Wrong_size
 
 let close_cache mod_time size =
   match !cache_chan with
+  | None -> assert false
   | Some chan ->
       let real_name = !cache_file in
       let tmp_name = !tmp_cache_file in
@@ -234,18 +222,14 @@ let close_cache mod_time size =
 		  (string_of_time mod_time);
 	      utimes real_name mod_time mod_time
 	    end;
-	  Cached
 	end
       else
-	(* FIXME:
-	   gc_approx or another approx process might have removed .tmp file *)
 	begin
 	  error_message "Size of %s should be %Ld, not %Ld"
 	    real_name size (file_size tmp_name);
 	  Sys.remove tmp_name;
-	  Wrong_size
+	  raise Wrong_size
 	end
-  | None -> assert false
 
 let remove_cache () =
   match !cache_chan with
@@ -256,6 +240,25 @@ let remove_cache () =
       cache_chan := None;
       error_message "Removing %s (size: %Ld)" tmp_name (file_size tmp_name);
       Sys.remove tmp_name
+
+type download_status =
+  | Delivered
+  | Cached
+  | Not_modified
+  | File_not_found
+
+let string_of_download_status = function
+  | Delivered -> "Delivered"
+  | Cached -> "Cached"
+  | Not_modified -> "Not modified"
+  | File_not_found -> "File not found"
+
+let send_header size modtime (cgi : Netcgi_types.cgi_activation) =
+  let headers = proxy_headers size modtime in
+  let fields = List.map (fun (name, value) -> (name, [value])) headers in
+  cgi#set_header ~status: `Ok ~fields ();
+  if debug then
+    print_headers "Proxy response" cgi#environment#output_header_fields
 
 (* Update the ctime but not the mtime of the file, if it exists *)
 
@@ -289,7 +292,7 @@ let process_header (status, length, last_modified) str =
     | "content-length" ->
 	(try length := Int64.of_string value
 	 with Failure _ ->
-	   error_message "Cannot parse Content-Length value %s" value)
+	   error_message "Cannot parse Content-Length %s" value)
     | "last-modified" ->
 	(try last_modified := Netdate.parse_epoch value
 	 with Invalid_argument _ ->
@@ -304,17 +307,26 @@ let process_header (status, length, last_modified) str =
 
 (* Download a file from an HTTP repository *)
 
-let download_http url name ims =
+let download_http url name ims cgi =
   let status = ref 0 in
   let length = ref (-1L) in
   let last_modified = ref 0. in
   let header_callback = process_header (status, length, last_modified) in
   let body_seen = ref false in
+  let start_transfer () =
+    open_cache name;
+    if !length >= 0L then
+      (* start our response now *)
+      send_header !length !last_modified cgi
+  in
   let body_callback str pos len =
     if !status = 200 then
       begin
-	once body_seen (fun () -> open_cache name);
-	write_cache str pos len
+	once body_seen start_transfer;
+	write_cache str pos len;
+	if !length >= 0L then
+	  (* stream the data back to the client as we receive it *)
+	  cgi#output#really_output str pos len
       end
   in
   let headers =
@@ -322,14 +334,16 @@ let download_http url name ims =
   in
   Url.download url ~headers ~header_callback body_callback;
   match !status with
-  | 200 -> close_cache !last_modified !length
+  | 200 ->
+      close_cache !last_modified !length;
+      if !length >= 0L then Delivered else Cached
   | 304 -> Not_modified
   | 404 -> File_not_found
   | n -> error_message "Unexpected status code: %d" n; File_not_found
 
 (* Download a file from an FTP repository *)
 
-let download_ftp url name ims =
+let download_ftp url name ims cgi =
   let status = ref 0 in
   let length = ref (-1L) in
   let last_modified = ref 0. in
@@ -337,14 +351,23 @@ let download_ftp url name ims =
   Url.head url header_callback;
   let mod_time = !last_modified in
   if debug then
-      debug_message "  ims %s  mtime %s"
-	(string_of_time ims) (string_of_time mod_time);
+    debug_message "  ims %s  mtime %s"
+      (string_of_time ims) (string_of_time mod_time);
   if mod_time > ims || mod_time = 0. then
-    begin
-      open_cache name;
-      Url.download url write_cache;
-      close_cache !last_modified !length
-    end
+    let size = !length in
+    if size >= 0L then
+      (* start our response now *)
+      send_header size mod_time cgi;
+    let body_callback str pos len =
+      write_cache str pos len;
+      if size >= 0L then
+	(* stream the data back to the client as we receive it *)
+	cgi#output#really_output str pos len
+    in
+    open_cache name;
+    Url.download url body_callback;
+    close_cache mod_time size;
+    if size >= 0L then Delivered else Cached
   else
     Not_modified
 
@@ -379,47 +402,42 @@ let copy src dst =
   in
   loop ()
 
-let send_header name (cgi : Netcgi_types.cgi_activation) =
-  let fields =
-    List.map (fun (name, value) -> (name, [value])) (proxy_headers name)
-  in
-  cgi#set_header ~status: `Ok ~fields ();
-  if debug then print_headers "Cache miss" cgi#environment#output_header_fields
-
 (* Similar to deliver_local, but we have to copy it ourselves *)
 
 let copy_from_cache name cgi =
   wait_for_download_in_progress name;
-  send_header name cgi;
+  send_header (file_size name) (file_modtime name) cgi;
   let output = cgi#output in
   with_channel open_in name (fun input -> copy input output);
   output#commit_work ()
 
+let respond code = raise (Standard_response (code, None, None))
+
 let serve_remote url name ims mod_time cgi =
   info_message "%s" url;
   let status =
-    try download_url url name (max ims mod_time)
+    try download_url url name (max ims mod_time) cgi
     with e ->
       remove_cache ();
       exception_message e;
-      raise (Standard_response (`Not_found, None, Some "Download failed"))
+      respond `Not_found
   in
   if debug then debug_message "  => %s" (string_of_download_status status);
   match status with
+  | Delivered ->
+      cleanup_after name
   | Cached ->
       copy_from_cache name cgi;
       cleanup_after name
   | Not_modified ->
       update_ctime name;
       if mod_time > ims then
-	(* the cached copy is newer than what the client has *)
+      (* the cached copy is newer than what the client has *)
 	copy_from_cache name cgi
       else
-	raise (Standard_response (`Not_modified, None, None))
+	respond `Not_modified
   | File_not_found ->
-      raise (Standard_response (`Not_found, None, None))
-  | Wrong_size ->
-      raise (Standard_response (`Service_unavailable, None, Some "Wrong size"))
+      respond `Not_found
 
 let remote_service url name ims mod_time =
   object
