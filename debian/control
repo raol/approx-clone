@@ -3,12 +3,12 @@ Section: admin
 Priority: optional
 Maintainer: Eric Cooper <ecc@cmu.edu>
 Uploaders: Sven Luther <luther@debian.org>, Stefano Zacchiroli <zack@debian.org>
-Build-Depends: debhelper (>= 4.0), ocaml-nox-3.08.3, ocaml-best-compilers, ocaml-tools, libcurl-ocaml-dev (>= 0.2.1), libhttp-ocaml-dev (>= 0.1.1), libocamlnet-ocaml-dev (>= 1.1), libpcre-ocaml-dev (>= 5.10.0), libsyslog-ocaml-dev (>= 1.2)
+Build-Depends: debhelper (>= 4.0), ocaml-nox-3.08.3, ocaml-best-compilers, ocaml-tools, libocamlnet-ocaml-dev (>= 1.1), libpcre-ocaml-dev (>= 5.10.0), libsyslog-ocaml-dev (>= 1.2)
 Standards-Version: 3.6.2
 
 Package: approx
 Architecture: any
-Depends: ${shlibs:Depends}, bzip2, wget
+Depends: ${shlibs:Depends}, bzip2, curl
 Description: caching proxy server for Debian archive files
  Approx is an HTTP-based Debian archive server.
  It fetches packages from remote repositories on demand,

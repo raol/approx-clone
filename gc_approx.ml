@@ -14,13 +14,13 @@ open Printf
 open Unix
 
 let usage () =
-  prerr_endline "Usage: gc_approx [options]";
-  prerr_endline "Garbage-collect the approx cache";
-  prerr_endline "Options:";
-  prerr_endline "    -f|--fast     do not validate MD5 checksums";
-  prerr_endline "    -k|--keep     do not remove files";
-  prerr_endline "    -q|--quiet    do not print file names";
-  prerr_endline "    -v|--verbose  print reason for removal";
+  prerr_endline "Usage: gc_approx [options]
+Garbage-collect the approx cache
+Options:
+    -f|--fast     do not validate MD5 checksums
+    -k|--keep     do not remove files
+    -q|--quiet    do not print file names
+    -v|--verbose  print reason for removal";
   exit 1
 
 let no_checksum = ref false
@@ -113,7 +113,7 @@ let canonical path =
 
 let mark_file prefix fields =
   let file = canonical (List.assoc "filename" fields) in
-  let size = int_of_string (List.assoc "size" fields) in
+  let size = Int64.of_string (List.assoc "size" fields) in
   let md5sum = List.assoc "md5sum" fields in
   let path = prefix ^/ file in
   try
@@ -130,9 +130,13 @@ let mark_file prefix fields =
 
 let download dist file package =
   let url = Config.get dist ^/ file in
-  prerr_string "downloading "; prerr_endline url;
+  eprintf "downloading %s\n" url; flush Pervasives.stderr;
   let package' = package ^ ".tmp" in
-  if Sys.command (sprintf "/usr/bin/wget -q -O %s %s" package' url) = 0 then
+  let cmd =
+    sprintf "/usr/bin/curl --silent --output %s %s"
+      package' (quoted_string url)
+  in
+  if Sys.command cmd = 0 then
     Sys.rename package' package
   else
     failwith ("cannot download " ^ url)
@@ -141,8 +145,7 @@ let mark_package package =
   if !verbose then (print_string "# "; print_endline package);
   let dist, file = split_cache_pathname package in
   let prefix = cache_dir ^/ dist in
-  try
-    Control_file.iter (mark_file prefix) package
+  try Control_file.iter (mark_file prefix) package
   with Failure "decompress" ->
     (* corrupt Packages file: download it and try again *)
     download dist file package;

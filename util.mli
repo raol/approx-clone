@@ -24,6 +24,10 @@ val explode_path : string -> string list
 
 val implode_path : string list -> string
 
+(* Return a quoted string *)
+
+val quoted_string : string -> string
+
 (* Infix operator to concatenate two pathname components *)
 
 val (^/) : string -> string -> string
@@ -57,7 +61,7 @@ val file_modtime : string -> float
 
 (* Return the size of a file *)
 
-val file_size : string -> int
+val file_size : string -> int64
 
 (* Return the MD5 digest of a file *)
 

@@ -1,3 +1,23 @@
+approx (2.00) unstable; urgency=low
+
+  * Stream the response to the client while downloading to the cache
+  * Release with new major version
+
+ -- Eric Cooper <ecc@cmu.edu>  Mon, 10 Oct 2005 10:04:09 -0400
+
+approx (1.51) unstable; urgency=low
+
+  * Changed client to use curl subprocesses instead of ocurl
+  * For simplicity, all downloads are cached first, then sent to the client
+
+ -- Eric Cooper <ecc@cmu.edu>  Wed, 14 Sep 2005 09:37:54 -0400
+
+approx (1.50) unstable; urgency=low
+
+  * Changed server to use nethttpd instead of ocaml-http
+
+ -- Eric Cooper <ecc@cmu.edu>  Mon, 22 Aug 2005 16:53:22 -0400
+
 approx (1.18) unstable; urgency=low
 
   * Secure APT imposes additional consistency requirements on the cache:
