@@ -1,6 +1,8 @@
 approx (2.01) unstable; urgency=low
 
   * Updated debian/control for ocaml version 3.09.0
+  * Added dependency on adduser (for postinst script)
+  * Removed unused variables (or renamed with _) to eliminate warnings
 
  -- Eric Cooper <ecc@cmu.edu>  Tue,  1 Nov 2005 17:43:55 -0500
 

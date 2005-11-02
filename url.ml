@@ -47,7 +47,6 @@ let head url callback =
   finish (Unix.close_process_in chan)
 
 let download_command url headers headers_wanted =
-  let buf = Buffer.create 200 in
   let add_header str h =
     sprintf "%s --header %s" str (quoted_string h)
   in
