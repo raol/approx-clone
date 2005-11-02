@@ -483,7 +483,7 @@ let serve_file env =
 
 let proxy_service =
   let version = Version.name ^/ Version.number in
-  object (self)
+  object (_self)
     method name = "proxy_service"
     method def_term = `Proxy_service
     method print fmt = Format.fprintf fmt "%s" "proxy_service"
