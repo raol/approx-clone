@@ -203,7 +203,7 @@ let write_cache str pos len =
 
 exception Wrong_size
 
-let close_cache mod_time size =
+let close_cache size mod_time =
   match !cache_chan with
   | None -> assert false
   | Some chan ->
@@ -259,6 +259,16 @@ let send_header size modtime (cgi : Netcgi_types.cgi_activation) =
   cgi#set_header ~status: `Ok ~fields ();
   if debug then
     print_headers "Proxy response" cgi#environment#output_header_fields
+
+let finish_delivery size modtime cgi =
+  close_cache size modtime;
+  if size >= 0L then
+    begin
+      cgi#output#commit_work ();
+      Delivered
+    end
+  else
+    Cached
 
 (* Update the ctime but not the mtime of the file, if it exists *)
 
@@ -334,9 +344,7 @@ let download_http url name ims cgi =
   in
   Url.download url ~headers ~header_callback body_callback;
   match !status with
-  | 200 ->
-      close_cache !last_modified !length;
-      if !length >= 0L then Delivered else Cached
+  | 200 -> finish_delivery !length !last_modified cgi
   | 304 -> Not_modified
   | 404 -> File_not_found
   | n -> error_message "Unexpected status code: %d" n; File_not_found
@@ -366,8 +374,7 @@ let download_ftp url name ims cgi =
     in
     open_cache name;
     Url.download url body_callback;
-    close_cache mod_time size;
-    if size >= 0L then Delivered else Cached
+    finish_delivery size mod_time cgi
   else
     Not_modified
 

@@ -45,7 +45,9 @@ let get_bool = get_generic bool_of_string
 
 let set key value = map := (key, value) :: !map
 
-let iter f = List.iter (fun (k, v) -> f k v) !map
+let fold f init = List.fold_left (fun x (k, v) -> f k v x) init !map
+
+let iter f = fold (fun k v () -> f k v) ()
 
 let read filename =
   with_channel open_in filename (fun chan ->

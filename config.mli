@@ -10,4 +10,6 @@ val get_bool : ?default:bool -> string -> bool
 
 val set : string -> string -> unit
 
+val fold : (string -> string -> 'a -> 'a) -> 'a -> 'a
+
 val iter : (string -> string -> unit) -> unit

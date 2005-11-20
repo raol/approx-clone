@@ -1,3 +1,13 @@
+approx (2.02) unstable; urgency=low
+
+  * Make sure all data that is streamed to the client during download
+    gets flushed afterwards using cgi#output#commit_work
+  * Added debian/control.in and a rule to generate debian/control from it
+  * Added conditional dependency on OCaml bytecode interpreter
+    for architectures without native compilation
+
+ -- Eric Cooper <ecc@cmu.edu>  Sun, 20 Nov 2005 12:20:58 -0500
+
 approx (2.01) unstable; urgency=low
 
   * Updated debian/control for ocaml version 3.09.0
