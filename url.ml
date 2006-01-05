@@ -50,8 +50,8 @@ let download_command url headers headers_wanted =
   let add_header str h =
     sprintf "%s --header %s" str (quoted_string h)
   in
-  sprintf "/usr/bin/curl --silent%s%s %s"
-    (if headers_wanted then " --include" else "")
+  sprintf "/usr/bin/curl --silent --location %s %s %s"
+    (if headers_wanted then "--include" else "")
     (List.fold_left add_header "" headers)
     (quoted_string url)
 

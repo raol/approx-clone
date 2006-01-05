@@ -1,3 +1,10 @@
+approx (2.04) unstable; urgency=low
+
+  * Added --location option to curl so that it will follow HTTP redirections
+    (closes: #346082)
+
+ -- Eric Cooper <ecc@cmu.edu>  Thu,  5 Jan 2006 13:56:03 -0500
+
 approx (2.03) unstable; urgency=low
 
   * Fixed cron script (closes: #343105)
