@@ -7,8 +7,12 @@ open Default_config
 open Log
 open Printf
 
-let head_command url =
-  sprintf "/usr/bin/curl --silent --head %s" (quoted_string url)
+let curl_command options url =
+  "/usr/bin/curl --silent --location " ^
+    String.concat " " options ^ " " ^
+    quoted_string url
+
+let head_command = curl_command ["--head"]
 
 let iter_headers chan proc =
   let next () =
@@ -46,14 +50,12 @@ let head url callback =
   iter_headers chan callback;
   finish (Unix.close_process_in chan)
 
-let download_command url headers headers_wanted =
-  let add_header str h =
-    sprintf "%s --header %s" str (quoted_string h)
+let download_command headers_wanted headers =
+  let options =
+    (if headers_wanted then ["--include"] else []) @
+    List.map (fun h -> "--header " ^ quoted_string h) headers
   in
-  sprintf "/usr/bin/curl --silent --location %s %s %s"
-    (if headers_wanted then "--include" else "")
-    (List.fold_left add_header "" headers)
-    (quoted_string url)
+  curl_command options
 
 let iter_body chan proc =
   let len = 4096 in
@@ -66,7 +68,7 @@ let iter_body chan proc =
   loop ()
 
 let download url ?(headers=[]) ?header_callback callback =
-  let cmd = download_command url headers (header_callback <> None) in
+  let cmd = download_command (header_callback <> None) headers url in
   if debug then debug_message "Command: %s" cmd;
   let chan = Unix.open_process_in cmd in
   (match header_callback with
