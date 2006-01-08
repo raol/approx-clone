@@ -1,3 +1,10 @@
+approx (2.05) unstable; urgency=low
+
+  * Factor out all uses of curl command (missed one in previous fix)
+  * Transition to OCaml 3.09.1
+
+ -- Eric Cooper <ecc@cmu.edu>  Sun,  8 Jan 2006 14:29:20 -0500
+
 approx (2.04) unstable; urgency=low
 
   * Added --location option to curl so that it will follow HTTP redirections
@@ -71,7 +78,7 @@ approx (1.17) unstable; urgency=low
 
 approx (1.16) unstable; urgency=low
 
-  * Support concurrent requests
+ * Support concurrent requests
     - use http_daemon's Fork mode
     - rely on atomic rename of foo.tmp -> foo in cache
     - detect concurrent downloads in progress and wait for them

@@ -4,7 +4,7 @@
 
 export OCAMLMAKEFILE = /usr/share/ocaml-tools/OCamlMakefile
 
-export OCAMLFLAGS = -w A
+export OCAMLFLAGS = -warn-error A
 
 define PROJ_server
     SOURCES = util.ml config.ml default_config.ml log.ml url.ml control_file.ml release.ml server.ml version.ml approx.ml
