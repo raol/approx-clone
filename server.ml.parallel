@@ -30,7 +30,7 @@ let config =
   end
 
 let main port service =
-  let session input output =
+  let session input _output =
     let fd = descr_of_in_channel input in
     set_nonblock fd;
     process_connection config fd service

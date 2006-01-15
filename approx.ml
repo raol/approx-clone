@@ -55,6 +55,7 @@ let print_config () =
     | 1 -> sprintf " 1 %s" u
     | n -> sprintf " %d %ss" n u
   in
+  info_message "Version: %s %s" Version.name Version.number;
   info_message "Config file: %s" config_file;
   info_message "Port: %d" port;
   info_message "Cache: %s" cache_dir;
@@ -96,9 +97,9 @@ let print_headers msg headers =
   List.iter (fun (x, y) -> debug_message "  %s: %s" x y) headers
 
 let proxy_headers size modtime =
-  ["Content-Type", "text/plain";
-   "Content-Length", Int64.to_string size ] @
-  if modtime <> 0. then ["Last-Modified", http_time modtime] else []
+  [ "Content-Type", "text/plain";
+    "Content-Length", Int64.to_string size ] @
+  if modtime <> 0. then [ "Last-Modified", http_time modtime ] else []
 
 (* Deliver a file from the local cache *)
 
@@ -260,15 +261,25 @@ let send_header size modtime (cgi : Netcgi_types.cgi_activation) =
   if debug then
     print_headers "Proxy response" cgi#environment#output_header_fields
 
-let finish_delivery size modtime cgi =
-  close_cache size modtime;
-  if size >= 0L then
-    begin
-      cgi#output#commit_work ();
-      Delivered
-    end
-  else
-    Cached
+type response_state =
+  { name : string;
+    cgi : Netcgi_types.cgi_activation;
+    mutable status : int;
+    mutable length : int64;
+    mutable last_modified : float;
+    mutable body_seen : bool }
+
+let new_response name cgi =
+  { name = name;
+    cgi = cgi;
+    status = 0;
+    length = -1L;
+    last_modified = 0.;
+    body_seen = false }
+
+let finish_delivery resp =
+  close_cache resp.length resp.last_modified;
+  if resp.length >= 0L then Delivered else Cached
 
 (* Update the ctime but not the mtime of the file, if it exists *)
 
@@ -283,28 +294,21 @@ let with_pair rex str proc =
   | [| a; b |] -> proc (a, b)
   | _ -> assert false
 
-let once flag proc =
-  if not !flag then
-    begin
-      flag := true;
-      proc ()
-    end
-
 let status_re = Pcre.regexp "^HTTP/\\d+\\.\\d+ (\\d{3}) (.*?)\\s*$"
 let header_re = Pcre.regexp "^(.*?):\\s*(.*?)\\s*$"
 
-let process_header (status, length, last_modified) str =
+let process_header resp str =
   let do_status (code, _) =
-    status := int_of_string code
+    resp.status <- int_of_string code
   in
   let do_header (header, value) =
     match String.lowercase header with
     | "content-length" ->
-	(try length := Int64.of_string value
+	(try resp.length <- Int64.of_string value
 	 with Failure _ ->
 	   error_message "Cannot parse Content-Length %s" value)
     | "last-modified" ->
-	(try last_modified := Netdate.parse_epoch value
+	(try resp.last_modified <- Netdate.parse_epoch value
 	 with Invalid_argument _ ->
 	   error_message "Cannot parse Last-Modified date %s" value)
     | _ -> ()
@@ -315,36 +319,35 @@ let process_header (status, length, last_modified) str =
     try with_pair status_re str do_status
     with Not_found -> error_message "Unrecognized response: %s" str
 
+let process_body resp str pos len =
+  if resp.status = 200 then
+    let cgi = resp.cgi in
+    let size = resp.length in
+    if not resp.body_seen then
+      begin
+	resp.body_seen <- true;
+	open_cache resp.name;
+	if size >= 0L then
+	  (* we can start our response now *)
+	  send_header size resp.last_modified cgi
+      end;
+    write_cache str pos len;
+    if size >= 0L then
+      (* stream the data back to the client as we receive it *)
+      cgi#output#really_output str pos len
+
 (* Download a file from an HTTP repository *)
 
 let download_http url name ims cgi =
-  let status = ref 0 in
-  let length = ref (-1L) in
-  let last_modified = ref 0. in
-  let header_callback = process_header (status, length, last_modified) in
-  let body_seen = ref false in
-  let start_transfer () =
-    open_cache name;
-    if !length >= 0L then
-      (* start our response now *)
-      send_header !length !last_modified cgi
-  in
-  let body_callback str pos len =
-    if !status = 200 then
-      begin
-	once body_seen start_transfer;
-	write_cache str pos len;
-	if !length >= 0L then
-	  (* stream the data back to the client as we receive it *)
-	  cgi#output#really_output str pos len
-      end
-  in
   let headers =
     if ims > 0. then [ "If-Modified-Since: " ^ http_time ims ] else []
   in
+  let resp = new_response name cgi in
+  let header_callback = process_header resp in
+  let body_callback = process_body resp in
   Url.download url ~headers ~header_callback body_callback;
-  match !status with
-  | 200 -> finish_delivery !length !last_modified cgi
+  match resp.status with
+  | 200 -> finish_delivery resp
   | 304 -> Not_modified
   | 404 -> File_not_found
   | n -> error_message "Unexpected status code: %d" n; File_not_found
@@ -352,31 +355,20 @@ let download_http url name ims cgi =
 (* Download a file from an FTP repository *)
 
 let download_ftp url name ims cgi =
-  let status = ref 0 in
-  let length = ref (-1L) in
-  let last_modified = ref 0. in
-  let header_callback = process_header (status, length, last_modified) in
+  let resp = new_response name cgi in
+  let header_callback = process_header resp in
   Url.head url header_callback;
-  let mod_time = !last_modified in
+  let mod_time = resp.last_modified in
   if debug then
     debug_message "  ims %s  mtime %s"
       (string_of_time ims) (string_of_time mod_time);
-  if mod_time > ims || mod_time = 0. then
-    let size = !length in
-    if size >= 0L then
-      (* start our response now *)
-      send_header size mod_time cgi;
-    let body_callback str pos len =
-      write_cache str pos len;
-      if size >= 0L then
-	(* stream the data back to the client as we receive it *)
-	cgi#output#really_output str pos len
-    in
-    open_cache name;
-    Url.download url body_callback;
-    finish_delivery size mod_time cgi
-  else
+  if 0. < mod_time && mod_time <= ims then
     Not_modified
+  else
+    let body_callback = process_body resp in
+    resp.status <- 200;  (* for process_body *)
+    Url.download url body_callback;
+    finish_delivery resp
 
 let download_url url =
   let meth =
@@ -391,15 +383,15 @@ let download_url url =
 (* Remove any files from the cache that have been invalidated
    as a result of downloading a given file *)
 
+let remove file =
+  info_message "Removing invalid file %s" file;
+  Sys.remove file
+
 let cleanup_after name =
-  let remove file =
-    info_message "Removing invalid file %s" file;
-    Sys.remove file
-  in
   if Sys.file_exists name then
     List.iter remove (Release.files_invalidated_by name)
 
-let copy src dst =
+let copy_to dst src =
   let len = 4096 in
   let buf = String.create len in
   let rec loop () =
@@ -415,7 +407,7 @@ let copy_from_cache name cgi =
   wait_for_download_in_progress name;
   send_header (file_size name) (file_modtime name) cgi;
   let output = cgi#output in
-  with_channel open_in name (fun input -> copy input output);
+  with_channel open_in name (copy_to output);
   output#commit_work ()
 
 let respond code = raise (Standard_response (code, None, None))
@@ -432,6 +424,7 @@ let serve_remote url name ims mod_time cgi =
   if debug then debug_message "  => %s" (string_of_download_status status);
   match status with
   | Delivered ->
+      cgi#output#commit_work ();
       cleanup_after name
   | Cached ->
       copy_from_cache name cgi;
@@ -439,7 +432,7 @@ let serve_remote url name ims mod_time cgi =
   | Not_modified ->
       update_ctime name;
       if mod_time > ims then
-      (* the cached copy is newer than what the client has *)
+	(* the cached copy is newer than what the client has *)
 	copy_from_cache name cgi
       else
 	respond `Not_modified
@@ -489,7 +482,6 @@ let serve_file env =
     `Std_response (`Forbidden, None, Some msg)
 
 let proxy_service =
-  let version = Version.name ^/ Version.number in
   object (_self)
     method name = "proxy_service"
     method def_term = `Proxy_service
@@ -501,7 +493,6 @@ let proxy_service =
 	   info_message "Connection from %s:%d" (string_of_inet_addr host) port
        | ADDR_UNIX path ->
 	   failwith ("connection from UNIX socket " ^ path));
-      env#set_output_header_field "Server" version;
       if env#cgi_request_method = "GET" && env#cgi_query_string = "" then
 	serve_file env
       else
