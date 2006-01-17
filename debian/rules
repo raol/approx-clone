@@ -2,7 +2,7 @@
 
 OCAMLABI = $(shell ocamlc -version)
 BYTECODE = $(shell [ -x /usr/bin/ocamlopt ] || echo yes)
-RUNTIME = $(if $(BYTECODE),ocaml-base-nox-$(OCAMLABI))
+OCAMLRUN = $(if $(BYTECODE),ocaml-base-nox-$(OCAMLABI))
 
 debian/control:
 	sed -e 's/@OCamlABI@/$(OCAMLABI)/g' $@.in > $@
@@ -59,7 +59,7 @@ binary-arch: build install
 #	dh_makeshlibs
 	dh_installdeb
 	dh_shlibdeps
-	dh_gencontrol -- -VF:OCamlRuntime="$(RUNTIME)"
+	dh_gencontrol -- -VF:OCamlRun="$(OCAMLRUN)"
 	dh_md5sums
 	dh_builddeb
 

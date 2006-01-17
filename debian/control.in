@@ -8,7 +8,7 @@ Standards-Version: 3.6.2
 
 Package: approx
 Architecture: any
-Depends: ${shlibs:Depends}, ${F:OCamlRuntime}, adduser, bzip2, curl
+Depends: ${shlibs:Depends}, ${F:OCamlRun}, adduser, bzip2, curl
 Description: caching proxy server for Debian archive files
  Approx is an HTTP-based Debian archive server.
  It fetches packages from remote repositories on demand,

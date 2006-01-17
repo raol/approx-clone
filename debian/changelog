@@ -78,7 +78,7 @@ approx (1.17) unstable; urgency=low
 
 approx (1.16) unstable; urgency=low
 
- * Support concurrent requests
+  * Support concurrent requests
     - use http_daemon's Fork mode
     - rely on atomic rename of foo.tmp -> foo in cache
     - detect concurrent downloads in progress and wait for them
