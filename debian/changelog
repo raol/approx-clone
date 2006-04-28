@@ -1,3 +1,15 @@
+approx (2.06) unstable; urgency=low
+
+  * Added "interface" configuration variable to allow listening only
+    on a specific network interface, as requested by Romain Lenglet
+    <rlenglet@users.forge.objectweb.org> (closes: #352025)
+  * Added simple-minded support for file URIs, using the same logic as FTP
+  * The server is now started as root by the init script, and then drops
+    privileges to user approx after binding its socket. This allows approx
+    to listen on port 80, as requested by Andreas John <aj@net-lab.net>
+
+ -- Eric Cooper <ecc@cmu.edu>  Mon, 24 Apr 2006 16:09:22 -0400
+
 approx (2.05) unstable; urgency=low
 
   * Factor out all uses of curl command (missed one in previous fix)

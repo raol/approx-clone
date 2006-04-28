@@ -29,10 +29,31 @@ let config =
     method config_reactor_synch = `Write
   end
 
-let main port service =
-  let session input _output =
-    let fd = descr_of_in_channel input in
-    set_nonblock fd;
-    process_connection config fd service
+let serial = false
+
+let main ~user ~interface port service =
+  let sock = socket PF_INET SOCK_STREAM 0 in
+  setsockopt sock SO_REUSEADDR true;
+  let addr =
+    if interface = "any" then inet_addr_any
+    else Netif.inet_addr_of_interface interface
   in
-  establish_server session (ADDR_INET (inet_addr_any, port))
+  bind sock (ADDR_INET (addr, port));
+  listen sock 10;
+  setuid (Unix.getpwnam user).Unix.pw_uid;  (* drop privileges *)
+  while true do
+    let fd, _ = accept sock in
+    set_nonblock fd;
+    if serial then
+      process_connection config fd service
+    else
+      match fork () with
+      | 0 ->
+	  if fork () <> 0 then exit 0;
+	  close sock;
+	  process_connection config fd service;
+	  exit 0
+      | pid ->
+	  close fd;
+	  ignore (waitpid [] pid)
+  done

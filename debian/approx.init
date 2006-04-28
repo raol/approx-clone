@@ -24,7 +24,7 @@ fi
 #	Function that starts the daemon/service.
 #
 d_start() {
-	start-stop-daemon --start --quiet --exec $DAEMON --chuid approx:approx
+	start-stop-daemon --start --quiet --exec $DAEMON
 }
 
 #

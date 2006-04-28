@@ -1,3 +1,12 @@
+approx (2.06) unstable; urgency=low
+
+A new configuration variable, interface, forces approx to listen for
+connections on a specific network interface only.
+
+The approx server can now listen on privileged ports such as port 80.
+
+File: URIs are now supported in the approx.conf file.
+
 approx (2.00) unstable; urgency=low
 
 Approx now uses curl subprocesses to download files from remote

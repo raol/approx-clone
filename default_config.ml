@@ -9,6 +9,7 @@ let cache_dir = "/var/cache/approx"
 
 let () = read config_file
 
+let interface = get "interface" ~default: "any"
 let port = get_int "port" ~default: 9999 (* for compatibility with apt-proxy *)
 let interval = get_int "interval" ~default: 720 (* minutes *)
 let max_wait = get_int "max_wait" ~default: 10 (* seconds *)
