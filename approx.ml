@@ -57,6 +57,7 @@ let print_config () =
   in
   info_message "Version: %s %s" Version.name Version.number;
   info_message "Config file: %s" config_file;
+  info_message "Interface: %s" interface;
   info_message "Port: %d" port;
   info_message "Cache: %s" cache_dir;
   info_message "Interval:%s%s"
@@ -377,7 +378,7 @@ let download_url url =
   in
   match meth with
   | "http" -> download_http url
-  | "ftp" -> download_ftp url
+  | "ftp" | "file" -> download_ftp url
   | _ -> invalid_arg "unsupported URL method"
 
 (* Remove any files from the cache that have been invalidated
@@ -503,7 +504,7 @@ let server () =
   try
     Sys.chdir cache_dir;
     print_config ();
-    Server.main port proxy_service
+    Server.main ~user: "approx" ~interface port proxy_service
   with e ->
     exception_message e;
     exit 1

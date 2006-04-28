@@ -1,1 +1,1 @@
-val main : int -> 'a Nethttpd_types.http_service -> unit
+val main : user:string -> interface:string -> int -> 'a Nethttpd_types.http_service -> unit

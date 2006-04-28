@@ -7,7 +7,7 @@ export OCAMLMAKEFILE = /usr/share/ocaml-tools/OCamlMakefile
 export OCAMLFLAGS = -warn-error A
 
 define PROJ_server
-    SOURCES = util.ml config.ml default_config.ml log.ml url.ml control_file.ml release.ml server.ml version.ml approx.ml
+    SOURCES = util.ml config.ml default_config.ml log.ml url.ml control_file.ml release.ml ifaddr.c netif.mli server.ml version.ml approx.ml
     INCDIRS = +pcre +syslog +netstring +cgi +nethttpd
     LIBS = unix pcre syslog netstring cgi nethttpd
     RESULT = approx
