@@ -50,6 +50,10 @@ val unwind_protect : (unit -> 'a) -> (unit -> unit) -> 'a
 
 val with_channel : ('a -> in_channel) -> 'a -> (in_channel -> 'b) -> 'b
 
+(* Open a file for input, decompressing it if necessary *)
+
+val open_file : string -> in_channel
+
 (* Applying a procedure to each non-directory below a given path
    in the filesystem tree *)
 

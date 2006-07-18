@@ -36,7 +36,7 @@ let main ~user ~interface port service =
   setsockopt sock SO_REUSEADDR true;
   let addr =
     if interface = "any" then inet_addr_any
-    else Netif.inet_addr_of_interface interface
+    else Internet.address_of_interface interface
   in
   bind sock (ADDR_INET (addr, port));
   listen sock 10;

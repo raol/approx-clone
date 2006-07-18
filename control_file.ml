@@ -67,31 +67,6 @@ let read f init chan =
   in
   loop init
 
-(* Return a channel for reading a compressed file.
-   We decompress it to a temporary file first,
-   rather than reading from a pipe or using the CamlZip library,
-   so that we detect corrupted files before partially processing them.
-   This is also significantly faster than using CamlZip. *)
-
-let decompressors =
-  [ "gz", "gunzip --stdout";
-    "bz2", "bunzip2 --stdout" ]
-
-let decompress prog file =
-  let tmp = Filename.temp_file "approx" "" in
-  let cmd = Printf.sprintf "%s %s > %s" prog file tmp in
-  unwind_protect
-    (fun () ->
-      if Sys.command cmd = 0 then open_in tmp
-      else failwith "decompress")
-    (fun () ->
-      Sys.remove tmp)
-
-let open_file file =
-  match extension file with
-  | Some ext -> decompress (List.assoc ext decompressors) file
-  | None -> open_in file
-
 let fold f init file = with_channel open_file file (read f init)
 
 let iter proc = fold (fun () p -> proc p) ()
