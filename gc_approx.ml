@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Garbage-collect the approx cache using a mark-sweep algorithm.
@@ -10,8 +10,6 @@
 
 open Util
 open Default_config
-open Printf
-open Unix
 
 let usage () =
   prerr_endline "Usage: gc_approx [options]
@@ -38,27 +36,21 @@ let () =
     | _ -> usage ()
   done
 
+let no_checksum = !no_checksum
+let keep = !keep
+let quiet = !quiet
+let verbose = !verbose
+
 let roots = ref []
 
 let find_roots () =
   let find file =
     match Filename.basename file with
     | "Packages" | "Packages.gz" | "Packages.bz2" -> roots := file :: !roots
+(*XXX* add Sources to roots and trace them *) 
     | _ -> ()
   in
   Config.iter (fun dir _ -> treewalk find (cache_dir ^/ dir))
-
-(* Extract the distribution and relative filename
-   from the absolute pathname of a file in the cache.
-   Example:
-       split_cache_pathname "/var/cache/approx/debian/pool/main/..."
-   returns
-       ("debian", "pool/main/...") *)
-
-let split_cache_pathname path =
-  let i = String.length cache_dir + 1 in
-  let j = String.index_from path i '/' in
-  substring path ~from: i ~until: j, substring path ~from: (j + 1)
 
 (* The cache is probably only a small subset of all the files in
    the Debian archive, so we start with a table of filenames
@@ -88,7 +80,7 @@ let is_index_file file =
 (* Check if a file is part of a known distribution *)
 
 let known_dist file =
-  let dist, _ = split_cache_pathname file in
+  let dist, _ = Cache.split_pathname file in
   try ignore (Config.get dist); true
   with Not_found -> false
 
@@ -109,7 +101,7 @@ let canonical path =
     path
 
 (* We mark a file as live if its size and MD5 checksum
-   match those specified in a Packages file *)
+   match those specified in a Packages file *)  (*XXX or Sources file*)
 
 let mark_file prefix fields =
   let file = canonical (List.assoc "filename" fields) in
@@ -119,7 +111,7 @@ let mark_file prefix fields =
   try
     if get_status path = Unmarked then
       if file_size path = size then
-	if !no_checksum || file_md5sum path = md5sum then
+	if no_checksum || file_md5sum path = md5sum then
 	  set_status path Valid
 	else
 	  set_status path Wrong_checksum
@@ -128,27 +120,14 @@ let mark_file prefix fields =
   with
     Not_found -> ()
 
-let download dist file package =
-  let url = Config.get dist ^/ file in
-  eprintf "downloading %s\n" url; flush Pervasives.stderr;
-  let package' = package ^ ".tmp" in
-  let cmd =
-    sprintf "/usr/bin/curl --silent --output %s %s"
-      package' (quoted_string url)
-  in
-  if Sys.command cmd = 0 then
-    Sys.rename package' package
-  else
-    failwith ("cannot download " ^ url)
-
 let mark_package package =
-  if !verbose then (print_string "# "; print_endline package);
-  let dist, file = split_cache_pathname package in
+  if verbose then (print_string "# "; print_endline package);
+  let dist, file = Cache.split_pathname package in
   let prefix = cache_dir ^/ dist in
   try Control_file.iter (mark_file prefix) package
   with Failure "decompress" ->
     (* corrupt Packages file: download it and try again *)
-    download dist file package;
+    Cache.download package;
     Control_file.iter (mark_file prefix) package
 
 let mark () =
@@ -168,22 +147,22 @@ let print_status status =
   print_char ' '
 
 let message file status =
-  if !verbose then print_status status;
+  if verbose then print_status status;
   print_endline file
 
 let inactive file =
-  time () -. file_modtime file > 300.  (* 5 minutes *)
+  Unix.time () -. file_modtime file > 300.  (* 5 minutes *)
 
 let sweep () =
   let gc file status =
     if status <> Valid then
       if inactive file then
 	begin
-	  if not !quiet then message file status;
-	  if not !keep then Sys.remove file
+	  if not quiet then message file status;
+	  if not keep then Sys.remove file
 	end
       else
-	eprintf "%s is not old enough to remove\n%!" file
+	Printf.eprintf "%s is not old enough to remove\n%!" file
   in
   iter_status gc
 
