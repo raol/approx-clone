@@ -1,9 +1,9 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-open Default_config
 open Util
+open Default_config
 
 let fsck_release_files () =
   let find file =
