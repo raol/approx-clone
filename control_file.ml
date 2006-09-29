@@ -1,7 +1,8 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
+open Printf
 open Util
 
 type paragraph = (string * string) list
@@ -71,6 +72,18 @@ let fold f init file = with_channel open_file file (read f init)
 
 let iter proc = fold (fun () p -> proc p) ()
 
+let paragraph file =
+  let once prev p =
+    match prev with
+    | None -> Some p
+    | Some _ -> failwith (file ^ " contains more than one paragraph")
+  in
+  match fold once None file with
+  | Some p -> p
+  | None -> failwith (file ^ " contains no paragraphs")
+
+(* Not used yet:
+
 let rev_map f = fold (fun acc p -> f p :: acc) []
 
 let map f file = List.rev (rev_map f file)
@@ -78,3 +91,42 @@ let map f file = List.rev (rev_map f file)
 let rev_filter f = fold (fun acc p -> if f p then p :: acc else acc) []
 
 let filter f file = List.rev (rev_filter f file)
+
+*)
+
+let get_checksum fields =
+  try List.assoc "sha256" fields, file_sha256sum
+  with Not_found ->
+    try List.assoc "sha1" fields, file_sha1sum
+    with Not_found ->
+      List.assoc "md5sum" fields, file_md5sum
+
+type info = string * Int64.t
+
+let info_list data =
+  let lines =
+    match split_lines data with
+    | "" :: lines -> lines
+    | lines -> lines
+  in
+  List.map
+    (fun line ->
+       Scanf.sscanf line "%s %Ld %s" (fun sum size file -> (sum, size), file))
+    lines
+
+type validity =
+  | Valid
+  | Wrong_size of Int64.t
+  | Wrong_checksum of string
+
+let validate ?checksum (sum, size) file =
+  let n = file_size file in
+  if n <> size then Wrong_size n
+  else
+    match checksum with
+    | Some file_checksum ->
+	let s = file_checksum file in
+	if s <> sum then Wrong_checksum s
+	else Valid
+    | None ->
+	Valid

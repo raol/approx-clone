@@ -1,8 +1,12 @@
+(* approx: proxy server for Debian archive files
+   Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
+   Released under the GNU General Public License *)
+
 open Printf
 
 let printer = ref (fun _ -> prerr_endline)
 
-let message level fmt = kprintf (fun str -> !printer level str) fmt
+let message level fmt = ksprintf (fun str -> !printer level str) fmt
 
 let error_message fmt = message `LOG_ERR fmt
 let info_message fmt = message `LOG_INFO fmt

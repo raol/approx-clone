@@ -1,8 +1,8 @@
 .\" approx: proxy server for Debian archive files
-.\" Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
+.\" Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH GC_APPROX 8 "January 2005"
+.TH GC_APPROX 8 "September 2006"
 .\" Please adjust this date whenever revising the manpage.
 
 .SH NAME
@@ -22,12 +22,17 @@ and finds files that are corrupted or no longer needed.
 With no options specified, these files
 are listed on standard output and removed from the cache.
 .PP
-A corrupted file is one whose size or MD5 checksum
+A corrupted file is one whose size or checksum
 does not match the value specified in the
 .I Packages
+or
+.I Sources
 file.
+.PP
 An unneeded file is one that is not referenced from any distribution's
 .I Packages
+or
+.I Sources
 file.
 .PP
 .B gc_approx
@@ -36,13 +41,17 @@ may take several minutes to finish.
 .SH OPTIONS
 .TP
 .BR \-f ", " \-\^\-fast
-Don't perform MD5 checksum validation.
+Don't perform checksum validation.
 .TP
-.BR \-k ", " \-\^\-keep
-Don't remove files from the cache.
+.BR \-k ", " \-\^\-keep ", " \-s ", " \-\^\-simulate
+Don't update index files or remove files from the cache.
 .TP
 .BR \-q ", " \-\^\-quiet
 Don't print file names.
+.TP
+.BR \-v ", " \-\^\-verbose
+Indicate the reason for removal of each file with a prefix character:
+\`=\' for incorrect size, \`!\' for incorrect checksum.
 
 .SH EXAMPLES
 .IP

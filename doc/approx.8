@@ -2,7 +2,7 @@
 .\" Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH APPROX 8 "January 2005"
+.TH APPROX 8 "September 2006"
 .\" Please adjust this date whenever revising the manpage.
 
 .SH NAME
@@ -46,23 +46,23 @@ version information and exit.
 By default,
 .B approx
 listens on port 9999 (for compatibility with
-.BR apt\-cache (8)).
+.BR apt\-proxy (8)).
 Suppose that a client machine's
 .I /etc/apt/sources.list
 file contains the following lines:
 .IP
-deb     http://apt:9999/debian  testing main contrib
+deb     http://apt:9999/debian    testing main
 .br
-deb     http://apt:9999/misc    testing main
+deb     http://apt:9999/security  testing/updates main
 .br
-deb-src http://apt:9999/debian  unstable main contrib
+deb-src http://apt:9999/debian    unstable main
 .PP
 In this example,
 .I apt
 is the hostname of the
 .B approx
 server machine on the local network.
-Each distribution, such as "debian" or "misc", is mapped
+Each distribution, such as "debian" or "security", is mapped
 to a remote repository in the
 .B approx
 server's configuration file.
@@ -73,9 +73,9 @@ file on the
 .B approx
 server might contain the lines
 .IP
-debian  http://debian.mirrors.pair.com
+debian   http://ftp.debian.org/debian
 .br
-misc    ftp://ftp.nerim.net/debian-marillat
+security http://security.debian.org
 
 .SH FILES
 .TP
