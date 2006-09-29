@@ -2,9 +2,7 @@
 
 # Garbage collect the approx(8) cache
 
-# Run as the approx user in case we need to download replacement files
-
-su -s /bin/sh -c "/usr/sbin/gc_approx --quiet" approx
+/usr/sbin/gc_approx --quiet
 
 # Remove any empty directories
 # The trailing /. makes it work when /var/cache/approx is a symlink

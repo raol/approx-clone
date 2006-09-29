@@ -1,3 +1,17 @@
+approx (2.7.0) unstable; urgency=low
+
+  * New version numbering with third component for packaging-only changes
+  * Deny DiffIndex requests, forcing download of full index files
+    (closes: #367475)
+  * Keep live source packages (those listed in Sources files)
+    (closes: #374736)
+  * Decode request URLs to handle '~' in pathnames (closes: #390121)
+  * Validate packages with SHA256, otherwise SHA1, otherwise MD5
+  * Added --fail option to curl to handle errors better
+  * Made init script LSB-compliant and added dependency on lsb-base
+
+ -- Eric Cooper <ecc@cmu.edu>  Mon, 11 Sep 2006 13:09:11 -0400
+
 approx (2.06) unstable; urgency=low
 
   * Added "interface" configuration variable to allow listening only

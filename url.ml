@@ -1,16 +1,27 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
+open Printf
 open Util
 open Default_config
 open Log
-open Printf
+
+type url_method = HTTP | FTP | FILE
+
+let method_of url =
+  try
+    match String.lowercase (substring url ~until: (String.index url ':')) with
+    | "http" -> HTTP
+    | "ftp" -> FTP
+    | "file" -> FILE
+    | meth -> invalid_arg ("unsupported URL method " ^ meth)
+  with Not_found ->
+    invalid_arg ("no method in URL " ^ url)
 
 let curl_command options url =
-  "/usr/bin/curl --silent --location " ^
-    String.concat " " options ^ " " ^
-    quoted_string url
+  "/usr/bin/curl --fail --silent --location " ^
+    String.concat " " options ^ " " ^ quoted_string url
 
 let head_command = curl_command ["--head"]
 
@@ -38,22 +49,23 @@ let iter_headers chan proc =
   in
   loop ()
 
-let finish = function
-  | Unix.WEXITED 0 -> ()
-  | Unix.WEXITED _ | Unix.WSIGNALED _ | Unix.WSTOPPED _ ->
-      failwith "download failed"
+let finish chan =
+  if Unix.close_process_in chan <> Unix.WEXITED 0 then
+    failwith "download failed"
 
 let head url callback =
   let cmd = head_command url in
   if debug then debug_message "Command: %s" cmd;
   let chan = Unix.open_process_in cmd in
   iter_headers chan callback;
-  finish (Unix.close_process_in chan)
+  finish chan
 
-let download_command headers_wanted headers =
+let download_command headers header_callback =
+  let hdr_opts = List.map (fun h -> "--header " ^ quoted_string h) headers in
   let options =
-    (if headers_wanted then ["--include"] else []) @
-    List.map (fun h -> "--header " ^ quoted_string h) headers
+    match header_callback with
+    | Some _ -> "--include" :: hdr_opts
+    | None -> hdr_opts
   in
   curl_command options
 
@@ -68,11 +80,20 @@ let iter_body chan proc =
   loop ()
 
 let download url ?(headers=[]) ?header_callback callback =
-  let cmd = download_command (header_callback <> None) headers url in
+  let cmd = download_command headers header_callback url in
   if debug then debug_message "Command: %s" cmd;
   let chan = Unix.open_process_in cmd in
   (match header_callback with
    | Some proc -> iter_headers chan proc
    | None -> ());
   iter_body chan callback;
-  finish (Unix.close_process_in chan)
+  finish chan
+
+let download_file ~url ~file =
+  let file' = file ^ ".tmp" in
+  let cmd = curl_command ["--remote-time"; "--output"; file'] url in
+  if debug then debug_message "Command: %s" cmd;
+  if Sys.command cmd = 0 then
+    Sys.rename file' file
+  else
+    failwith ("cannot download " ^ url)

@@ -1,13 +1,13 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
+open Printf
+open Unix
+open Nethttpd_types
 open Util
 open Default_config
-open Printf
-open Nethttpd_types
-open Unix
-open Log (* Log.error_message shadows Unix.error_message *)
+open Log  (* Log.error_message shadows Unix.error_message *)
 
 let usage () =
   prerr_endline
@@ -16,15 +16,14 @@ Proxy server for Debian archive files
 
 Options:
     -f|--foreground    remain in foreground instead of detaching
-    -h|--help          display this message and exit
     -v|--version       display version information and exit";
   exit 1
 
 let version () =
   eprintf "%s %s\n" Version.name Version.number;
   prerr_endline
-    "Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
-Released under the GNU General Public License"
+    "Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>\n\
+     Released under the GNU General Public License"
 
 let foreground = ref false
 
@@ -34,20 +33,10 @@ let () =
     | "-f" | "--foreground" -> foreground := true
     | "-v" | "--version" -> version ()
     | _ -> usage ()
-  done
+  done;
+  if not !foreground then use_syslog ()
 
-let () = if not !foreground then use_syslog ()
-
-let exception_message exc =
-  match exc with
-  | Failure str -> error_message "%s" (String.capitalize str)
-  | Invalid_argument str -> error_message "Invalid argument: %s" str
-  | Sys_error str -> error_message "%s" str
-  | Unix_error (err, str, "") ->
-      error_message "%s: %s" str (Unix.error_message err)
-  | Unix_error (err, str, arg) ->
-      error_message "%s: %s (%s)" str (Unix.error_message err) arg
-  | e -> error_message "%s" (Printexc.to_string e)
+let exception_message exc = error_message "%s" (string_of_exception exc)
 
 let print_config () =
   let units u = function
@@ -129,12 +118,10 @@ let print_age name stats ims =
   debug_message "  ims %s  mtime %s"
     (string_of_time ims) (string_of_time stats.st_mtime)
 
-let is_mutable name = not (Filename.check_suffix name ".deb")
+let immutable_suffixes = [ ".deb"; ".dsc"; "orig.tar.gz"; ".diff.gz" ]
 
-let always_refresh name =
-  match Filename.basename name with
-  | "Release" | "Release.gpg" -> true
-  | _ -> false
+let is_mutable name =
+  not (List.exists (Filename.check_suffix name) immutable_suffixes)
 
 let too_old stats =  minutes_old stats > interval
 
@@ -155,7 +142,7 @@ let serve_local name ims env =
   if debug then print_age name stats ims;
   if stats.st_kind <> S_REG then
     not_found ()
-  else if is_mutable name && (always_refresh name || too_old stats) then
+  else if is_mutable name && too_old stats then
     stale stats.st_mtime
   else if stats.st_mtime > ims then
     deliver_local name env
@@ -166,11 +153,10 @@ let make_directory path =
   let rec loop cwd = function
     | dir :: rest ->
 	let name = cwd ^/ dir in
-	(try
-	   if (stat name).st_kind <> S_DIR then
-	     failwith ("file " ^ name ^ " is not a directory")
-	 with
-	   Unix_error (ENOENT, "stat", _) -> mkdir name 0o755);
+	if not (Sys.file_exists name) then
+	  mkdir name 0o755
+	else if not (is_directory name) then
+	  failwith ("file " ^ name ^ " is not a directory");
 	loop name rest
     | [] -> ()
   in
@@ -264,19 +250,19 @@ let send_header size modtime (cgi : Netcgi_types.cgi_activation) =
 
 type response_state =
   { name : string;
-    cgi : Netcgi_types.cgi_activation;
     mutable status : int;
     mutable length : int64;
     mutable last_modified : float;
     mutable body_seen : bool }
 
-let new_response name cgi =
-  { name = name;
-    cgi = cgi;
+let initial_response_state =
+  { name = "?";
     status = 0;
     length = -1L;
     last_modified = 0.;
     body_seen = false }
+
+let new_response name = { initial_response_state with name = name }
 
 let finish_delivery resp =
   close_cache resp.length resp.last_modified;
@@ -320,9 +306,8 @@ let process_header resp str =
     try with_pair status_re str do_status
     with Not_found -> error_message "Unrecognized response: %s" str
 
-let process_body resp str pos len =
+let process_body resp cgi str pos len =
   if resp.status = 200 then
-    let cgi = resp.cgi in
     let size = resp.length in
     if not resp.body_seen then
       begin
@@ -343,9 +328,9 @@ let download_http url name ims cgi =
   let headers =
     if ims > 0. then [ "If-Modified-Since: " ^ http_time ims ] else []
   in
-  let resp = new_response name cgi in
+  let resp = new_response name in
   let header_callback = process_header resp in
-  let body_callback = process_body resp in
+  let body_callback = process_body resp cgi in
   Url.download url ~headers ~header_callback body_callback;
   match resp.status with
   | 200 -> finish_delivery resp
@@ -356,7 +341,7 @@ let download_http url name ims cgi =
 (* Download a file from an FTP repository *)
 
 let download_ftp url name ims cgi =
-  let resp = new_response name cgi in
+  let resp = new_response name in
   let header_callback = process_header resp in
   Url.head url header_callback;
   let mod_time = resp.last_modified in
@@ -366,31 +351,26 @@ let download_ftp url name ims cgi =
   if 0. < mod_time && mod_time <= ims then
     Not_modified
   else
-    let body_callback = process_body resp in
+    let body_callback = process_body resp cgi in
     resp.status <- 200;  (* for process_body *)
     Url.download url body_callback;
     finish_delivery resp
 
 let download_url url =
-  let meth =
-    try String.lowercase (substring url ~until: (String.index url ':'))
-    with Not_found -> invalid_arg "no method in URL"
-  in
-  match meth with
-  | "http" -> download_http url
-  | "ftp" | "file" -> download_ftp url
-  | _ -> invalid_arg "unsupported URL method"
+  match Url.method_of url with
+  | Url.HTTP -> download_http url
+  | Url.FTP | Url.FILE -> download_ftp url
 
 (* Remove any files from the cache that have been invalidated
    as a result of downloading a given file *)
 
-let remove file =
-  info_message "Removing invalid file %s" file;
-  Sys.remove file
-
 let cleanup_after name =
+  let rm file =
+    info_message "Removing invalid file %s" file;
+    Sys.remove file
+  in
   if Sys.file_exists name then
-    List.iter remove (Release.files_invalidated_by name)
+    List.iter rm (Release.files_invalidated_by name)
 
 let copy_to dst src =
   let len = 4096 in
@@ -411,9 +391,10 @@ let copy_from_cache name cgi =
   with_channel open_in name (copy_to output);
   output#commit_work ()
 
-let respond code = raise (Standard_response (code, None, None))
-
 let serve_remote url name ims mod_time cgi =
+  let respond code =
+    raise (Standard_response (code, None, None))
+  in
   info_message "%s" url;
   let status =
     try download_url url name (max ims mod_time) cgi
@@ -452,33 +433,62 @@ let remote_service url name ims mod_time =
       end
   end
 
-let validate_path path =
-  let name = relative_path path in
-  match explode_path name with
+let validate_path url =
+  let path = relative_url url in
+  match explode_path path with
   | dir :: rest ->
-      (try name, implode_path (Config.get dir :: rest)
-      with Not_found ->
-	invalid_arg ("no remote repository found for " ^ dir))
+      (try path, implode_path (Config.get dir :: rest)
+       with Not_found ->
+	 invalid_arg ("no remote repository found for " ^ dir))
   | [] ->
-      invalid_arg "invalid path"
+      invalid_arg ("invalid path " ^ path)
+
+(* Check if a file should be denied (reported to the client as not found) *)
+
+let should_deny name =
+  Filename.basename name = "Index" &&
+  Filename.check_suffix (Filename.dirname name) ".diff"
+
+let get_dependencies url name =
+  match Filename.basename name with
+  | "Release" ->
+      (* since older versions of apt do not know about Release.gpg,
+	 we fetch it now to ensure the cache will be consistent
+	 for other clients using secure apt *)
+      (try Url.download_file ~url: (url ^ ".gpg") ~file: (name ^ ".gpg")
+       with e -> exception_message e)
+  | _ ->
+      ()
+
+(* Handle a cache miss, either because the file is not present (mod_time = 0)
+   or it hasn't been verified recently enough *)
+
+let cache_miss url name ims mod_time =
+  if should_deny name then
+    begin
+      if debug then debug_message "Denying %s" name;
+      `Std_response (`Not_found, None, None)
+    end
+  else
+    begin
+      get_dependencies url name;
+      `Accept_body (remote_service url name ims mod_time)
+    end
 
 let ims_time env =
   try Netdate.parse_epoch (env#input_header#field "If-Modified-Since")
   with Not_found | Invalid_argument _ -> 0.
 
 let serve_file env =
-  let path = env#cgi_request_uri in
+  (* handle URL-encoded '+', '~', etc. *)
+  let path = Netencoding.Url.decode ~plus:false env#cgi_request_uri in
   let headers = env#input_header_fields in
   if debug then print_headers (sprintf "Request %s" path) headers;
   try
     let name, url = validate_path path in
     let ims = ims_time env in
     try serve_local name ims env
-    with Cache_miss mod_time ->
-      (* The file is either not present (mod_time = 0)
-	 or it hasn't been verified recently enough.
-	 In either case, we must contact the remote repository. *)
-      `Accept_body (remote_service url name ims mod_time)
+    with Cache_miss mod_time -> cache_miss url name ims mod_time
   with Invalid_argument msg ->
     `Std_response (`Forbidden, None, Some msg)
 

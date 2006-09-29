@@ -1,36 +1,29 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Util
 
-(* Return a list of files that do not match the size or MD5 checksum
+(* Return a list of files that do not match the size or checksum
    specified for them in a Release file *)
 
 let release_file file =
   let path = Filename.dirname file in
-  let cons_if_invalid invalid line =
-    let check_file md5sum size filename =
-      let file = path ^/ filename in
-      if Sys.file_exists file &&
-	 (file_size file <> Int64.of_string size || file_md5sum file <> md5sum)
-      then
-	file :: invalid
-      else
-	invalid
-    in
-    if line <> "" then
-      Scanf.sscanf line "%s %s %s" check_file
+  let cons_if_invalid checksum invalid_files (info, filename) =
+    let file = path ^/ filename in
+    if Sys.file_exists file then
+      match Control_file.validate ~checksum info file with
+      | Control_file.Valid -> invalid_files
+      | _ -> file :: invalid_files
     else
-      invalid
+      invalid_files
   in
-  let check_release invalid fields =
-    try
-      let lines = split_lines (List.assoc "md5sum" fields) in
-      List.fold_left cons_if_invalid invalid lines
-    with Not_found -> invalid
-  in
-  Control_file.fold check_release [] file
+  try
+    let fields = Control_file.paragraph file in
+    let lines, sum = Control_file.get_checksum fields in
+    let info = Control_file.info_list lines in
+    List.fold_left (cons_if_invalid sum) [] info
+  with Not_found -> []
 
 (* Assume a Release file is stale if it is more than 5 minutes older
    than the Release.gpg file *)
@@ -38,10 +31,8 @@ let release_file file =
 let signature_file file =
   let release = Filename.chop_suffix file ".gpg" in
   if Sys.file_exists release &&
-    (file_modtime file -. file_modtime release > 300.) then
-    [release]
-  else
-    []
+    (file_modtime file -. file_modtime release > 300.) then [release]
+  else []
 
 let files_invalidated_by file =
   match Filename.basename file with

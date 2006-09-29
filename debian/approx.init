@@ -1,84 +1,51 @@
 #!/bin/sh
+### BEGIN INIT INFO
+# Provides:          approx
+# Required-Start:    $local_fs $remote_fs $network
+# Required-Stop:     $local_fs $remote_fs $network
+# Should-Start:      $syslog $time
+# Should-Stop:       $syslog $time
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: approx caching proxy server
+# Description:       Debian init script to start or stop the approx
+#                    caching proxy server for Debian archive files
+### END INIT INFO
 
-# Start and stop the approx daemon
 # Author: Eric Cooper <ecc@cmu.edu>
 
-set -e
-
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
 DESC="proxy server for Debian archive files"
 NAME=approx
 DAEMON=/usr/sbin/$NAME
 SCRIPTNAME=/etc/init.d/$NAME
 
-# Gracefully exit if the package has been removed.
-test -x $DAEMON || exit 0
+# Exit if the package is not installed
+[ -x "$DAEMON" ] || exit 0
 
-# Read config file if it is present.
-if [ -r /etc/default/$NAME ]
-then
-	. /etc/default/$NAME
-fi
+# Read configuration variable file if it is present
+[ -r /etc/default/$NAME ] && . /etc/default/$NAME
 
-#
-#	Function that starts the daemon/service.
-#
-d_start() {
-	start-stop-daemon --start --quiet --exec $DAEMON
-}
-
-#
-#	Function that stops the daemon/service.
-#
-d_stop() {
-	start-stop-daemon --stop --quiet --exec $DAEMON || true
-}
-
-#
-#	Function that sends a SIGHUP to the daemon/service.
-#
-d_reload() {
-	start-stop-daemon --stop --quiet --exec $DAEMON --signal 1
-}
+# Define LSB log_* functions
+. /lib/lsb/init-functions
 
 case "$1" in
   start)
-	echo -n "Starting $DESC: $NAME"
-	d_start
-	echo "."
+	log_daemon_msg "Starting $DESC" "$NAME"
+	start-stop-daemon --start --quiet --exec $DAEMON
+	log_end_msg $?
 	;;
   stop)
-	echo -n "Stopping $DESC: $NAME"
-	d_stop
-	echo "."
+	log_daemon_msg "Stopping $DESC" "$NAME"
+	start-stop-daemon --stop --quiet --exec $DAEMON
+	log_end_msg $?
 	;;
-  #reload)
-	#
-	#	If the daemon can reload its configuration without
-	#	restarting (for example, when it is sent a SIGHUP),
-	#	then implement that here.
-	#
-	#	If the daemon responds to changes in its config file
-	#	directly anyway, make this an "exit 0".
-	#
-	# echo -n "Reloading $DESC configuration..."
-	# d_reload
-	# echo "done."
-  #;;
   restart|force-reload)
-	#
-	#	If the "reload" option is implemented, move the "force-reload"
-	#	option to the "reload" entry above. If not, "force-reload" is
-	#	just the same as "restart".
-	#
-	echo -n "Restarting $DESC: $NAME"
-	d_stop
+	$0 stop
 	sleep 1
-	d_start
-	echo "."
+	$0 start
 	;;
   *)
-	# echo "Usage: $SCRIPTNAME {start|stop|restart|reload|force-reload}" >&2
 	echo "Usage: $SCRIPTNAME {start|stop|restart|force-reload}" >&2
 	exit 1
 	;;

@@ -4,9 +4,6 @@ OCAMLABI = $(shell ocamlc -version)
 BYTECODE = $(shell [ -x /usr/bin/ocamlopt ] || echo yes)
 OCAMLRUN = $(if $(BYTECODE),ocaml-base-nox-$(OCAMLABI))
 
-debian/control:
-	sed -e 's/@OCamlABI@/$(OCAMLABI)/g' $@.in > $@
-
 build: build-stamp
 build-stamp:
 	dh_testdir
@@ -65,5 +62,3 @@ binary-arch: build install
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install
-
-# -*- makefile-mode -*-
