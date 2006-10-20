@@ -19,9 +19,14 @@ let method_of url =
   with Not_found ->
     invalid_arg ("no method in URL " ^ url)
 
+let rate_option =
+  match String.lowercase max_rate with
+  | "" | "none" | "unlimited" -> ""
+  | str -> "--limit-rate " ^ str
+
 let curl_command options url =
-  "/usr/bin/curl --fail --silent --location " ^
-    String.concat " " options ^ " " ^ quoted_string url
+  sprintf "/usr/bin/curl --fail --silent --location %s %s %s"
+    rate_option (String.concat " " options) (quoted_string url)
 
 let head_command = curl_command ["--head"]
 

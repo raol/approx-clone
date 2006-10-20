@@ -2,7 +2,7 @@
 .\" Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH APPROX.CONF 5 "September 2006"
+.TH APPROX.CONF 5 "October 2006"
 .\" Please adjust this date whenever revising the manpage.
 
 .SH NAME
@@ -36,6 +36,11 @@ Specifies how many seconds an
 .BR approx (8)
 process will wait for a concurrent download of a file to complete,
 before attempting to download the file itself (default: 10)
+.IP max_rate
+Specifies the maximum download rate from remote repositories,
+in bytes per second (default: unlimited).
+The value may be suffixed with "K", "M", or "G"
+to indicate kilobytes, megabytes, or gigabytes per second, respectively.
 .IP debug
 Specifies whether debugging messages should be printed
 (default:
@@ -44,10 +49,9 @@ Specifies whether debugging messages should be printed
 The other name/value pairs  are used to map distribution names
 to remote repositories.  For example,
 .IP
-debian          http://debian.mirrors.pair.com
+debian          http://ftp.debian.org/debian
 .br
-security        http://security.debian.org/debian-security
-
+security        http://security.debian.org
 .SH SEE ALSO
 .BR approx (8),
 .BR gc_approx (8)

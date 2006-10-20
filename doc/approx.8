@@ -2,7 +2,7 @@
 .\" Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH APPROX 8 "September 2006"
+.TH APPROX 8 "October 2006"
 .\" Please adjust this date whenever revising the manpage.
 
 .SH NAME
@@ -76,6 +76,31 @@ server might contain the lines
 debian   http://ftp.debian.org/debian
 .br
 security http://security.debian.org
+.PP
+The mapping scheme is very simple.
+If the
+.I approx.conf
+file contains the line
+.IP
+repository	http://remote-host/initial/path
+.PP
+then any request to the
+.B approx
+server of the form
+.IP
+http://approx-server/repository/rest/of/URL
+.PP
+is rewritten to
+.IP
+http://remote-host/initial/path/rest/of/URL
+.PP
+when there is a "cache miss", and that file is cached as
+.IP
+/var/cache/approx/repository/rest/of/URL
+.PP
+(Note that the repository name on the left-hand side is not
+included in the rewritten URL unless it is explicitly mentioned
+in the right-hand side's initial path.)
 
 .SH FILES
 .TP

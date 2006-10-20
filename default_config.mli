@@ -9,4 +9,5 @@ val interface : string
 val port : int
 val interval : int  (* minutes *)
 val max_wait : int  (* seconds *)
+val max_rate : string  (* bytes/second with optional K, M, or G suffix *)
 val debug : bool
