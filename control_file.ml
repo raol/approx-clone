@@ -10,14 +10,17 @@ type paragraph = (string * string) list
 let trim_left s i =
   let n = String.length s in
   let rec loop i =
-    if i < n && s.[i] = ' ' then loop (i + 1)
+    if i < n && (s.[i] = ' ' || s.[i] = '\t') then loop (i + 1)
     else i
   in
   loop i
 
 let rec trim_right s i =
-  if i > 0 && s.[i - 1] = ' ' then trim_right s (i - 1)
-  else i
+  let rec loop i =
+    if i > 0 && (s.[i - 1] = ' ' || s.[i - 1] = '\t') then loop (i - 1)
+    else i
+  in
+  loop i
 
 let parse line =
   try
@@ -43,15 +46,15 @@ let read_paragraph chan =
     match next with
     | None when lines = [] -> raise End_of_file
     | None | Some "" -> lines
-    | Some line when line.[0] = ' ' ->
+    | Some line when line.[0] = ' ' || line.[0] = '\t' ->
 	(match lines with
 	| last :: others ->
 	    let line =
 	      if line = " ." then ""
-	      else String.sub line 1 (String.length line - 1)
+	      else substring line ~from: 1
 	    in
 	    loop ((last ^ "\n" ^ line) :: others)
-	| [] -> failwith ("leading space: " ^ line))
+	| [] -> failwith ("leading white space: " ^ line))
     | Some line -> loop (line :: lines)
   in
   List.rev_map parse (loop [])
