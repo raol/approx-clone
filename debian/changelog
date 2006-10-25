@@ -1,11 +1,13 @@
 approx (2.8.0) unstable; urgency=low
 
+  * Make sure syslog messages are newline-terminated for syslog-ng
+    (closes: #394925)
   * Handle tabs as well as spaces in control files (closes: #394062)
   * Added "max_rate" configuration variable (closes: #392802)
   * Improved description in approx man page of how repository mapping works
   * Added XS-Vcs-Svn header to debian/control file
 
- -- Eric Cooper <ecc@cmu.edu>  Fri, 20 Oct 2006 13:15:23 -0400
+ -- Eric Cooper <ecc@cmu.edu>  Mon, 23 Oct 2006 22:15:34 -0400
 
 approx (2.7.0) unstable; urgency=low
 

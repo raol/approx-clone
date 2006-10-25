@@ -4,9 +4,18 @@
 
 open Printf
 
-let printer = ref (fun _ -> prerr_endline)
+let printer = ref (fun _ msg -> prerr_string msg; flush stderr)
 
-let message level fmt = ksprintf (fun str -> !printer level str) fmt
+let message level =
+  (* ensure message is newline-terminated,
+     otherwise syslog-ng behaves differently than syslog *)
+  let terminate str =
+    let n = String.length str in
+    if n = 0 then "\n"
+    else if str.[n - 1] = '\n' then str
+    else str ^ "\n"
+  in
+  ksprintf (fun str -> !printer level (terminate str))
 
 let error_message fmt = message `LOG_ERR fmt
 let info_message fmt = message `LOG_INFO fmt
