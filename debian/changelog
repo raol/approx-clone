@@ -1,3 +1,9 @@
+approx (2.8.1) unstable; urgency=low
+
+  * Change dependency on ocaml-tools to ocamlmakefile
+
+ -- Ralf Treinen <treinen@debian.org>  Sun, 03 Jun 2007 22:21:43 +0200
+
 approx (2.8.0) unstable; urgency=low
 
   * Make sure syslog messages are newline-terminated for syslog-ng
