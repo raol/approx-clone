@@ -2,7 +2,7 @@
 # Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
 # Released under the GNU General Public License
 
-export OCAMLMAKEFILE = /usr/share/ocaml-tools/OCamlMakefile
+export OCAMLMAKEFILE = /usr/share/ocamlmakefile/OCamlMakefile
 
 export OCAMLFLAGS = -warn-error A
 
