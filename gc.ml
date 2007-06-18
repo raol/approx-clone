@@ -188,7 +188,7 @@ let sweep () =
   iter_status gc
 
 let garbage_collect () =
-  drop_privileges "approx";
+  drop_privileges ~user ~group;
   mark ();
   sweep ()
 

@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Unix
@@ -143,9 +143,9 @@ let file_md5sum = let module F = FileDigest(Digest) in F.sum
 let file_sha1sum = let module F = FileDigest(Sha1) in F.sum
 let file_sha256sum = let module F = FileDigest(Sha256) in F.sum
 
-let drop_privileges name =
-  setgid (getgrnam name).gr_gid;
-  setuid (getpwnam name).pw_uid
+let drop_privileges ~user ~group =
+  setgid (getgrnam group).gr_gid;
+  setuid (getpwnam user).pw_uid
 
 let packages_variants = [ "Packages"; "Packages.gz"; "Packages.bz2" ]
 
@@ -181,8 +181,8 @@ let string_of_exception exc =
   | Failure str -> String.capitalize str
   | Invalid_argument str -> "Invalid argument: " ^ str
   | Sys_error str -> str
-  | Unix.Unix_error (err, str, arg) ->
-      let msg = Printf.sprintf "%s: %s" str (Unix.error_message err) in
+  | Unix_error (err, str, arg) ->
+      let msg = Printf.sprintf "%s: %s" str (error_message err) in
       if arg <> "" then Printf.sprintf "%s (%s)" msg arg
       else msg
   | e -> Printexc.to_string e

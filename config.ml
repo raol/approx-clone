@@ -31,6 +31,28 @@ let get_generic convert ?default k =
     | Some v -> v
     | None -> raise Not_found)
 
+(* This version provides backwards compatibility for parameters
+   without an initial '$' *)
+
+let get_generic convert ?default k =
+  let not_found () =
+    match default with
+    | Some v -> v
+    | None -> raise Not_found
+  in
+  try convert (List.assoc k !map)
+  with Not_found ->
+    if k <> "" && k.[0] = '$' then
+      let k = substring ~from: 1 k in
+      try
+	let v = convert (List.assoc k !map) in
+	Printf.eprintf "/etc/approx/approx.conf: \"%s\" should be \"$%s\"\n%!"
+	  k k;
+	v
+      with Not_found -> not_found ()
+    else
+      not_found ()
+
 let get = get_generic (fun x -> x)
 
 let get_int = get_generic int_of_string
