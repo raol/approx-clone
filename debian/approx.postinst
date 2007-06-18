@@ -1,9 +1,6 @@
 #!/bin/sh -e
 
-action="$1"
-oldversion="$2"
-
-if [ "$action" != "configure" ]; then
+if [ "$1" != "configure" ]; then
     exit 0
 fi
 
@@ -44,7 +41,7 @@ fi
 
 # check for potential conflict with apt-proxy
 port=$(approx_config port 9999)
-if [ -x /etc/init.d/apt-proxy ] && [ "$port" = 9999 ]; then
+if [ -x /usr/sbin/apt-proxy ] && [ "$port" = 9999 ]; then
     cat >&2 <<EOF
 Warning: apt-proxy appears to be installed also.
          For compatibility with client sources.list files,
@@ -55,5 +52,3 @@ EOF
 fi
 
 #DEBHELPER#
-
-# -*- shell-script-mode -*-

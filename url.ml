@@ -54,16 +54,16 @@ let iter_headers chan proc =
   in
   loop ()
 
-let finish chan =
+let finish desc chan =
   if Unix.close_process_in chan <> Unix.WEXITED 0 then
-    failwith "download failed"
+    failwith (desc ^ " failed")
 
 let head url callback =
   let cmd = head_command url in
   if debug then debug_message "Command: %s" cmd;
   let chan = Unix.open_process_in cmd in
   iter_headers chan callback;
-  finish chan
+  finish ("head of " ^ url) chan
 
 let download_command headers header_callback =
   let hdr_opts = List.map (fun h -> "--header " ^ quoted_string h) headers in
@@ -92,7 +92,7 @@ let download url ?(headers=[]) ?header_callback callback =
    | Some proc -> iter_headers chan proc
    | None -> ());
   iter_body chan callback;
-  finish chan
+  finish ("download of " ^ url) chan
 
 let download_file ~url ~file =
   let file' = file ^ ".tmp" in

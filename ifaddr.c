@@ -1,5 +1,5 @@
 /* approx: proxy server for Debian archive files
-   Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License */
 
 #include <stdlib.h>
@@ -12,11 +12,11 @@
 static int
 ifaddr(char *name, /* OUT */ struct in_addr *addr)
 {
+    struct ifreq r;
+    int i;
     int s = socket(PF_INET, SOCK_STREAM, 0);
     if (s == -1)
 	return 0;
-    struct ifreq r;
-    int i;
     for (i = 0; i < sizeof(r.ifr_name); i++) {
 	if ((r.ifr_name[i] = name[i]) == '\0')
 	    break;
@@ -35,6 +35,16 @@ ifaddr(char *name, /* OUT */ struct in_addr *addr)
 #include <caml/memory.h>
 #include <caml/mlvalues.h>
 
+/*
+ * defined in otherlibs/unix/socketaddr.c
+ */
+extern value alloc_inet_addr(struct in_addr *);
+
+/*
+ * defined in asmrun/fail.c
+ */
+extern void caml_raise_not_found(void);
+
 value
 inet_addr_of_interface(value name)
 {
@@ -43,5 +53,6 @@ inet_addr_of_interface(value name)
     if (ifaddr(String_val(name), &addr))
 	CAMLreturn(alloc_inet_addr(&addr));
     else
-	raise_not_found();
+	caml_raise_not_found();
+    return Val_unit;  /* not reached, but eliminates gcc warning */
 }

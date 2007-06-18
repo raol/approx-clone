@@ -2,4 +2,4 @@
    Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-val main : user:string -> interface:string -> int -> 'a Nethttpd_types.http_service -> unit
+val main : user:string -> group:string -> interface:string -> int -> 'a Nethttpd_types.http_service -> unit

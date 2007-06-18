@@ -1,13 +1,12 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
 open Unix
-open Nethttpd_types
 open Util
 open Default_config
-open Log  (* Log.error_message shadows Unix.error_message *)
+open Log
 
 let usage () =
   prerr_endline
@@ -22,7 +21,7 @@ Options:
 let version () =
   eprintf "%s %s\n" Version.name Version.number;
   prerr_endline
-    "Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>\n\
+    "Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>\n\
      Released under the GNU General Public License"
 
 let foreground = ref false
@@ -36,8 +35,6 @@ let () =
   done;
   if not !foreground then use_syslog ()
 
-let exception_message exc = error_message "%s" (string_of_exception exc)
-
 let print_config () =
   let units u = function
     | 0 -> ""
@@ -45,13 +42,16 @@ let print_config () =
     | n -> sprintf " %d %ss" n u
   in
   info_message "Version: %s %s" Version.name Version.number;
-  info_message "Config file: %s" config_file;
   info_message "Interface: %s" interface;
   info_message "Port: %d" port;
-  info_message "Cache: %s" cache_dir;
   info_message "Interval:%s%s"
     (units "hour" (interval / 60)) (units "minute" (interval mod 60));
   info_message "Max wait: %d" max_wait;
+  info_message "Max rate: %s" max_rate;
+  info_message "User: %s" user;
+  info_message "Group: %s" group;
+  info_message "Syslog: %s" syslog;
+  info_message "Verbose: %B" verbose;
   info_message "Debug: %B" debug
 
 let http_time t =
@@ -68,7 +68,7 @@ let wait_for_download_in_progress name =
     if Sys.file_exists name' then
       if n < max_wait then
 	begin
-	  if n = 0 then
+	  if n = 0 && verbose then
 	    info_message "Waiting for download of %s to complete" name;
 	  sleep 1;
 	  wait (n+1)
@@ -94,7 +94,7 @@ let proxy_headers size modtime =
 (* Deliver a file from the local cache *)
 
 let deliver_local name env =
-  if not debug then info_message "%s" name;
+  if verbose && not debug then info_message "%s" name;
   let size = file_size name in
   env#set_output_header_fields (proxy_headers size (file_modtime name));
   if debug then print_headers "Cache hit" env#output_header_fields;
@@ -241,7 +241,7 @@ let string_of_download_status = function
   | Not_modified -> "Not modified"
   | File_not_found -> "File not found"
 
-let send_header size modtime (cgi : Netcgi_types.cgi_activation) =
+let send_header size modtime (cgi : Netcgi1_compat.Netcgi_types.cgi_activation) =
   let headers = proxy_headers size modtime in
   let fields = List.map (fun (name, value) -> (name, [value])) headers in
   cgi#set_header ~status: `Ok ~fields ();
@@ -366,7 +366,7 @@ let download_url url =
 
 let cleanup_after name =
   let rm file =
-    info_message "Removing invalid file %s" file;
+    if verbose then info_message "Removing invalid file %s" file;
     Sys.remove file
   in
   if Sys.file_exists name then
@@ -393,9 +393,9 @@ let copy_from_cache name cgi =
 
 let serve_remote url name ims mod_time cgi =
   let respond code =
-    raise (Standard_response (code, None, None))
+    raise (Nethttpd_types.Standard_response (code, None, None))
   in
-  info_message "%s" url;
+  if verbose then info_message "%s" url;
   let status =
     try download_url url name (max ims mod_time) cgi
     with e ->
@@ -423,13 +423,14 @@ let serve_remote url name ims mod_time cgi =
 
 let remote_service url name ims mod_time =
   object
-    method process_body env =
-      let cgi =
-	(* buffered activation runs out of memory on large downloads *)
-	Nethttpd_services.std_activation `Std_activation_unbuffered env
-      in
+    method process_body _ =
       object
-	method generate_response _ = serve_remote url name ims mod_time cgi
+	method generate_response env =
+	  let cgi =
+	    (* buffered activation runs out of memory on large downloads *)
+	    Nethttpd_services.std_activation `Std_activation_unbuffered env
+	  in
+	  serve_remote url name ims mod_time cgi
       end
   end
 
@@ -455,8 +456,8 @@ let get_dependencies url name =
       (* since older versions of apt do not know about Release.gpg,
 	 we fetch it now to ensure the cache will be consistent
 	 for other clients using secure apt *)
-      (try Url.download_file ~url: (url ^ ".gpg") ~file: (name ^ ".gpg")
-       with e -> exception_message e)
+      let url, file = url ^ ".gpg", name ^ ".gpg" in
+      (try Url.download_file ~url ~file with e -> exception_message e)
   | _ ->
       ()
 
@@ -481,7 +482,7 @@ let ims_time env =
 
 let serve_file env =
   (* handle URL-encoded '+', '~', etc. *)
-  let path = Netencoding.Url.decode ~plus:false env#cgi_request_uri in
+  let path = Netencoding.Url.decode ~plus: false env#cgi_request_uri in
   let headers = env#input_header_fields in
   if debug then print_headers (sprintf "Request %s" path) headers;
   try
@@ -493,28 +494,29 @@ let serve_file env =
     `Std_response (`Forbidden, None, Some msg)
 
 let proxy_service =
-  object (_self)
+  object
     method name = "proxy_service"
     method def_term = `Proxy_service
     method print fmt = Format.fprintf fmt "%s" "proxy_service"
-
     method process_header env =
-      (match env#remote_socket_addr with
-       | ADDR_INET (host, port) ->
-	   info_message "Connection from %s:%d" (string_of_inet_addr host) port
-       | ADDR_UNIX path ->
-	   failwith ("connection from UNIX socket " ^ path));
-      if env#cgi_request_method = "GET" && env#cgi_query_string = "" then
-	serve_file env
-      else
-	`Std_response (`Forbidden, None, Some "Invalid request line")
+      match env#remote_socket_addr with
+      | ADDR_INET (host, port) ->
+	  if verbose then
+	    info_message "Connection from %s:%d"
+	      (string_of_inet_addr host) port;
+	  if env#cgi_request_method = "GET" && env#cgi_query_string = "" then
+	    serve_file env
+	  else
+	    `Std_response (`Forbidden, None, Some "Invalid request line")
+      | ADDR_UNIX path ->
+	  failwith ("connection from UNIX socket " ^ path)
   end
 
 let server () =
   try
     Sys.chdir cache_dir;
-    print_config ();
-    Server.main ~user: "approx" ~interface port proxy_service
+    if verbose then print_config ();
+    Server.main ~user ~group ~interface port proxy_service
   with e ->
     exception_message e;
     exit 1

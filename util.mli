@@ -96,7 +96,7 @@ val file_sha256sum : string -> string
 
 (* Drop privileges (user and group ID) to those of the specified name *)
 
-val drop_privileges : string -> unit
+val drop_privileges : user:string -> group:string -> unit
 
 (* Check whether a file is a Sources file *)
 

@@ -1,10 +1,11 @@
-#!/bin/sh -e
+#!/bin/sh
 
 # Garbage collect the approx(8) cache
 
 /usr/sbin/gc_approx --quiet
 
 # Remove any empty directories
-# The trailing /. makes it work when /var/cache/approx is a symlink
 
-find /var/cache/approx/. -type d -empty | xargs --no-run-if-empty rmdir
+cd /var/cache/approx/ && \
+    find -type d -empty | \
+    xargs --no-run-if-empty rmdir --parents --ignore-fail-on-non-empty

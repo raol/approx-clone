@@ -1,8 +1,24 @@
-approx (2.8.1) unstable; urgency=low
+approx (2.9.0) unstable; urgency=low
 
-  * Change dependency on ocaml-tools to ocamlmakefile [Ralf Treinen]
+  * Changed debian/rules to use cdbs
+  * Improve postinst check for conflict with apt-proxy
+    (closes: #395375)
+  * Make sure cronjob doesn't fail if approx has been removed
+    or cache directory is empty (closes: #404819, #416361)
+  * Require configuration parameters to begin with '$' to distinguish
+    them from repository names
+  * Added $verbose parameter to control logging of informational messages
+    (closes: #403514)
+  * Added $syslog parameter to specify the syslog facility
+    (closes: #406504)
+  * Added $user and $group parameters to control the approx daemon's user
+    and group [Alexandra N. Kossovsky <sasha@oktetlabs.ru>]
+    (closes: #423836)
+  * Don't assume deluser is still available in postrm (closes: #416643)
+  * Migrated to Ocamlnet 2 (closes: #420478)
+  * Changed dependency from ocaml-tools to ocamlmakefile (closes: #428723)
 
- --
+ -- Eric Cooper <ecc@cmu.edu>  Wed, 13 Jun 2007 16:04:53 -0400
 
 approx (2.8.0) unstable; urgency=low
 

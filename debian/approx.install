@@ -1,0 +1,3 @@
+approx		usr/sbin
+gc_approx	usr/sbin
+etc/approx.conf	etc/approx

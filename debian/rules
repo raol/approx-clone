@@ -1,64 +1,13 @@
 #!/usr/bin/make -f
 
-OCAMLABI = $(shell ocamlc -version)
-BYTECODE = $(shell [ -x /usr/bin/ocamlopt ] || echo yes)
-OCAMLRUN = $(if $(BYTECODE),ocaml-base-nox-$(OCAMLABI))
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/class/makefile.mk
+include /usr/share/cdbs/1/class/ocaml.mk
 
-build: build-stamp
-build-stamp:
-	dh_testdir
-	./gen_version > version.ml
-	$(MAKE) $(if $(BYTECODE),byte-code,native-code)
-	touch build-stamp
-
-clean:
-	dh_testdir
-	dh_testroot
-	rm -f build-stamp
-	-$(MAKE) clean
-	dh_clean version.ml
-
-install: build
-	dh_testdir
-	dh_testroot
-	dh_clean -k
-	dh_installdirs
-	dh_install approx gc_approx usr/sbin
-	dh_install etc/approx.conf etc/approx
-
-binary-indep: build install
-
-binary-arch: build install
-	dh_testdir
-	dh_testroot
-	dh_installchangelogs
-	dh_installdocs doc/README.concurrency
-	dh_installexamples
-#	dh_install
-#	dh_installmenu
-#	dh_installdebconf
-#	dh_installlogrotate
-#	dh_installemacsen
-#	dh_installcatalogs
-#	dh_installpam
-#	dh_installmime
-	dh_installinit
-	dh_installcron
-#	dh_installinfo
-#	dh_undocumented
-	dh_installman doc/*.[1-8]
-	dh_link
-	dh_strip
-	dh_compress
-	dh_fixperms
-#	dh_perl
-#	dh_python
-#	dh_makeshlibs
-	dh_installdeb
-	dh_shlibdeps
-	dh_gencontrol -- -VF:OCamlRun="$(OCAMLRUN)"
-	dh_md5sums
-	dh_builddeb
-
-binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install
+ifeq ($(OCAML_HAVE_OCAMLOPT),yes)
+    DEB_MAKE_BUILD_TARGET = native-code
+    DEB_DH_GENCONTROL_ARGS += -VF:OCamlRun=""
+else
+    DEB_MAKE_BUILD_TARGET = byte-code
+    DEB_DH_GENCONTROL_ARGS += -VF:OCamlRun="ocaml-base-nox-$(OCAML_ABI)"
+endif

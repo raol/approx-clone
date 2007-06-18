@@ -18,31 +18,43 @@ Each non-blank line of the configuration file should contain
 a name/value pair, separated by white space.
 Comments start with a "#" character and continue to the end of the line.
 .PP
-The following names have special meaning:
-.IP interface
+Names that begin with the "$" character are reserved for use as
+configuration parameters.  The following parameters are currently defined:
+.IP $interface
 Specifies the name of the network interface on which the
 .BR approx (8)
 server listens for HTTP requests (default: any)
-.IP port
+.IP $port
 Specifies the TCP port on which the
 .BR approx (8)
 server listens for HTTP requests (default: 9999)
-.IP interval
+.IP $interval
 Specifies the time in minutes after which a cached file will be
 considered too old to deliver without first checking with the remote
 repository for a newer version (default: 720, or 12 hours)
-.IP max_wait
+.IP $max_wait
 Specifies how many seconds an
 .BR approx (8)
 process will wait for a concurrent download of a file to complete,
 before attempting to download the file itself (default: 10)
-.IP max_rate
+.IP $max_rate
 Specifies the maximum download rate from remote repositories,
 in bytes per second (default: unlimited).
 The value may be suffixed with "K", "M", or "G"
 to indicate kilobytes, megabytes, or gigabytes per second, respectively.
-.IP debug
-Specifies whether debugging messages should be printed
+.IP "$user, $group"
+Specifies the name of the user and group to use after the daemon drops
+privileges (default: "approx")
+.IP $syslog
+Specifies the
+.BR syslog (3)
+facility to use when logging (default: "daemon")
+.IP $verbose
+Specifies whether informational messages should be printed in the log
+(default:
+.BR false )
+.IP $debug
+Specifies whether debugging messages should be printed in the log
 (default:
 .BR false )
 .PP
