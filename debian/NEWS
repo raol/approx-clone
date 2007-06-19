@@ -7,6 +7,8 @@ still accepted with a warning message.
 Several parameters have been added: $user, $group, $syslog, $verbose.
 See the approx.conf man page for details.
 
+ -- Eric Cooper <ecc@cmu.edu>  Wed, 13 Jun 2007 16:04:53 -0400
+
 approx (2.06) unstable; urgency=low
 
 A new configuration variable, interface, forces approx to listen for

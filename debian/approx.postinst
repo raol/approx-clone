@@ -14,9 +14,7 @@ approx_config() {
 }
 
 # add the approx user
-if ! getent passwd approx >/dev/null; then
-    adduser --quiet --system --group --no-create-home --home /var/cache/approx approx
-fi
+adduser --quiet --system --group --no-create-home --home /var/cache/approx approx
 
 # create the approx cache directory if necessary
 if [ ! -d /var/cache/approx ]; then

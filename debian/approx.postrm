@@ -2,12 +2,8 @@
 
 if [ "$1" = "purge" ]; then
     rm -rf /var/cache/approx
-    if getent passwd approx >/dev/null; then
-	deluser --quiet approx || true
-    fi
-    if getent group approx >/dev/null; then
-	delgroup --quiet approx || true
-    fi
+    deluser --quiet --system approx || true
+    delgroup --quiet --system approx || true
 fi
 
 #DEBHELPER#
