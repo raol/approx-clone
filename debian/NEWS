@@ -1,52 +1,54 @@
 approx (2.9.0) unstable; urgency=low
 
-Configuration parameters in /etc/approx/approx.conf should now begin
-with '$' to distinguish them from repository names.  The old style is
-still accepted with a warning message.
-
-Several parameters have been added: $user, $group, $syslog, $verbose.
-See the approx.conf man page for details.
+  Configuration parameters in /etc/approx/approx.conf should now begin
+  with '$' to distinguish them from repository names.  The old style is
+  still accepted with a warning message.
+  
+  Several parameters have been added: $user, $group, $syslog, $verbose.
+  See the approx.conf man page for details.
 
  -- Eric Cooper <ecc@cmu.edu>  Wed, 13 Jun 2007 16:04:53 -0400
 
 approx (2.06) unstable; urgency=low
 
-A new configuration variable, interface, forces approx to listen for
-connections on a specific network interface only.
+  A new configuration variable, interface, forces approx to listen for
+  connections on a specific network interface only.
+  
+  The approx server can now listen on privileged ports such as port 80.
+  
+  File: URIs are now supported in the approx.conf file.
 
-The approx server can now listen on privileged ports such as port 80.
-
-File: URIs are now supported in the approx.conf file.
+ -- Eric Cooper <ecc@cmu.edu>  Mon, 24 Apr 2006 16:09:22 -0400
 
 approx (2.00) unstable; urgency=low
 
-Approx now uses curl subprocesses to download files from remote
-repositories.
+  Approx now uses curl subprocesses to download files from remote
+  repositories.
 
  -- Eric Cooper <ecc@cmu.edu>  Mon, 10 Oct 2005 10:04:09 -0400
 
 approx (1.16) unstable; urgency=low
 
-The approx server now forks multiple processes to handle concurrent
-requests.  A new configuration variable, max_wait, can be used to
-specify how many seconds an approx process will wait for a concurrent
-download of a file to complete, before attempting to download the file
-itself.
+  The approx server now forks multiple processes to handle concurrent
+  requests.  A new configuration variable, max_wait, can be used to
+  specify how many seconds an approx process will wait for a concurrent
+  download of a file to complete, before attempting to download the file
+  itself.
 
  -- Eric Cooper <ecc@cmu.edu>  Fri, 13 May 2005 12:23:37 -0400
 
 approx (1.14) unstable; urgency=low
 
-The --foreground option allows approx to be run more easily from
-the command line, a debugger, or the runit init scheme.
+  The --foreground option allows approx to be run more easily from
+  the command line, a debugger, or the runit init scheme.
 
  -- Eric Cooper <ecc@cmu.edu>  Thu,  5 May 2005 10:43:36 -0400
 
 approx (1.13) unstable; urgency=low
 
-The approx daemon always uses /var/cache/approx now;
-the cache directory can no longer be changed in the approx.conf file.
-But /var/cache/approx can be a symbolic link, so the cache directory
-can still be located elsewhere.
+  The approx daemon always uses /var/cache/approx now;
+  the cache directory can no longer be changed in the approx.conf file.
+  But /var/cache/approx can be a symbolic link, so the cache directory
+  can still be located elsewhere.
 
  -- Eric Cooper <ecc@cmu.edu>  Wed, 27 Apr 2005 18:39:13 -0400
