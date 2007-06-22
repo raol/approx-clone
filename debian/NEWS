@@ -3,7 +3,7 @@ approx (2.9.0) unstable; urgency=low
   Configuration parameters in /etc/approx/approx.conf should now begin
   with '$' to distinguish them from repository names.  The old style is
   still accepted with a warning message.
-  
+
   Several parameters have been added: $user, $group, $syslog, $verbose.
   See the approx.conf man page for details.
 
@@ -16,9 +16,9 @@ approx (2.06) unstable; urgency=low
 
   A new configuration variable, interface, forces approx to listen for
   connections on a specific network interface only.
-  
+
   The approx server can now listen on privileged ports such as port 80.
-  
+
   File: URIs are now supported in the approx.conf file.
 
  -- Eric Cooper <ecc@cmu.edu>  Mon, 24 Apr 2006 16:09:22 -0400

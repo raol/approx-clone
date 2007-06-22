@@ -1,5 +1,6 @@
 approx: proxy server for Debian archive files
-Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
+Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+Homepage: http://svn.debian.org/wsvn/pkg-ocaml-maint/trunk/projects/approx/
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
