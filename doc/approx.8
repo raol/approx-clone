@@ -1,8 +1,8 @@
 .\" approx: proxy server for Debian archive files
-.\" Copyright (C) 2005  Eric C. Cooper <ecc@cmu.edu>
+.\" Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH APPROX 8 "October 2006"
+.TH APPROX 8 "June 2007"
 .\" Please adjust this date whenever revising the manpage.
 
 .SH NAME
@@ -114,6 +114,12 @@ and
 .I /var/cache/approx
 .br
 Cache directory for archive files.
+
+.SH BUGS
+.B approx
+does not yet support "pdiff" files; instead, it denies
+requests for them, thereby forcing clients to fall back to a
+full download of the corresponding index file.
 
 .SH SEE ALSO
 .IR approx.conf (5),

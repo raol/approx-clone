@@ -27,16 +27,8 @@ define PROJ_gc
 endef
 export PROJ_gc
 
-define PROJ_fsck
-    SOURCES = util.ml config.ml default_config.ml control_file.ml release.ml fsck.ml
-    INCDIRS = +pcre +sha
-    LIBS = unix pcre sha
-    RESULT = fsck_approx
-endef
-export PROJ_fsck
-
 ifndef SUBPROJS
-    export SUBPROJS = server gc fsck
+    export SUBPROJS = server gc
 endif
 
 all: native-code
