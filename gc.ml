@@ -187,9 +187,28 @@ let sweep () =
   in
   iter_status gc
 
+let empty_dirs =
+  let collect_empty list dir =
+    if Sys.readdir dir = [||] then dir :: list else list
+  in
+  fold_dirs collect_empty []
+
+let remove_dir dir =
+  let prefix = if verbose then "  " else "" in
+  print_if (not quiet) "%s%s" prefix dir;
+  (* any exception raised by rmdir will terminate the pruning loop *)
+  if not simulate then Unix.rmdir dir
+
+let rec prune () =
+  match empty_dirs cache_dir with
+  | [] -> ()
+  | [dir] when dir = cache_dir -> ()  (* don't remove cache dir *)
+  | list -> List.iter remove_dir list; if not simulate then prune ()
+
 let garbage_collect () =
   drop_privileges ~user ~group;
   mark ();
-  sweep ()
+  sweep ();
+  prune ()
 
 let () = main_program garbage_collect ()
