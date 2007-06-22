@@ -2,8 +2,12 @@
 
 if [ "$1" = "purge" ]; then
     rm -rf /var/cache/approx
-    deluser --quiet --system approx || true
-    delgroup --quiet --system approx || true
+    if [ -x "$(command -v deluser)" -a -x "$(command -v delgroup)" ]; then
+	deluser --quiet --system approx || true
+	delgroup --quiet --system approx || true
+    else
+	echo >&2 "not removing approx user/group: deluser/delgroup command not found"
+    fi
 fi
 
 #DEBHELPER#

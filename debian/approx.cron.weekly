@@ -3,9 +3,3 @@
 # Garbage collect the approx(8) cache
 
 /usr/sbin/gc_approx --quiet
-
-# Remove any empty directories
-
-cd /var/cache/approx/ && \
-    find -type d -empty | \
-    xargs --no-run-if-empty rmdir --parents --ignore-fail-on-non-empty
