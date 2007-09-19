@@ -1,11 +1,18 @@
+approx (2.9.1) unstable; urgency=low
+
+  * Make sure cron job doesn't fail if approx has been removed
+    (closes: #404819)
+
+ -- Eric Cooper <ecc@cmu.edu>  Wed, 19 Sep 2007 13:59:33 -0400
+
 approx (2.9.0) unstable; urgency=low
 
   [ Eric Cooper ]
   * Changed debian/rules to use cdbs
   * Improve postinst check for conflict with apt-proxy
     (closes: #395375)
-  * Make sure cronjob doesn't fail if approx has been removed
-    or cache directory is empty (closes: #404819, #416361)
+  * Make sure cron job doesn't fail if cache directory is empty
+    (closes: #416361)
   * Require configuration parameters to begin with '$' to distinguish
     them from repository names
   * Added $verbose parameter to control logging of informational messages
@@ -21,7 +28,7 @@ approx (2.9.0) unstable; urgency=low
 
   [ Ralf Treinen ]
   * Added myself to uploaders.
-  * Build-depend on ocaml >= 3.10 in order to force theg ocaml version on
+  * Build-depend on ocaml >= 3.10 in order to force the ocaml version on
     autobuilders.
 
  -- Ralf Treinen <treinen@debian.org>  Wed, 05 Sep 2007 16:43:00 +0200

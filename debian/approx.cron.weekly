@@ -2,4 +2,6 @@
 
 # Garbage collect the approx(8) cache
 
-/usr/sbin/gc_approx --quiet
+if [ -x /usr/sbin/gc_approx ]; then
+    /usr/sbin/gc_approx --quiet
+fi
