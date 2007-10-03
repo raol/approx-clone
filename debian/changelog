@@ -2,8 +2,9 @@ approx (2.9.1) unstable; urgency=low
 
   * Make sure cron job doesn't fail if approx has been removed
     (closes: #404819)
+  * Add Homepage field
 
- -- Eric Cooper <ecc@cmu.edu>  Wed, 19 Sep 2007 13:59:33 -0400
+ -- Eric Cooper <ecc@cmu.edu>  Wed, 03 Oct 2007 11:31:56 -0400
 
 approx (2.9.0) unstable; urgency=low
 
