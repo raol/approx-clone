@@ -1,41 +1,65 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Util
+open Default_config
+open Log
 
-(* Return a list of files that do not match the size or checksum
-   specified for them in a Release file *)
+type t = string * ((Control_file.info * string) list * (string -> string))
 
-let release_file file =
-  let path = Filename.dirname file in
-  let cons_if_invalid checksum invalid_files (info, filename) =
-    let file = path ^/ filename in
-    if Sys.file_exists file then
-      match Control_file.validate ~checksum info file with
-      | Control_file.Valid -> invalid_files
-      | _ -> file :: invalid_files
-    else
-      invalid_files
+let find_directory file =
+  let rec loop i =
+    let dir = substring file ~until: i in
+    if Sys.file_exists (dir ^/ "Release") then dir
+    else loop (String.index_from file (i + 1) '/')
   in
+  (* if pathname is absolute, start relative to the cache directory *)
+  let start =
+    if file.[0] <> '/' then 0
+    else if is_prefix cache_dir file then String.length cache_dir + 1
+    else invalid_arg "Release.find_directory"
+  in
+  loop start
+
+let read file =
+  let rdir = find_directory file in
+  rdir, Control_file.read_checksum_info (rdir ^/ "Release")
+
+let validate (rdir, (info_list, checksum)) file =
+  Sys.file_exists file &&
+  let rfile = substring ~from: (String.length rdir + 1) file in
   try
-    let fields = Control_file.paragraph file in
-    let lines, sum = Control_file.get_checksum fields in
-    let info = Control_file.info_list lines in
-    List.fold_left (cons_if_invalid sum) [] info
-  with Not_found -> []
+    let info = fst (List.find (fun (_, name) -> name = rfile) info_list) in
+    Control_file.is_valid checksum info file
+  with Not_found ->
+    if debug && Filename.dirname file <> rdir then
+      debug_message "%s: not found in %s/Release" file rdir;
+    false
 
-(* Assume a Release file is stale if it is more than 5 minutes older
-   than the Release.gpg file *)
+let valid_file file = try validate (read file) file with Not_found -> false
 
-let signature_file file =
-  let release = Filename.chop_suffix file ".gpg" in
-  if Sys.file_exists release &&
-    (file_modtime file -. file_modtime release > 300.) then [release]
-  else []
+let index_variants =
+  [ compressed_versions "Packages";
+    compressed_versions "Sources" ]
 
-let files_invalidated_by file =
+let is_index file =
+  List.exists (List.mem (Filename.basename file)) index_variants
+
+let is_release file =
   match Filename.basename file with
-  | "Release" -> release_file file
-  | "Release.gpg" -> signature_file file
-  | _ -> []
+  | "Release" | "Release.gpg" -> true
+  | _ -> false
+
+let is_diff_index file =
+  Filename.basename file = "Index" &&
+  Filename.check_suffix (Filename.dirname file) ".diff"
+
+let is_pdiff file =
+  Filename.basename file <> "Index" &&
+  Filename.check_suffix (Filename.dirname file) ".diff"
+
+let immutable_suffixes = [ ".deb"; ".dsc"; ".tar.gz"; ".diff.gz" ]
+
+let immutable file =
+  List.exists (Filename.check_suffix file) immutable_suffixes || is_pdiff file

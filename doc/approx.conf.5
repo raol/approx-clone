@@ -2,8 +2,8 @@
 .\" Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH APPROX.CONF 5 "June 2007"
-.\" Please adjust this date whenever revising the manpage.
+.TH APPROX.CONF 5 "November 2007"
+.\" Please adjust this date when revising the manpage.
 
 .SH NAME
 approx.conf \- configuration file for approx proxy server
@@ -28,10 +28,6 @@ server listens for HTTP requests (default: any)
 Specifies the TCP port on which the
 .BR approx (8)
 server listens for HTTP requests (default: 9999)
-.IP $interval
-Specifies the time in minutes after which a cached file will be
-considered too old to deliver without first checking with the remote
-repository for a newer version (default: 720, or 12 hours)
 .IP $max_wait
 Specifies how many seconds an
 .BR approx (8)
@@ -49,6 +45,10 @@ privileges (default: "approx")
 Specifies the
 .BR syslog (3)
 facility to use when logging (default: "daemon")
+.IP $pdiffs
+Specifies whether to support IndexFile diffs
+(default:
+.BR true )
 .IP $verbose
 Specifies whether informational messages should be printed in the log
 (default:

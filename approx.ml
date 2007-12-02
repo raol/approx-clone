@@ -4,6 +4,7 @@
 
 open Printf
 open Unix
+open Unix.LargeFile
 open Util
 open Default_config
 open Log
@@ -22,7 +23,8 @@ let version () =
   eprintf "%s %s\n" Version.name Version.number;
   prerr_endline
     "Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>\n\
-     Released under the GNU General Public License"
+     Released under the GNU General Public License";
+  exit 0
 
 let foreground = ref false
 
@@ -35,52 +37,35 @@ let () =
   done;
   if not !foreground then use_syslog ()
 
-let print_config () =
-  let units u = function
-    | 0 -> ""
-    | 1 -> sprintf " 1 %s" u
-    | n -> sprintf " %d %ss" n u
-  in
-  info_message "Version: %s %s" Version.name Version.number;
-  info_message "Interface: %s" interface;
-  info_message "Port: %d" port;
-  info_message "Interval:%s%s"
-    (units "hour" (interval / 60)) (units "minute" (interval mod 60));
-  info_message "Max wait: %d" max_wait;
-  info_message "Max rate: %s" max_rate;
-  info_message "User: %s" user;
-  info_message "Group: %s" group;
-  info_message "Syslog: %s" syslog;
-  info_message "Verbose: %B" verbose;
-  info_message "Debug: %B" debug
+let stat_file name =
+  try Some (stat name) with Unix_error (ENOENT, "stat", _) -> None
 
-let http_time t =
-  Netdate.format ~fmt: "%a, %d %b %Y %T GMT" (Netdate.create ~zone: 0 t)
+(* Temporary name in case the download is interrupted *)
 
-let string_of_time = http_time
-
-let in_progress name = name ^ ".tmp"  (* temporary name in case the download
-					 is interrupted *)
+let in_progress name = name ^ ".tmp"
 
 let wait_for_download_in_progress name =
   let name' = in_progress name in
-  let rec wait n =
-    if Sys.file_exists name' then
-      if n < max_wait then
-	begin
-	  if n = 0 && verbose then
-	    info_message "Waiting for download of %s to complete" name;
-	  sleep 1;
-	  wait (n+1)
-	end
-      else
-	begin
-	  error_message "Concurrent download of %s is taking too long" name;
-	  (* remove the other process's .tmp file so we can create our own *)
-	  try Sys.remove name' with _ -> ()
-	end
+  let rec wait n prev =
+    match stat_file name' with
+    | Some { st_size = cur } ->
+	if cur = prev && n = max_wait then
+	  begin
+	    error_message "Concurrent download of %s is taking too long" name;
+	    (* remove the other process's .tmp file if it still exists,
+	       so we can create our own *)
+	    rm name'
+	  end
+	else
+	  begin
+	    if prev = 0L && debug then
+	      debug_message "Waiting for concurrent download of %s" name;
+	    sleep 1;
+	    wait (if cur = prev then n + 1 else 0) cur
+	  end
+    | None -> ()
   in
-  wait 0
+  wait 0 0L
 
 let print_headers msg headers =
   debug_message "%s" msg;
@@ -89,65 +74,65 @@ let print_headers msg headers =
 let proxy_headers size modtime =
   [ "Content-Type", "text/plain";
     "Content-Length", Int64.to_string size ] @
-  if modtime <> 0. then [ "Last-Modified", http_time modtime ] else []
+  if modtime <> 0. then [ "Last-Modified", Url.string_of_time modtime ] else []
+
+type local_status =
+  | Done of Nethttpd_types.http_service_reaction
+  | Stale of float
+  | Missing
 
 (* Deliver a file from the local cache *)
 
 let deliver_local name env =
-  if verbose && not debug then info_message "%s" name;
   let size = file_size name in
   env#set_output_header_fields (proxy_headers size (file_modtime name));
-  if debug then print_headers "Cache hit" env#output_header_fields;
-  `File (`Ok, None, cache_dir ^/ name, 0L, size)
+  if debug then print_headers "Local response" env#output_header_fields;
+  Done (`File (`Ok, None, cache_dir ^/ name, 0L, size))
 
-(* Return the age of a file in minutes, using the last status change
-   time (ctime) rather than the modification time (mtime).
+let not_found = Done (`Std_response (`Not_found, None, None))
+let not_modified = Done (`Std_response (`Not_modified, None, None))
 
-   The mtime tells when the contents of the file last changed, and is
-   used by the "If-Modified-Since" logic.  Whenever we learn that the
-   file is still valid via a "Not Modified" response, we update the
-   ctime so that the file will continue to be considered current. *)
+let cache_hit name ims mod_time env =
+  if Release.immutable name || Release.valid_file name then
+    if mod_time <= ims then
+      (if debug then debug_message "  => not modified";
+       not_modified)
+    else
+      (if debug then debug_message "  => delivering from cache";
+       deliver_local name env)
+  else Missing
 
-let minutes_old stats =
-  int_of_float ((time () -. stats.st_ctime) /. 60. +. 0.5)
+let deny name =
+  if debug then debug_message "Denying %s" name;
+  not_found
 
-let print_age name stats ims =
-  debug_message "%s" name;
-  let age = minutes_old stats in
-  debug_message "  %d minute%s old" age (if age = 1 then "" else "s");
-  debug_message "  ims %s  mtime %s"
-    (string_of_time ims) (string_of_time stats.st_mtime)
+(* See if the given file should be denied (reported to the client as
+   not found) rather than fetched remotely. This is done in two cases:
+     * the client is requesting a .bz2 version of an index
+     * the client is requesting a DiffIndex and an up-to-date .gz version
+       of the corresponding index exists in the cache
+   By denying the request, the client will fall back to requesting
+   the Packages.gz or Sources.gz file.  Using .gz instead of .bz2
+   allows pdiffs to be applied more quickly and ensures correct operation
+   with older apt clients that do not support .bz2 *)
 
-let immutable_suffixes = [ ".deb"; ".dsc"; "orig.tar.gz"; ".diff.gz" ]
-
-let is_mutable name =
-  not (List.exists (Filename.check_suffix name) immutable_suffixes)
-
-let too_old stats =  minutes_old stats > interval
+let should_deny name =
+  (Release.is_index name && extension name = ".bz2") ||
+  (pdiffs && Release.is_diff_index name &&
+     Release.valid_file (Pdiff.file_of_diff_index name ^ ".gz"))
 
 (* Attempt to serve the requested file from the local cache *)
 
-exception Cache_miss of float
-
-let not_found () = raise (Cache_miss 0.)
-
-let stale mod_time = raise (Cache_miss mod_time)
-
 let serve_local name ims env =
   wait_for_download_in_progress name;
-  let stats =
-    try stat name
-    with Unix_error (ENOENT, "stat", _) -> not_found ()
-  in
-  if debug then print_age name stats ims;
-  if stats.st_kind <> S_REG then
-    not_found ()
-  else if is_mutable name && too_old stats then
-    stale stats.st_mtime
-  else if stats.st_mtime > ims then
-    deliver_local name env
-  else
-    `Std_response (`Not_modified, None, None)
+  match stat_file name with
+  | Some { st_mtime = mod_time } ->
+      if Release.is_release name then Stale mod_time
+      else if should_deny name then deny name
+      else cache_hit name ims mod_time env
+  | None ->
+      if should_deny name then deny name
+      else Missing
 
 let make_directory path =
   let rec loop cwd = function
@@ -155,7 +140,7 @@ let make_directory path =
 	let name = cwd ^/ dir in
 	if not (Sys.file_exists name) then
 	  mkdir name 0o755
-	else if not (is_directory name) then
+	else if not (Sys.is_directory name) then
 	  failwith ("file " ^ name ^ " is not a directory");
 	loop name rest
     | [] -> ()
@@ -167,7 +152,7 @@ let make_directory path =
 let create_file path =
   make_directory (Filename.dirname path);
   (* open file exclusively so we don't conflict with a concurrent download *)
-  out_channel_of_descr (openfile path [ O_CREAT; O_WRONLY; O_EXCL ] 0o644)
+  open_out_excl path
 
 let cache_chan = ref None
 let cache_file = ref ""
@@ -207,7 +192,7 @@ let close_cache size mod_time =
 	    begin
 	      if debug then
 		debug_message "  setting mtime to %s"
-		  (string_of_time mod_time);
+		  (Url.string_of_time mod_time);
 	      utimes real_name mod_time mod_time
 	    end;
 	end
@@ -236,12 +221,13 @@ type download_status =
   | File_not_found
 
 let string_of_download_status = function
-  | Delivered -> "Delivered"
-  | Cached -> "Cached"
-  | Not_modified -> "Not modified"
-  | File_not_found -> "File not found"
+  | Delivered -> "delivered"
+  | Cached -> "cached"
+  | Not_modified -> "not modified"
+  | File_not_found -> "not found"
 
-let send_header size modtime (cgi : Netcgi1_compat.Netcgi_types.cgi_activation) =
+let send_header size modtime cgi =
+  let cgi : Netcgi1_compat.Netcgi_types.cgi_activation = cgi in
   let headers = proxy_headers size modtime in
   let fields = List.map (fun (name, value) -> (name, [value])) headers in
   cgi#set_header ~status: `Ok ~fields ();
@@ -268,20 +254,12 @@ let finish_delivery resp =
   close_cache resp.length resp.last_modified;
   if resp.length >= 0L then Delivered else Cached
 
-(* Update the ctime but not the mtime of the file, if it exists *)
-
-let update_ctime name =
-  try
-    let stats = stat name in
-    utimes name stats.st_atime stats.st_mtime
-  with Unix_error (ENOENT, "stat", _) -> ()
-
 let with_pair rex str proc =
   match Pcre.extract ~rex ~full_match: false str with
   | [| a; b |] -> proc (a, b)
   | _ -> assert false
 
-let status_re = Pcre.regexp "^HTTP/\\d+\\.\\d+ (\\d{3}) (.*?)\\s*$"
+let status_re = Pcre.regexp "^HTTP/\\d+\\.\\d+\\s+(\\d{3})\\s+(.*?)\\s*$"
 let header_re = Pcre.regexp "^(.*?):\\s*(.*?)\\s*$"
 
 let process_header resp str =
@@ -295,7 +273,7 @@ let process_header resp str =
 	 with Failure _ ->
 	   error_message "Cannot parse Content-Length %s" value)
     | "last-modified" ->
-	(try resp.last_modified <- Netdate.parse_epoch value
+	(try resp.last_modified <- Url.time_of_string value
 	 with Invalid_argument _ ->
 	   error_message "Cannot parse Last-Modified date %s" value)
     | _ -> ()
@@ -326,7 +304,7 @@ let process_body resp cgi str pos len =
 
 let download_http url name ims cgi =
   let headers =
-    if ims > 0. then [ "If-Modified-Since: " ^ http_time ims ] else []
+    if ims > 0. then [ "If-Modified-Since: " ^ Url.string_of_time ims ] else []
   in
   let resp = new_response name in
   let header_callback = process_header resp in
@@ -347,7 +325,7 @@ let download_ftp url name ims cgi =
   let mod_time = resp.last_modified in
   if debug then
     debug_message "  ims %s  mtime %s"
-      (string_of_time ims) (string_of_time mod_time);
+      (Url.string_of_time ims) (Url.string_of_time mod_time);
   if 0. < mod_time && mod_time <= ims then
     Not_modified
   else
@@ -356,21 +334,24 @@ let download_ftp url name ims cgi =
     Url.download url body_callback;
     finish_delivery resp
 
-let download_url url =
-  match Url.method_of url with
-  | Url.HTTP -> download_http url
-  | Url.FTP | Url.FILE -> download_ftp url
-
-(* Remove any files from the cache that have been invalidated
-   as a result of downloading a given file *)
-
-let cleanup_after name =
-  let rm file =
-    if verbose then info_message "Removing invalid file %s" file;
-    Sys.remove file
+let download_url url name ims cgi =
+  let dl =
+    match Url.protocol url with
+    | Url.HTTP -> download_http
+    | Url.FTP | Url.FILE -> download_ftp
   in
-  if Sys.file_exists name then
-    List.iter rm (Release.files_invalidated_by name)
+  try dl url name ims cgi
+  with e ->
+    remove_cache ();
+    if verbose && e <> Failure url then exception_message e;
+    File_not_found
+
+(* Perform any pdiff processing triggered by downloading a given file *)
+
+let cleanup_after url file =
+  if pdiffs && Release.is_pdiff file then
+    try Pdiff.apply file
+    with e -> if verbose then exception_message e
 
 let copy_to dst src =
   let len = 4096 in
@@ -388,33 +369,24 @@ let copy_from_cache name cgi =
   wait_for_download_in_progress name;
   send_header (file_size name) (file_modtime name) cgi;
   let output = cgi#output in
-  with_channel open_in name (copy_to output);
+  with_in_channel open_in name (copy_to output);
   output#commit_work ()
 
 let serve_remote url name ims mod_time cgi =
   let respond code =
     raise (Nethttpd_types.Standard_response (code, None, None))
   in
-  if verbose then info_message "%s" url;
-  let status =
-    try download_url url name (max ims mod_time) cgi
-    with e ->
-      remove_cache ();
-      exception_message e;
-      respond `Not_found
-  in
-  if debug then debug_message "  => %s" (string_of_download_status status);
+  let status = download_url url name (max ims mod_time) cgi in
+  if verbose then info_message "%s: %s" url (string_of_download_status status);
   match status with
   | Delivered ->
       cgi#output#commit_work ();
-      cleanup_after name
+      cleanup_after url name
   | Cached ->
       copy_from_cache name cgi;
-      cleanup_after name
+      cleanup_after url name
   | Not_modified ->
-      update_ctime name;
-      if mod_time > ims then
-	(* the cached copy is newer than what the client has *)
+      if mod_time > ims then  (* the cached copy is newer than the client's *)
 	copy_from_cache name cgi
       else
 	respond `Not_modified
@@ -434,51 +406,18 @@ let remote_service url name ims mod_time =
       end
   end
 
-let validate_path url =
-  let path = relative_url url in
-  match explode_path path with
-  | dir :: rest ->
-      (try path, implode_path (Config.get dir :: rest)
-       with Not_found ->
-	 invalid_arg ("no remote repository found for " ^ dir))
-  | [] ->
-      invalid_arg ("invalid path " ^ path)
-
-(* Check if a file should be denied (reported to the client as not found) *)
-
-let should_deny name =
-  Filename.basename name = "Index" &&
-  Filename.check_suffix (Filename.dirname name) ".diff"
-
-let get_dependencies url name =
-  match Filename.basename name with
-  | "Release" ->
-      (* since older versions of apt do not know about Release.gpg,
-	 we fetch it now to ensure the cache will be consistent
-	 for other clients using secure apt *)
-      let url, file = url ^ ".gpg", name ^ ".gpg" in
-      (try Url.download_file ~url ~file with e -> exception_message e)
-  | _ ->
-      ()
-
 (* Handle a cache miss, either because the file is not present (mod_time = 0)
    or it hasn't been verified recently enough *)
 
 let cache_miss url name ims mod_time =
-  if should_deny name then
-    begin
-      if debug then debug_message "Denying %s" name;
-      `Std_response (`Not_found, None, None)
-    end
-  else
-    begin
-      get_dependencies url name;
-      `Accept_body (remote_service url name ims mod_time)
-    end
+  if debug then debug_message "  => cache miss";
+  `Accept_body (remote_service url name ims mod_time)
 
 let ims_time env =
   try Netdate.parse_epoch (env#input_header#field "If-Modified-Since")
   with Not_found | Invalid_argument _ -> 0.
+
+let forbidden msg = `Std_response (`Forbidden, None, Some msg)
 
 let serve_file env =
   (* handle URL-encoded '+', '~', etc. *)
@@ -486,12 +425,13 @@ let serve_file env =
   let headers = env#input_header_fields in
   if debug then print_headers (sprintf "Request %s" path) headers;
   try
-    let name, url = validate_path path in
+    let url, name = Url.translate_request path in
     let ims = ims_time env in
-    try serve_local name ims env
-    with Cache_miss mod_time -> cache_miss url name ims mod_time
-  with Invalid_argument msg ->
-    `Std_response (`Forbidden, None, Some msg)
+    match serve_local name ims env with
+    | Done reaction -> reaction
+    | Stale mod_time -> cache_miss url name ims mod_time
+    | Missing -> cache_miss url name ims 0.
+  with Invalid_argument msg | Failure msg -> forbidden msg
 
 let proxy_service =
   object
@@ -501,13 +441,13 @@ let proxy_service =
     method process_header env =
       match env#remote_socket_addr with
       | ADDR_INET (host, port) ->
-	  if verbose then
-	    info_message "Connection from %s:%d"
+	  if debug then
+	    debug_message "Connection from %s:%d"
 	      (string_of_inet_addr host) port;
 	  if env#cgi_request_method = "GET" && env#cgi_query_string = "" then
 	    serve_file env
 	  else
-	    `Std_response (`Forbidden, None, Some "Invalid request line")
+	    forbidden "invalid HTTP request"
       | ADDR_UNIX path ->
 	  failwith ("connection from UNIX socket " ^ path)
   end
@@ -515,19 +455,20 @@ let proxy_service =
 let server () =
   try
     Sys.chdir cache_dir;
-    if verbose then print_config ();
+    info_message "Version: %s" Version.number;
+    if verbose then print_config (info_message "%s");
     Server.main ~user ~group ~interface port proxy_service
   with e ->
     exception_message e;
     exit 1
 
-let daemonize proc =
+let daemonize proc x =
   ignore (setsid ());
   List.iter close [ stdin; stdout; stderr ];
   (* double fork to detach daemon *)
   if fork () = 0 && fork () = 0 then
-    proc ()
+    proc x
 
 let () =
   if !foreground then server ()
-  else daemonize server
+  else daemonize server ()

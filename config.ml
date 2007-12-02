@@ -31,28 +31,6 @@ let get_generic convert ?default k =
     | Some v -> v
     | None -> raise Not_found)
 
-(* This version provides backwards compatibility for parameters
-   without an initial '$' *)
-
-let get_generic convert ?default k =
-  let not_found () =
-    match default with
-    | Some v -> v
-    | None -> raise Not_found
-  in
-  try convert (List.assoc k !map)
-  with Not_found ->
-    if k <> "" && k.[0] = '$' then
-      let k = substring ~from: 1 k in
-      try
-	let v = convert (List.assoc k !map) in
-	Printf.eprintf "/etc/approx/approx.conf: \"%s\" should be \"$%s\"\n%!"
-	  k k;
-	v
-      with Not_found -> not_found ()
-    else
-      not_found ()
-
 let get = get_generic (fun x -> x)
 
 let get_int = get_generic int_of_string
@@ -72,7 +50,7 @@ let fold f init = List.fold_left (fun x (k, v) -> f k v x) init !map
 let iter f = fold (fun k v () -> f k v) ()
 
 let read filename =
-  with_channel open_in filename (fun chan ->
+  let read_file chan =
     let lines = List.map words_of_line (lines_of_channel chan) in
     close_in chan;
     let enter = function
@@ -81,4 +59,6 @@ let read filename =
       | words -> failwith ("malformed line in " ^ filename ^ ": " ^
 			   String.concat " " words)
     in
-    List.iter enter lines)
+    List.iter enter lines
+  in
+  with_in_channel open_in filename read_file

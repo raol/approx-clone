@@ -1,9 +1,11 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
 open Util
+open Log
+open Default_config
 
 type paragraph = (string * string) list
 
@@ -59,23 +61,24 @@ let read_paragraph chan =
   in
   List.rev_map parse (loop [])
 
-let read f init chan =
-  let next () =
-    try Some (read_paragraph chan)
-    with End_of_file -> None
+let fold f init file =
+  let read_file chan =
+    let next () =
+      try Some (read_paragraph chan)
+      with End_of_file -> None
+    in
+    let rec loop x =
+      match next () with
+      | Some p -> loop (f x p)
+      | None -> x
+    in
+    loop init
   in
-  let rec loop x =
-    match next () with
-    | Some p -> loop (f x p)
-    | None -> x
-  in
-  loop init
-
-let fold f init file = with_channel open_file file (read f init)
+  with_in_channel open_file file read_file
 
 let iter proc = fold (fun () p -> proc p) ()
 
-let paragraph file =
+let read file =
   let once prev p =
     match prev with
     | None -> Some p
@@ -104,7 +107,7 @@ let get_checksum fields =
     with Not_found ->
       List.assoc "md5sum" fields, file_md5sum
 
-type info = string * Int64.t
+type info = string * int64
 
 let info_list data =
   let lines =
@@ -117,19 +120,34 @@ let info_list data =
        Scanf.sscanf line "%s %Ld %s" (fun sum size file -> (sum, size), file))
     lines
 
+let read_checksum_info file =
+  let lines, checksum = get_checksum (read file) in
+  info_list lines, checksum
+
 type validity =
   | Valid
-  | Wrong_size of Int64.t
+  | Wrong_size of int64
   | Wrong_checksum of string
 
 let validate ?checksum (sum, size) file =
   let n = file_size file in
-  if n <> size then Wrong_size n
+  if n <> size then
+    Wrong_size n
   else
-    match checksum with
-    | Some file_checksum ->
-	let s = file_checksum file in
-	if s <> sum then Wrong_checksum s
-	else Valid
-    | None ->
-	Valid
+    let s =
+      match checksum with
+      | Some file_checksum -> file_checksum file
+      | None -> sum
+    in
+    if s <> sum then Wrong_checksum s
+    else Valid
+
+let is_valid checksum ((s, n) as info) file =
+  match validate ~checksum info file with
+  | Valid -> true
+  | Wrong_size n' ->
+      if debug then debug_message "%s: size %Ld should be %Ld" file n' n;
+      false
+  | Wrong_checksum s' ->
+      if debug then debug_message "%s: checksum %s should be %s" file s' s;
+      false

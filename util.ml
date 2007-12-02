@@ -2,14 +2,24 @@
    Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
+open Printf
 open Unix
+open Unix.LargeFile
 
-let substring ?from ?until str =
-  let aux ?(from=0) ?(until=String.length str) () =
-    if from = 0 && until = String.length str then str
-    else String.sub str from (until - from)
+let is_prefix pre str =
+  let prefix_len = String.length pre and string_len = String.length str in
+  let rec loop i =
+    if i = prefix_len then true
+    else if i = string_len || pre.[i] <> str.[i] then false
+    else loop (i + 1)
   in
-  aux ?from ?until ()
+  loop 0
+
+let substring ?(from=0) ?until str =
+  let n = String.length str in
+  let until = match until with Some i -> i | None -> n in
+  if from = 0 && until = n then str
+  else String.sub str from (until - from)
 
 let split sep str =
   let next i =
@@ -23,11 +33,14 @@ let split sep str =
   in
   List.rev (loop [] 0)
 
+let join sep list =
+  String.concat (String.make 1 sep) list
+
 let split_lines = split '\n'
 
 let explode_path = split '/'
 
-let implode_path = String.concat "/"
+let implode_path = join '/'
 
 let quoted_string str = "\"" ^ String.escaped str ^ "\""
 
@@ -55,20 +68,81 @@ let relative_url path =
   with _ ->
     failwith ("malformed URL: " ^ path)
 
-let extension file =
+let split_extension file =
   let base = Filename.basename file in
-  try Some (substring base ~from: (String.rindex base '.' + 1))
-  with Not_found -> None
+  (* look for '.' in basename only, not parent directories *)
+  try
+    let i = String.rindex base '.' in
+    (Filename.dirname file ^/ substring ~until: i base, substring ~from: i base)
+  with Not_found -> (file, "")
+
+let without_extension file = fst (split_extension file)
+
+let extension file = snd (split_extension file)
+
+(* private exception to wrap any exception raised during cleanup action *)
+
+exception Unwind of exn
 
 let unwind_protect body post =
-  try let result = body () in post (); result
-  with e -> post (); raise e
+  try
+    let result = body () in
+    try post (); result with e -> raise (Unwind e)
+  with
+  | Unwind e -> raise e    (* assume cleanup has been done *)
+  | e -> post (); raise e
 
-let with_channel openf x f =
-  let chan = openf x in
+let with_resource release acquire x f =
+  let res = acquire x in
   unwind_protect
-    (fun () -> f chan)
-    (fun () -> close_in chan)
+    (fun () -> f res)
+    (fun () -> release res)
+
+let with_in_channel openf = with_resource close_in openf
+
+let with_out_channel openf = with_resource close_out openf
+
+let with_process ?error cmd =
+  let close chan =
+    if Unix.close_process_in chan <> Unix.WEXITED 0 then
+      failwith (match error with
+		| None -> cmd
+		| Some msg -> msg)
+  in
+  with_resource close Unix.open_process_in cmd
+
+let gensym str =
+  sprintf "%s.%d.%09.0f"
+    (without_extension str)
+    (getpid ())
+    (fst (modf (gettimeofday ())) *. 1e9)
+
+let rm file = try Sys.remove file with _ -> ()
+
+let decompressors =
+  [ ".gz", "/bin/gunzip --stdout";
+    ".bz2", "/bin/bunzip2 --stdout" ]
+
+let is_compressed file =
+  match extension file with
+  | "" -> false
+  | ext -> List.mem_assoc ext decompressors
+
+let decompress file =
+  match extension file with
+  | "" -> invalid_arg "decompress"
+  | ext ->
+      let prog = List.assoc ext decompressors in
+      let tmp = gensym file in
+      let cmd = sprintf "%s %s > %s" prog file tmp in
+      if Sys.command cmd = 0 then tmp
+      else (rm tmp; failwith "decompress")
+
+let with_decompressed file = with_resource rm decompress file
+
+let decompress_and_apply f file =
+  if is_compressed file then with_decompressed file f
+  else f file
 
 (* Return a channel for reading a possibly compressed file.
    We decompress it to a temporary file first,
@@ -76,34 +150,64 @@ let with_channel openf x f =
    so that we detect corrupted files before partially processing them.
    This is also significantly faster than using CamlZip. *)
 
-let decompressors =
-  [ "gz", "gunzip --stdout";
-    "bz2", "bunzip2 --stdout" ]
+let open_file = decompress_and_apply open_in
 
-let decompress prog file =
-  let tmp = Filename.temp_file "approx" "" in
-  let cmd = Printf.sprintf "%s %s > %s" prog file tmp in
-  unwind_protect
-    (fun () ->
-      if Sys.command cmd = 0 then open_in tmp
-      else failwith "decompress")
-    (fun () ->
-      Sys.remove tmp)
+let compressed_versions name =
+  if is_compressed name then invalid_arg "compressed_versions";
+  name :: List.map (fun (ext, _) -> name ^ ext) decompressors
 
-let open_file file =
-  match extension file with
-  | Some ext -> decompress (List.assoc ext decompressors) file
-  | None -> open_in file
+let file_modtime file = (stat file).st_mtime
 
-let is_directory file =
-  try (stat file).st_kind = S_DIR
-  with Unix_error (ENOENT, "stat", _) -> false
+let newest_version file =
+  let newest cur name =
+    try
+      let modtime = file_modtime name in
+      match cur with
+      | None -> Some (name, modtime)
+      | Some (f, t) ->
+	  if modtime > t || (modtime = t && name = file) then
+	    (* return the original file if it is tied for newest *)
+	    Some (name, modtime)
+	  else cur
+    with Unix.Unix_error (Unix.ENOENT, "stat", _) -> cur
+  in
+  let versions = compressed_versions (without_extension file) in
+  match List.fold_left newest None versions with
+  | Some (f, _) -> f
+  | None -> raise Not_found
+
+let copy_channel src dst =
+  let len = 4096 in
+  let buf = String.create len in
+  let rec loop () =
+    match input src buf 0 len with
+    | 0 -> ()
+    | n -> output dst buf 0 n; loop ()
+  in
+  loop ()
+
+let open_out_excl file =
+  out_channel_of_descr (openfile file [ O_CREAT; O_WRONLY; O_EXCL ] 0o644)
+
+let with_temp_file name proc =
+  let file = gensym name in
+  with_out_channel open_out_excl file proc;
+  file
+
+let update_ctime name =
+  try
+    let stats = stat name in
+    utimes name stats.st_atime stats.st_mtime
+  with Unix_error (ENOENT, "stat", _) -> ()
+
+let directory_exists dir =
+  Sys.file_exists dir && Sys.is_directory dir
 
 let rec fold_dirs f init path =
   let visit acc name =
     fold_dirs f acc (path ^/ name)
   in
-  if is_directory path then
+  if Sys.file_exists path && Sys.is_directory path then
     Array.fold_left visit (f init path) (Sys.readdir path)
   else
     init
@@ -114,18 +218,17 @@ let rec fold_non_dirs f init path =
   let visit acc name =
     fold_non_dirs f acc (path ^/ name)
   in
-  if is_directory path then
-    Array.fold_left visit init (Sys.readdir path)
-  else if Sys.file_exists path then
-    f init path
+  if Sys.file_exists path then
+    if Sys.is_directory path then
+      Array.fold_left visit init (Sys.readdir path)
+    else
+      f init path
   else
     init
 
 let iter_non_dirs proc = fold_non_dirs (fun () -> proc) ()
 
-let file_modtime file = (stat file).st_mtime
-
-let file_size file = (LargeFile.stat file).LargeFile.st_size
+let file_size file = (stat file).st_size
 
 module type MD =
   sig
@@ -144,48 +247,23 @@ let file_sha1sum = let module F = FileDigest(Sha1) in F.sum
 let file_sha256sum = let module F = FileDigest(Sha256) in F.sum
 
 let drop_privileges ~user ~group =
-  setgid (getgrnam group).gr_gid;
-  setuid (getpwnam user).pw_uid
-
-let packages_variants = [ "Packages"; "Packages.gz"; "Packages.bz2" ]
-
-let sources_variants = [ "Sources"; "Sources.gz"; "Sources.bz2" ]
-
-let is_sources file =
-  List.mem (Filename.basename file) sources_variants
-
-let latest_index file =
-  let check variants =
-    let files = List.map ((^/) (Filename.dirname file)) variants in
-    let latest (name, modtime as orig) f =
-      try
-	let t = file_modtime f in
-	if t > modtime then (f, t)
-	else orig
-      with _ -> orig  (* variant f does not exist *)
-    in
-    if List.mem file files then
-      try Some (List.fold_left latest (file, file_modtime file) files)
-      with _ -> None
-    else
-      raise Not_found
-  in
-  try check packages_variants
-  with Not_found ->
-    try check sources_variants
-    with Not_found ->
-      None
+  (* change group first, since we must still be privileged to change user *)
+  (try setgid (getgrnam group).gr_gid
+   with Not_found -> failwith ("unknown group " ^ group));
+  (try setuid (getpwnam user).pw_uid
+   with Not_found -> failwith ("unknown user " ^ user))
 
 let string_of_exception exc =
   match exc with
-  | Failure str -> String.capitalize str
+  | Failure str -> "Failure: " ^ str
   | Invalid_argument str -> "Invalid argument: " ^ str
   | Sys_error str -> str
-  | Unix_error (err, str, arg) ->
-      let msg = Printf.sprintf "%s: %s" str (error_message err) in
-      if arg <> "" then Printf.sprintf "%s (%s)" msg arg
-      else msg
+  | Unix_error (err, str, "") -> sprintf "%s: %s" str (error_message err)
+  | Unix_error (err, str, arg) -> sprintf "%s: %s (%s)" str (error_message err) arg
   | e -> Printexc.to_string e
 
 let main_program f x =
-  try f x with e -> prerr_endline (string_of_exception e); exit 1
+  try f x
+  with e ->
+    prerr_endline (string_of_exception e);
+    exit 1

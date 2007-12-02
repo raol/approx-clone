@@ -1,0 +1,53 @@
+.\" approx: proxy server for Debian archive files
+.\" Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+.\" Released under the GNU General Public License
+.\" -*- nroff -*-
+.TH UPDATE_APPROX 8 "November 2007"
+.\" Please adjust this date whenever revising the manpage.
+
+.SH NAME
+update_approx \- update cached Packages and Sources files
+
+.SH SYNOPSIS
+.PP
+.B update_approx
+[\fIOPTION\fP] [\fIFILE\fP]...
+
+.SH DESCRIPTION
+.PP
+.B update_approx
+updates the Packages and Sources files in the
+.BR approx (8)
+cache by applying diffs.
+
+.SH OPTIONS
+.TP
+.BR \-k ", " \-\^\-keep ", " \-s ", " \-\^\-simulate
+Don't update index files or remove files from the cache.
+.TP
+.BR \-q ", " \-\^\-quiet
+Don't print information about status, updates, or removals.
+.TP
+.BR \-v ", " \-\^\-verbose
+Print status of each index file.
+
+.SH FILES
+.TP
+.I /etc/approx/approx.conf
+.br
+Configuration file for
+.B approx
+and related programs.
+.TP
+.I /var/cache/approx
+.br
+Cache directory for archive files.
+
+.SH SEE ALSO
+.IR approx.conf (5),
+.BR approx (8),
+.BR gc_approx (8),
+.BR cron (8)
+
+.SH AUTHOR
+Eric Cooper <ecc@cmu.edu>

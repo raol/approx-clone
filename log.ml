@@ -4,6 +4,7 @@
 
 open Printf
 open Util
+open Syslog
 
 let printer = ref (fun _ msg -> prerr_string msg; flush stderr)
 
@@ -24,38 +25,12 @@ let debug_message fmt = message `LOG_DEBUG fmt
 
 let exception_message exc = error_message "%s" (string_of_exception exc)
 
-let facility =
-  match Default_config.syslog with
-  | "auth" -> `LOG_AUTH
-  | "authpriv" -> `LOG_AUTHPRIV
-  | "console" -> `LOG_CONSOLE
-  | "cron" -> `LOG_CRON
-  | "daemon" -> `LOG_DAEMON
-  | "ftp" -> `LOG_FTP
-  | "kern" -> `LOG_KERN
-  | "lpr" -> `LOG_LPR
-  | "mail" -> `LOG_MAIL
-  | "news" -> `LOG_NEWS
-  | "ntp" -> `LOG_NTP
-  | "security" -> `LOG_SECURITY
-  | "syslog" -> `LOG_SYSLOG
-  | "user" -> `LOG_USER
-  | "uucp" -> `LOG_UUCP
-  | "local0" -> `LOG_LOCAL0
-  | "local1" -> `LOG_LOCAL1
-  | "local2" -> `LOG_LOCAL2
-  | "local3" -> `LOG_LOCAL3
-  | "local4" -> `LOG_LOCAL4
-  | "local5" -> `LOG_LOCAL5
-  | "local6" -> `LOG_LOCAL6
-  | "local7" -> `LOG_LOCAL7
-  | fac -> error_message "Unknown syslog facility: %s" fac; `LOG_DAEMON
+let facility = facility_of_string Default_config.syslog
 
 let use_syslog () =
-  let prog = Filename.basename Sys.argv.(0) in
   try
-    let log = Syslog.openlog ~facility prog in
-    printer := Syslog.syslog log
+    let log = openlog ~facility Version.name in
+    printer := syslog log
   with _ ->
     error_message "Cannot connect to system logger";
     printer := (fun _ -> ignore)

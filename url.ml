@@ -7,17 +7,44 @@ open Util
 open Default_config
 open Log
 
-type url_method = HTTP | FTP | FILE
+let string_of_time t =
+  Netdate.format ~fmt: "%a, %d %b %Y %T GMT" (Netdate.create ~zone: 0 t)
 
-let method_of url =
+let time_of_string = Netdate.parse_epoch
+
+let split_cache_path path =
+  if is_prefix cache_dir path then
+    let i = String.length cache_dir + 1 in
+    let j = String.index_from path i '/' in
+    substring path ~from: i ~until: j, substring path ~from: (j + 1)
+  else
+    invalid_arg "split_cache_path"
+
+let translate_request url =
+  let path = relative_url url in
+  match explode_path path with
+  | dist :: rest ->
+      (try implode_path (Config.get dist :: rest), path
+       with Not_found -> failwith ("no remote repository for " ^ dist))
+  | [] ->
+      invalid_arg "translate_request"
+
+let translate_file file =
+  let dist, path = split_cache_path file in
+  try Config.get dist ^/ path
+  with Not_found -> invalid_arg ("translate_file " ^ file)
+
+type protocol = HTTP | FTP | FILE
+
+let protocol url =
   try
     match String.lowercase (substring url ~until: (String.index url ':')) with
     | "http" -> HTTP
     | "ftp" -> FTP
     | "file" -> FILE
-    | meth -> invalid_arg ("unsupported URL method " ^ meth)
+    | proto -> invalid_arg ("unsupported URL protocol " ^ proto)
   with Not_found ->
-    invalid_arg ("no method in URL " ^ url)
+    invalid_arg ("no protocol in URL " ^ url)
 
 let rate_option =
   match String.lowercase max_rate with
@@ -30,7 +57,7 @@ let curl_command options url =
 
 let head_command = curl_command ["--head"]
 
-let iter_headers chan proc =
+let iter_headers proc chan =
   let next () =
     try Some (input_line chan)
     with End_of_file -> None
@@ -54,16 +81,10 @@ let iter_headers chan proc =
   in
   loop ()
 
-let finish desc chan =
-  if Unix.close_process_in chan <> Unix.WEXITED 0 then
-    failwith (desc ^ " failed")
-
 let head url callback =
   let cmd = head_command url in
   if debug then debug_message "Command: %s" cmd;
-  let chan = Unix.open_process_in cmd in
-  iter_headers chan callback;
-  finish ("head of " ^ url) chan
+  with_process cmd ~error: url (iter_headers callback)
 
 let download_command headers header_callback =
   let hdr_opts = List.map (fun h -> "--header " ^ quoted_string h) headers in
@@ -74,7 +95,7 @@ let download_command headers header_callback =
   in
   curl_command options
 
-let iter_body chan proc =
+let iter_body proc chan =
   let len = 4096 in
   let buf = String.create len in
   let rec loop () =
@@ -84,21 +105,31 @@ let iter_body chan proc =
   in
   loop ()
 
+let seq f g x = (f x; g x)
+
 let download url ?(headers=[]) ?header_callback callback =
   let cmd = download_command headers header_callback url in
   if debug then debug_message "Command: %s" cmd;
-  let chan = Unix.open_process_in cmd in
-  (match header_callback with
-   | Some proc -> iter_headers chan proc
-   | None -> ());
-  iter_body chan callback;
-  finish ("download of " ^ url) chan
+  with_process cmd ~error: url
+    (match header_callback with
+     | Some proc -> seq (iter_headers proc) (iter_body callback)
+     | None -> iter_body callback)
 
-let download_file ~url ~file =
-  let file' = file ^ ".tmp" in
-  let cmd = curl_command ["--remote-time"; "--output"; file'] url in
+let download_file file =
+  let file' = gensym file in
+  let options =
+    [ "--output"; file'; "--remote-time" ] @
+      if Sys.file_exists file then
+	[ "--time-cond"; quoted_string (string_of_time (file_modtime file)) ]
+      else []
+  in
+  let cmd = curl_command options (translate_file file) in
   if debug then debug_message "Command: %s" cmd;
   if Sys.command cmd = 0 then
-    Sys.rename file' file
+    (* file' may not exist if file was not modified *)
+    try Sys.rename file' file with _ -> ()
   else
-    failwith ("cannot download " ^ url)
+    begin
+      rm file';
+      failwith ("cannot download " ^ file)
+    end

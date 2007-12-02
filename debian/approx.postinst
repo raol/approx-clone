@@ -23,7 +23,7 @@ if [ ! -d /var/cache/approx ]; then
 fi
 
 # make sure the cache is owned by the approx user and group
-if dpkg --compare-versions "$oldversion" lt 2.07 && [ -d /var/cache/approx ]; then
+if dpkg --compare-versions "$oldversion" lt 2.07; then
     chown -R approx:approx /var/cache/approx/.
 fi
 

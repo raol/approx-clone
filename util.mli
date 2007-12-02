@@ -2,6 +2,10 @@
    Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
+(* Check if the first string is a prefix of the second *)
+
+val is_prefix : string -> string -> bool
+
 (* Extract substring s.[from] .. s.[until-1] *)
 
 val substring : ?from:int -> ?until:int -> string -> string
@@ -9,6 +13,10 @@ val substring : ?from:int -> ?until:int -> string -> string
 (* Split a string at each occurrence of a separator *)
 
 val split : char -> string -> string list
+
+(* Join a list of strings with a separator (inverse of split) *)
+
+val join : char -> string list -> string
 
 (* Split a string into lines *)
 
@@ -40,27 +48,104 @@ val relative_path : string -> string
 
 val relative_url : string -> string
 
-(* Extract the extension of a filename, excluding the '.' *)
+(* Split a filename into the leading portion without an extension
+   and the extension, if any, beginning with '.' *)
 
-val extension : string -> string option
+val split_extension : string -> string * string
+
+(* Return a filename with its extension, if any, removed *)
+
+val without_extension : string -> string
+
+(* Return the extension of a filename, including the initial '.' *)
+
+val extension : string -> string
 
 (* Call a function making sure that a cleanup procedure is called
    before returning the result of the function or raising an exception *)
 
 val unwind_protect : (unit -> 'a) -> (unit -> unit) -> 'a
 
+(* Apply a function to a resource that is acquired and released by
+   the given functions *)
+
+val with_resource : ('t -> unit) -> ('a -> 't) -> 'a -> ('t -> 'b) -> 'b
+
 (* Open an input channel and apply a function to the channel,
    using unwind_protect to ensure that the channel gets closed *)
 
-val with_channel : ('a -> in_channel) -> 'a -> (in_channel -> 'b) -> 'b
+val with_in_channel : ('a -> in_channel) -> 'a -> (in_channel -> 'b) -> 'b
+
+(* Open an output channel and apply a function to the channel,
+   using unwind_protect to ensure that the channel gets closed *)
+
+val with_out_channel : ('a -> out_channel) -> 'a -> (out_channel -> 'b) -> 'b
+
+(* Spawn a shell command and apply a function to its output,
+   using unwind_protect to ensure that the channel gets closed *)
+
+val with_process : ?error:string -> string -> (in_channel -> 'a) -> 'a
+
+(* Generate a unique string, suitable for use as a filename *)
+
+val gensym : string -> string
+
+(* Attempt to remove a file but ignore any errors *)
+
+val rm : string -> unit
+
+(* Check if a file is compressed by examining its extension *)
+
+val is_compressed : string -> bool
+
+(* Decompress a file to a temporary location and return
+   the temporary file name, which must be removed by the caller *)
+
+val decompress : string -> string
+
+(* Decompress a file and apply a function to the temporary file name,
+   using unwind_protect to ensure that the temporary file gets removed *)
+
+val with_decompressed : string -> (string -> 'a) -> 'a
+
+(* Apply a function to a file or to a temporary decompressed version of it *)
+
+val decompress_and_apply : (string -> 'a) -> string -> 'a
+
+(* Return a list of possible compressed versions of the given file *)
+
+val compressed_versions : string -> string list
+
+(* Return the newest possibly-compressed version of the given file *)
+
+val newest_version : string -> string
 
 (* Open a file for input, decompressing it if necessary *)
 
 val open_file : string -> in_channel
 
-(* Test if a file is a directory *)
+(* Open a file for exclusive output *)
 
-val is_directory : string -> bool
+val open_out_excl : string -> out_channel
+
+(* Copy an input channel to an output channel *)
+
+val copy_channel : in_channel -> out_channel -> unit
+
+(* Open a temporary file for output in the same directory as the given one
+   (so that it can be renamed back to the original), apply the given function,
+   and return the file name *)
+
+val with_temp_file : string -> (out_channel -> unit) -> string
+
+(* Update the ctime of the given file, if it exists,
+   without changing its access or modification times *)
+
+val update_ctime : string -> unit
+
+(* Check if a filename exists and is a directory *)
+
+val directory_exists : string -> bool
 
 (* Fold a function over each directory below a given path *)
 
@@ -97,15 +182,6 @@ val file_sha256sum : string -> string
 (* Drop privileges (user and group ID) to those of the specified name *)
 
 val drop_privileges : user:string -> group:string -> unit
-
-(* Check whether a file is a Sources file *)
-
-val is_sources : string -> bool
-
-(* If a file is an index (Packages or Sources file),
-   return the name and modification time of the most recent variant *)
-
-val latest_index : string -> (string * float) option
 
 (* Return a descriptive message for an exception *)
 
