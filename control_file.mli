@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* The format of Debian control files is defined in
@@ -18,9 +18,9 @@ val fold : ('a -> paragraph -> 'a) -> 'a -> string -> 'a
 val iter : (paragraph -> unit) -> string -> unit
 
 (* Parse a Debian control file consisting of a single paragraph,
-   like Release or Index files *)
+   such as a Release or DiffIndex file *)
 
-val paragraph : string -> paragraph
+val read : string -> paragraph
 
 (* Not used yet:
 
@@ -51,17 +51,26 @@ val get_checksum : paragraph -> string * (string -> string)
 
 (* File information: checksum and size *)
 
-type info = string * Int64.t
+type info = string * int64
 
 (* Parse a string consisting of checksum, size, and filename lines *)
 
 val info_list : string -> (info * string) list
 
-(* Check that a file matches its info *)
+(* Read a single-paragraph control file and return a pair consisting of the
+   list of ((checksum, size), filename) lines and the checksum function *)
+
+val read_checksum_info : string -> (info * string) list * (string -> string)
+
+(* Validate a file's checksum and size *)
 
 type validity =
   | Valid
-  | Wrong_size of Int64.t
+  | Wrong_size of int64
   | Wrong_checksum of string
 
 val validate : ?checksum:(string -> string) -> info -> string -> validity
+
+(* Check that a file matches its checksum and size *)
+
+val is_valid : (string -> string) -> info -> string -> bool

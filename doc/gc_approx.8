@@ -2,7 +2,7 @@
 .\" Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH GC_APPROX 8 "September 2006"
+.TH GC_APPROX 8 "November 2007"
 .\" Please adjust this date whenever revising the manpage.
 
 .SH NAME
@@ -44,14 +44,14 @@ may take several minutes to finish.
 Don't perform checksum validation.
 .TP
 .BR \-k ", " \-\^\-keep ", " \-s ", " \-\^\-simulate
-Don't update index files or remove files from the cache.
+Don't remove files from the cache.
 .TP
 .BR \-q ", " \-\^\-quiet
 Don't print file names.
 .TP
 .BR \-v ", " \-\^\-verbose
 Indicate the reason for removal of each file with a prefix character:
-\`=\' for incorrect size, \`!\' for incorrect checksum.
+\`=\' for incorrect size, \`!\' for incorrect checksum, blank for unneeded.
 
 .SH EXAMPLES
 .IP
@@ -73,8 +73,7 @@ without actually doing so.
 .br
 Configuration file for
 .B approx
-and
-.BR gc_approx .
+and related programs.
 .TP
 .I /var/cache/approx
 .br
@@ -83,6 +82,7 @@ Cache directory for archive files.
 .SH SEE ALSO
 .IR approx.conf (5),
 .BR approx (8),
+.BR update_approx (8),
 .BR cron (8)
 
 .SH AUTHOR

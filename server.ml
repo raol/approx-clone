@@ -42,8 +42,11 @@ let main ~user ~group ~interface port service =
   let sock = socket PF_INET SOCK_STREAM 0 in
   setsockopt sock SO_REUSEADDR true;
   let addr =
-    if interface = "any" then inet_addr_any
-    else Internet.address_of_interface interface
+    if interface = "any" || interface = "all" then
+      inet_addr_any
+    else
+      try Internet.address_of_interface interface
+      with Not_found -> failwith ("interface " ^ interface ^ " not found")
   in
   bind sock (ADDR_INET (addr, port));
   listen sock 10;

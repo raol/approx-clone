@@ -7,15 +7,28 @@ open Config
 let config_file = "/etc/approx/approx.conf"
 let cache_dir = "/var/cache/approx"
 
-let () = read config_file
+let () = try read config_file with Sys_error _ -> ()
 
 let interface = get "$interface" ~default: "any"
 let port = get_int "$port" ~default: 9999 (* compatible with apt-proxy *)
-let interval = get_int "$interval" ~default: 720 (* minutes *)
 let max_wait = get_int "$max_wait" ~default: 10 (* seconds *)
 let max_rate = get "$max_rate" ~default: "unlimited"
 let user = get "$user" ~default: "approx"
 let group = get "$group" ~default: "approx"
 let syslog = get "$syslog" ~default: "daemon"
+let pdiffs = get_bool "$pdiffs" ~default: true
 let debug = get_bool "$debug" ~default: false
 let verbose = get_bool "$verbose" ~default: false || debug
+
+let print_config f =
+  let pf fmt = Printf.ksprintf f fmt in
+  pf "Interface: %s" interface;
+  pf "Port: %d" port;
+  pf "Max wait: %d" max_wait;
+  pf "Max rate: %s" max_rate;
+  pf "User: %s" user;
+  pf "Group: %s" group;
+  pf "Syslog: %s" syslog;
+  pf "Pdiffs: %B" pdiffs;
+  pf "Verbose: %B" verbose;
+  pf "Debug: %B" debug

@@ -108,21 +108,33 @@ in the right-hand side's initial path.)
 .br
 Configuration file for
 .B approx
-and
-.BR gc_approx .
+and related programs.
 .TP
 .I /var/cache/approx
 .br
 Cache directory for archive files.
-
-.SH BUGS
+.TP
+.I /etc/default/approx
+.br
+This file is read by the init script
+.I /etc/init.d/approx
+that starts
+.BR approx .
+It can be used to set environment variables
+for the
 .B approx
-does not yet support "pdiff" files; instead, it denies
-requests for them, thereby forcing clients to fall back to a
-full download of the corresponding index file.
+daemon and its child processes,
+in particular
+.BR curl (1).
+For example, setting the
+.B http_proxy
+environment variable will cause
+.B approx
+to use an upstream HTTP proxy when downloading from remote repositories.
 
 .SH SEE ALSO
 .IR approx.conf (5),
+.BR update_approx (8),
 .BR gc_approx (8),
 .BR apt\-get (8),
 .IR sources.list (5)
