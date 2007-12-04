@@ -7,12 +7,16 @@ val cache_dir : string
 
 val interface : string
 val port : int
-val max_wait : int  (* seconds *)
 val max_rate : string  (* bytes/second with optional K, M, or G suffix *)
+
 val user : string
 val group : string
 val syslog : string
+
 val pdiffs : bool
+val offline : bool
+val max_wait : int     (* seconds *)
+
 val verbose : bool
 val debug : bool
 

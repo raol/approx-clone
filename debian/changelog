@@ -2,9 +2,10 @@ approx (3.0.0) unstable; urgency=low
 
   * Support pdiffs (closes: #405535)
   * Create temp files in approx cache rather than TMPDIR (closes: #451768)
-  * Changed debian/control and Makefile to use ocamlnet2 (>= 2.2.8)
+  * Added $offline parameter to control delivery of cached files
+    when remote downloads fail (closes: #442801)
 
- -- Eric Cooper <ecc@cmu.edu>  Sat, 24 Nov 2007 20:30:00 -0500
+ -- Eric Cooper <ecc@cmu.edu>  Tue, 04 Dec 2007 12:24:16 -0500
 
 approx (2.9.1) unstable; urgency=low
 

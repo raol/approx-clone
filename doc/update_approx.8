@@ -18,18 +18,34 @@ update_approx \- update cached Packages and Sources files
 .B update_approx
 updates the Packages and Sources files in the
 .BR approx (8)
-cache by applying diffs.
+cache by downloading and applying pdiffs.
 
 .SH OPTIONS
 .TP
 .BR \-k ", " \-\^\-keep ", " \-s ", " \-\^\-simulate
-Don't update index files or remove files from the cache.
+Don't download, update, or remove any files in the cache.
 .TP
 .BR \-q ", " \-\^\-quiet
 Don't print information about status, updates, or removals.
 .TP
 .BR \-v ", " \-\^\-verbose
-Print status of each index file.
+Print the status of each Packages or Sources file.
+
+.SH EXAMPLES
+.PP
+To download and apply any pdiffs necessary to bring
+the Packages and Sources files in the cache up to date:
+.IP
+update_approx \-\^\-quiet
+.PP
+This is run as a daily
+.BR cron (8)
+job.
+.PP
+To show the status of each Packages and Sources file in the cache
+(whether it is up-to-date according to the corresponding Release file):
+.IP
+update_approx \-\^\-keep \-\^\-verbose
 
 .SH FILES
 .TP

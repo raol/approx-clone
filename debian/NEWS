@@ -19,8 +19,12 @@ approx (3.0.0) unstable; urgency=low
   is requested, and all other index files in the cache are validated
   against the Release file.
 
- -- Eric Cooper <ecc@cmu.edu>  Sat, 24 Nov 2007 20:30:00 -0500
+  A new configuration parameter, $offline, causes the approx server
+  to deliver (possibly out-of-date) cached files when they cannot be
+  downloaded from remote repositories.
 
+ -- Eric Cooper <ecc@cmu.edu>  Tue, 04 Dec 2007 12:24:16 -0500
+  
 approx (2.9.0) unstable; urgency=low
 
   Configuration parameters in /etc/approx/approx.conf should now begin

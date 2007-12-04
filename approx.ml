@@ -376,6 +376,11 @@ let serve_remote url name ims mod_time cgi =
   let respond code =
     raise (Nethttpd_types.Standard_response (code, None, None))
   in
+  let copy_if_newer () =
+    (* deliver the the cached copy if it is newer than the client's *)
+    if mod_time > ims then copy_from_cache name cgi
+    else respond `Not_modified
+  in
   let status = download_url url name (max ims mod_time) cgi in
   if verbose then info_message "%s: %s" url (string_of_download_status status);
   match status with
@@ -386,12 +391,10 @@ let serve_remote url name ims mod_time cgi =
       copy_from_cache name cgi;
       cleanup_after url name
   | Not_modified ->
-      if mod_time > ims then  (* the cached copy is newer than the client's *)
-	copy_from_cache name cgi
-      else
-	respond `Not_modified
+      copy_if_newer ()
   | File_not_found ->
-      respond `Not_found
+      if offline && Sys.file_exists name then copy_if_newer ()
+      else respond `Not_found
 
 let remote_service url name ims mod_time =
   object
