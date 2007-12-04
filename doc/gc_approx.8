@@ -54,18 +54,19 @@ Indicate the reason for removal of each file with a prefix character:
 \`=\' for incorrect size, \`!\' for incorrect checksum, blank for unneeded.
 
 .SH EXAMPLES
+.PP
+To remove all unneeded or corrupted files from the cache:
 .IP
 gc_approx \-\^\-quiet
 .PP
-removes all unneeded or corrupted files from the cache.
 This is run as a weekly
 .BR cron (8)
 job.
+.PP
+To list the files that would be removed from the cache,
+without actually doing so:
 .IP
 gc_approx \-\^\-keep
-.PP
-lists the files that would be removed from the cache,
-without actually doing so.
 
 .SH FILES
 .TP

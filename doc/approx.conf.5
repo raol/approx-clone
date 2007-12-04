@@ -28,11 +28,6 @@ server listens for HTTP requests (default: any)
 Specifies the TCP port on which the
 .BR approx (8)
 server listens for HTTP requests (default: 9999)
-.IP $max_wait
-Specifies how many seconds an
-.BR approx (8)
-process will wait for a concurrent download of a file to complete,
-before attempting to download the file itself (default: 10)
 .IP $max_rate
 Specifies the maximum download rate from remote repositories,
 in bytes per second (default: unlimited).
@@ -49,6 +44,16 @@ facility to use when logging (default: "daemon")
 Specifies whether to support IndexFile diffs
 (default:
 .BR true )
+.IP $offline
+Specifies whether to deliver (possibly out-of-date) cached files when
+they cannot be downloaded from remote repositories
+(default:
+.BR false )
+.IP $max_wait
+Specifies how many seconds an
+.BR approx (8)
+process will wait for a concurrent download of a file to complete,
+before attempting to download the file itself (default: 10)
 .IP $verbose
 Specifies whether informational messages should be printed in the log
 (default:
