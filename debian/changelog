@@ -1,3 +1,9 @@
+approx (3.0.1) UNRELEASED; urgency=low
+
+  * NOT RELEASED YET
+
+ -- Sylvain Le Gall <gildor@debian.org>  Sat, 08 Dec 2007 13:51:20 +0100
+
 approx (3.0.0) unstable; urgency=low
 
   * Support pdiffs (closes: #405535)
