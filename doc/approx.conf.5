@@ -1,5 +1,5 @@
 .\" approx: proxy server for Debian archive files
-.\" Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+.\" Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
 .TH APPROX.CONF 5 "November 2007"
@@ -35,11 +35,11 @@ The value may be suffixed with "K", "M", or "G"
 to indicate kilobytes, megabytes, or gigabytes per second, respectively.
 .IP "$user, $group"
 Specifies the name of the user and group to use after the daemon drops
-privileges (default: "approx")
+privileges (default: approx)
 .IP $syslog
 Specifies the
 .BR syslog (3)
-facility to use when logging (default: "daemon")
+facility to use when logging (default: daemon)
 .IP $pdiffs
 Specifies whether to support IndexFile diffs
 (default:
