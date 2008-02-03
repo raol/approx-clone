@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Util
@@ -76,33 +76,35 @@ let range_of_string str =
 
 (* Ed commands are represented as operators on the
    input channel, output channel, and current line number.
-   When applied, each operator updates the line number. *)
+   When applied, each operator returns the updated the line number. *)
 
-type t = (in_channel -> out_channel -> int -> int) list
+type t = in_channel -> out_channel -> int -> int
+
+(* Translate an ed command into an operator.
+   Additional lines are consumed from the channel
+   in the case of append and change commands. *)
+
+let parse_line chan line =
+  let last = String.length line - 1 in
+  let (m, n) = range_of_string (String.sub line 0 last) in
+  match line.[last] with
+  | 'a' -> assert (m = n); append (get_lines chan) m
+  | 'c' -> change (get_lines chan) m n
+  | 'd' -> delete m n
+  | _ -> failwith ("malformed ed command: " ^ line)
 
 (* Parse an input channel containing ed commands.
    "diff --ed" produces commands in decreasing line-number order;
-   this function reverses that order as it constructs the list. *)
+   this function effectively reverses that order as it composes
+   the operators. *)
 
 let parse chan =
-  let rec next script =
+  let compose f g ic oc cur = g ic oc (f ic oc cur) in
+  let rec loop op =
     match get_line chan with
-    | Some line -> next (parse_line line :: script)
-    | None -> script
-  and parse_line line =
-    let last = String.length line - 1 in
-    let (m, n) = range_of_string (String.sub line 0 last) in
-    match line.[last] with
-    | 'a' -> assert (m = n); append (get_lines chan) m
-    | 'c' -> change (get_lines chan) m n
-    | 'd' -> delete m n
-    | _ -> failwith ("malformed ed command: " ^ line)
+    | Some line -> loop (compose (parse_line chan line) op)
+    | None -> op
   in
-  next [copy_tail]
+  loop copy_tail
 
-let apply cmds ic oc =
-  let rec loop cur = function
-    | cmd :: rest -> loop (cmd ic oc cur) rest
-    | [] -> ()
-  in
-  loop 1 cmds
+let apply cmds ic oc = ignore (cmds ic oc 1)
