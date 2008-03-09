@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -52,7 +52,7 @@ let rate_option =
   | str -> "--limit-rate " ^ str
 
 let curl_command options url =
-  sprintf "/usr/bin/curl --fail --silent --location %s %s %s"
+  sprintf "/usr/bin/curl --fail --silent %s %s %s"
     rate_option (String.concat " " options) (quoted_string url)
 
 let head_command = curl_command ["--head"]
@@ -65,18 +65,13 @@ let iter_headers proc chan =
   let rec loop () =
     match next () with
     | Some header ->
-	let n = String.length header in
-	if n > 0 && header.[n - 1] = '\r' then
-	  if n > 1 then
-	    begin
-	      proc (String.sub header 0 (n - 1));
-	      loop ()
-	    end
-	  else
-	    (* CRLF terminates headers *)
-	    ()
-	else
-	  error_message "Unexpected header: %s" header
+        let n = String.length header in
+        if n > 0 && header.[n - 1] = '\r' then
+          if n > 1 then begin
+            proc (String.sub header 0 (n - 1));
+            loop ()
+          end else () (* CRLF terminates headers *)
+        else error_message "Unexpected header: %s" header
     | None -> ()
   in
   loop ()
@@ -118,18 +113,18 @@ let download url ?(headers=[]) ?header_callback callback =
 let download_file file =
   let file' = gensym file in
   let options =
-    [ "--output"; file'; "--remote-time" ] @
-      if Sys.file_exists file then
-	[ "--time-cond"; quoted_string (string_of_time (file_modtime file)) ]
-      else []
+    ["--output"; file'; "--remote-time";
+     "--location"; "--max-redirs"; string_of_int max_redirects] @
+    (if Sys.file_exists file then
+       ["--time-cond"; quoted_string (string_of_time (file_modtime file))]
+     else [])
   in
   let cmd = curl_command options (translate_file file) in
   if debug then debug_message "Command: %s" cmd;
   if Sys.command cmd = 0 then
     (* file' may not exist if file was not modified *)
     try Sys.rename file' file with _ -> ()
-  else
-    begin
-      rm file';
-      failwith ("cannot download " ^ file)
-    end
+  else begin
+    rm file';
+    failwith ("cannot download " ^ file)
+  end

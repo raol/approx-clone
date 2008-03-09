@@ -1,8 +1,9 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
+open Unix
 
 let interface =
   match Array.length Sys.argv with
@@ -13,7 +14,7 @@ let interface =
 let () =
   try
     printf "%s: %s\n" interface
-      (Unix.string_of_inet_addr (Internet.address_of_interface interface))
+      (string_of_inet_addr (Interface.address interface))
   with Not_found ->
-    eprintf "interface %s not found\n" interface;
+    eprintf "address of interface %s not found\n" interface;
     exit 1

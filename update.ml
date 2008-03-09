@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Update the Packages and Sources files in the approx cache *)
@@ -29,8 +29,8 @@ let () =
     | "-q" | "--quiet" -> quiet := true
     | "-v" | "--verbose" -> verbose := true
     | arg ->
-	if arg.[0] = '-' then usage ()
-	else files := arg :: !files
+        if arg.[0] = '-' then usage ()
+        else files := arg :: !files
   done
 
 let simulate = !simulate
@@ -49,22 +49,20 @@ let mark_updated file = Hashtbl.replace updates file ()
 let updated file = try Hashtbl.find updates file; true with Not_found -> false
 
 let update file =
-  if not (simulate || updated file) then
-    begin
-      print_if (not quiet) "Updating %s" file;
-      Url.download_file file;
-      mark_updated file
-    end
+  if not (simulate || updated file) then begin
+    print_if (not quiet) "Updating %s" file;
+    Url.download_file file;
+    mark_updated file
+  end
 
 let remove_pdiffs dir =
   match Filename.basename dir with
   | "Packages.diff" | "Sources.diff" ->
       print_if (not quiet) "Removing %s" dir;
-      if not simulate then
-	begin
-	  iter_non_dirs Sys.remove dir;
-	  Unix.rmdir dir
-	end
+      if not simulate then begin
+        iter_non_dirs Sys.remove dir;
+        Unix.rmdir dir
+      end
   | _ -> invalid_arg (dir ^ " is not a pdiff directory")
 
 let update_valid file =
@@ -75,11 +73,10 @@ let update_valid file =
 let update_invalid file =
   print_if verbose "%s: invalid" file;
   let diff_index = Pdiff.directory file ^/ "Index" in
-  if Sys.file_exists diff_index then
-    begin
-      print_if (not quiet) "Applying pdiffs to %s" file;
-      if not simulate then Pdiff.update file
-    end
+  if Sys.file_exists diff_index then begin
+    print_if (not quiet) "Applying pdiffs to %s" file;
+    if not simulate then Pdiff.update file
+  end
 
 let update_file file =
   if not (Sys.file_exists file) then
@@ -91,12 +88,11 @@ let update_file file =
   else
     try
       if Release.valid_file file then update_valid file
-      else
-	begin
-	  update_invalid file;
-	  (* should now be valid *)
-	  if Release.valid_file file then update_valid file
-	end
+      else begin
+        update_invalid file;
+        (* should now be valid *)
+        if Release.valid_file file then update_valid file
+      end
     with
     | Not_found -> print_if (not quiet) "Cannot find Release file for %s" file
     | e -> print "%s: %s" file (string_of_exception e)

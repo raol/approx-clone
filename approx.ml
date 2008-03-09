@@ -1,6 +1,8 @@
-(* approx: proxy server for Debian archive files
-   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
-   Released under the GNU General Public License *)
+(* approx: proxy server for Debian archive files *)
+
+let copyright =
+   "Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>\n\
+    Released under the GNU General Public License"
 
 open Printf
 open Unix
@@ -21,9 +23,7 @@ Options:
 
 let version () =
   eprintf "%s %s\n" Version.name Version.number;
-  prerr_endline
-    "Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>\n\
-     Released under the GNU General Public License";
+  prerr_endline copyright;
   exit 0
 
 let foreground = ref false
@@ -34,8 +34,7 @@ let () =
     | "-f" | "--foreground" -> foreground := true
     | "-v" | "--version" -> version ()
     | _ -> usage ()
-  done;
-  if not !foreground then use_syslog ()
+  done
 
 let stat_file name =
   try Some (stat name) with Unix_error (ENOENT, "stat", _) -> None
@@ -49,20 +48,17 @@ let wait_for_download_in_progress name =
   let rec wait n prev =
     match stat_file name' with
     | Some { st_size = cur } ->
-	if cur = prev && n = max_wait then
-	  begin
-	    error_message "Concurrent download of %s is taking too long" name;
-	    (* remove the other process's .tmp file if it still exists,
-	       so we can create our own *)
-	    rm name'
-	  end
-	else
-	  begin
-	    if prev = 0L && debug then
-	      debug_message "Waiting for concurrent download of %s" name;
-	    sleep 1;
-	    wait (if cur = prev then n + 1 else 0) cur
-	  end
+        if cur = prev && n = max_wait then begin
+          error_message "Concurrent download of %s is taking too long" name;
+          (* remove the other process's .tmp file if it still exists,
+             so we can create our own *)
+          rm name'
+        end else begin
+          if prev = 0L && debug then
+            debug_message "Waiting for concurrent download of %s" name;
+          sleep 1;
+          wait (if cur = prev then n + 1 else 0) cur
+        end
     | None -> ()
   in
   wait 0 0L
@@ -72,9 +68,8 @@ let print_headers msg headers =
   List.iter (fun (x, y) -> debug_message "  %s: %s" x y) headers
 
 let proxy_headers size modtime =
-  [ "Content-Type", "text/plain";
-    "Content-Length", Int64.to_string size ] @
-  if modtime <> 0. then [ "Last-Modified", Url.string_of_time modtime ] else []
+  ["Content-Type", "text/plain"; "Content-Length", Int64.to_string size] @
+  (if modtime <> 0. then ["Last-Modified", Url.string_of_time modtime] else [])
 
 type local_status =
   | Done of Nethttpd_types.http_service_reaction
@@ -137,12 +132,12 @@ let serve_local name ims env =
 let make_directory path =
   let rec loop cwd = function
     | dir :: rest ->
-	let name = cwd ^/ dir in
-	if not (Sys.file_exists name) then
-	  mkdir name 0o755
-	else if not (Sys.is_directory name) then
-	  failwith ("file " ^ name ^ " is not a directory");
-	loop name rest
+        let name = cwd ^/ dir in
+        if not (Sys.file_exists name) then
+          mkdir name 0o755
+        else if not (Sys.is_directory name) then
+          failwith ("file " ^ name ^ " is not a directory");
+        loop name rest
     | [] -> ()
   in
   match explode_path path with
@@ -185,24 +180,20 @@ let close_cache size mod_time =
       if debug then debug_message "  close cache %s" real_name;
       close_out chan;
       cache_chan := None;
-      if size = file_size tmp_name then
-	begin
-	  Sys.rename tmp_name real_name;
-	  if mod_time <> 0. then
-	    begin
-	      if debug then
-		debug_message "  setting mtime to %s"
-		  (Url.string_of_time mod_time);
-	      utimes real_name mod_time mod_time
-	    end;
-	end
-      else
-	begin
-	  error_message "Size of %s should be %Ld, not %Ld"
-	    real_name size (file_size tmp_name);
-	  Sys.remove tmp_name;
-	  raise Wrong_size
-	end
+      if size = file_size tmp_name then begin
+        Sys.rename tmp_name real_name;
+        if mod_time <> 0. then begin
+          if debug then
+            debug_message "  setting mtime to %s"
+              (Url.string_of_time mod_time);
+          utimes real_name mod_time mod_time
+        end;
+      end else begin
+        error_message "Size of %s should be %Ld, not %Ld"
+          real_name size (file_size tmp_name);
+        Sys.remove tmp_name;
+        raise Wrong_size
+      end
 
 let remove_cache () =
   match !cache_chan with
@@ -239,16 +230,19 @@ type response_state =
     mutable status : int;
     mutable length : int64;
     mutable last_modified : float;
+    mutable location : string;
     mutable body_seen : bool }
 
-let initial_response_state =
-  { name = "?";
-    status = 0;
-    length = -1L;
-    last_modified = 0.;
-    body_seen = false }
-
-let new_response name = { initial_response_state with name = name }
+let new_response =
+  let initial_state =
+    { name = "?";
+      status = 0;
+      length = -1L;
+      last_modified = 0.;
+      location = "";
+      body_seen = false }
+  in
+  fun name -> { initial_state with name = name }
 
 let finish_delivery resp =
   close_cache resp.length resp.last_modified;
@@ -269,13 +263,17 @@ let process_header resp str =
   let do_header (header, value) =
     match String.lowercase header with
     | "content-length" ->
-	(try resp.length <- Int64.of_string value
-	 with Failure _ ->
-	   error_message "Cannot parse Content-Length %s" value)
+        (try resp.length <- Int64.of_string value
+         with Failure _ ->
+           error_message "Cannot parse Content-Length %s" value)
     | "last-modified" ->
-	(try resp.last_modified <- Url.time_of_string value
-	 with Invalid_argument _ ->
-	   error_message "Cannot parse Last-Modified date %s" value)
+        (try resp.last_modified <- Url.time_of_string value
+         with Invalid_argument _ ->
+           error_message "Cannot parse Last-Modified date %s" value)
+    | "location" ->
+        (try resp.location <- Neturl.string_of_url (Neturl.parse_url value)
+         with Neturl.Malformed_URL ->
+           error_message "Cannot parse Location %s" value)
     | _ -> ()
   in
   if debug then debug_message "  %s" str;
@@ -287,14 +285,13 @@ let process_header resp str =
 let process_body resp cgi str pos len =
   if resp.status = 200 then
     let size = resp.length in
-    if not resp.body_seen then
-      begin
-	resp.body_seen <- true;
-	open_cache resp.name;
-	if size >= 0L then
-	  (* we can start our response now *)
-	  send_header size resp.last_modified cgi
-      end;
+    if not resp.body_seen then begin
+      resp.body_seen <- true;
+      open_cache resp.name;
+      if size >= 0L then
+        (* we can start our response now *)
+        send_header size resp.last_modified cgi
+    end;
     write_cache str pos len;
     if size >= 0L then
       (* stream the data back to the client as we receive it *)
@@ -304,17 +301,26 @@ let process_body resp cgi str pos len =
 
 let download_http url name ims cgi =
   let headers =
-    if ims > 0. then [ "If-Modified-Since: " ^ Url.string_of_time ims ] else []
+    if ims > 0. then ["If-Modified-Since: " ^ Url.string_of_time ims] else []
   in
-  let resp = new_response name in
-  let header_callback = process_header resp in
-  let body_callback = process_body resp cgi in
-  Url.download url ~headers ~header_callback body_callback;
-  match resp.status with
-  | 200 -> finish_delivery resp
-  | 304 -> Not_modified
-  | 404 -> File_not_found
-  | n -> error_message "Unexpected status code: %d" n; File_not_found
+  let rec loop u redirects =
+    let resp = new_response name in
+    let header_callback = process_header resp in
+    let body_callback = process_body resp cgi in
+    Url.download u ~headers ~header_callback body_callback;
+    match resp.status with
+    | 200 -> finish_delivery resp
+    | 304 -> Not_modified
+    | 301 | 302 | 303 | 307 ->
+        if redirects < max_redirects then loop resp.location (redirects + 1)
+        else begin
+          error_message "Too many redirections for %s" url;
+          File_not_found
+        end
+    | 404 -> File_not_found
+    | n -> error_message "Unexpected status code: %d" n; File_not_found
+  in
+  loop url 0
 
 (* Download a file from an FTP repository *)
 
@@ -400,12 +406,12 @@ let remote_service url name ims mod_time =
   object
     method process_body _ =
       object
-	method generate_response env =
-	  let cgi =
-	    (* buffered activation runs out of memory on large downloads *)
-	    Nethttpd_services.std_activation `Std_activation_unbuffered env
-	  in
-	  serve_remote url name ims mod_time cgi
+        method generate_response env =
+          let cgi =
+            (* buffered activation runs out of memory on large downloads *)
+            Nethttpd_services.std_activation `Std_activation_unbuffered env
+          in
+          serve_remote url name ims mod_time cgi
       end
   end
 
@@ -442,36 +448,34 @@ let proxy_service =
     method def_term = `Proxy_service
     method print fmt = Format.fprintf fmt "%s" "proxy_service"
     method process_header env =
-      match env#remote_socket_addr with
-      | ADDR_INET (host, port) ->
-	  if debug then
-	    debug_message "Connection from %s:%d"
-	      (string_of_inet_addr host) port;
-	  if env#cgi_request_method = "GET" && env#cgi_query_string = "" then
-	    serve_file env
-	  else
-	    forbidden "invalid HTTP request"
-      | ADDR_UNIX path ->
-	  failwith ("connection from UNIX socket " ^ path)
+      let remote =
+        Server.remote_address env#remote_socket_addr ~with_port: true
+      in
+      if debug then debug_message "Connection from %s" remote;
+      if env#cgi_request_method = "GET" && env#cgi_query_string = "" then
+        serve_file env
+      else forbidden "invalid HTTP request"
   end
 
-let server () =
-  try
-    Sys.chdir cache_dir;
-    info_message "Version: %s" Version.number;
-    if verbose then print_config (info_message "%s");
-    Server.main ~user ~group ~interface port proxy_service
-  with e ->
-    exception_message e;
-    exit 1
+let server s =
+  Sys.chdir cache_dir;
+  info_message "Version: %s" Version.number;
+  if verbose then print_config (info_message "%s");
+  Server.loop s proxy_service
 
 let daemonize proc x =
   ignore (setsid ());
-  List.iter close [ stdin; stdout; stderr ];
+  use_syslog ();
+  List.iter close [stdin; stdout; stderr];
   (* double fork to detach daemon *)
   if fork () = 0 && fork () = 0 then
     proc x
 
 let () =
-  if !foreground then server ()
-  else daemonize server ()
+  try
+    let s = Server.init ~user ~group ~interface ~port in
+    if !foreground then server s
+    else daemonize server s
+  with e ->
+    exception_message e;
+    exit 1

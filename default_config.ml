@@ -12,6 +12,7 @@ let () = try read config_file with Sys_error _ -> ()
 let interface = get "$interface" ~default: "any"
 let port = get_int "$port" ~default: 9999 (* compatible with apt-proxy *)
 let max_rate = get "$max_rate" ~default: "unlimited"
+let max_redirects = get_int "$max_redirects" ~default: 5
 
 let user = get "$user" ~default: "approx"
 let group = get "$group" ~default: "approx"

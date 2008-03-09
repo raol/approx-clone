@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -38,29 +38,72 @@ let config =
     method config_reactor_synch = `Write
   end
 
-let main ~user ~group ~interface port service =
-  let sock = socket PF_INET SOCK_STREAM 0 in
-  setsockopt sock SO_REUSEADDR true;
-  let addr =
-    if interface = "any" || interface = "all" then
-      inet_addr_any
-    else
-      try Internet.address_of_interface interface
-      with Not_found -> failwith ("interface " ^ interface ^ " not found")
+type t = file_descr
+
+let address interface = function
+  | PF_INET ->
+      if interface = "any" || interface = "all" then inet_addr_any
+      else begin
+        try
+          Interface.address interface
+        with Not_found ->
+          error_message "IP address for interface %s not found" interface;
+          raise Not_found
+      end
+  | PF_INET6 ->
+      if interface = "any" || interface = "all" then inet6_addr_any
+      else begin
+        error_message
+          "The $interface parameter (%s) is not supported for IPv6.\n\
+             Attempting to listen on IPv4 socket instead.\n" interface;
+        raise Not_found
+      end
+  | _ -> failwith "invalid protocol family"
+
+let remote_address ~with_port = function
+  | ADDR_INET (host, port) ->
+      let addr = string_of_inet_addr host in
+      if with_port then sprintf "%s:%d" addr port else addr
+  | ADDR_UNIX path ->
+      failwith ("Unix domain socket " ^ path)
+
+let rec find_some f = function
+  | x :: rest -> (match f x with Some y -> y | None -> find_some f rest)
+  | [] -> raise Not_found
+
+let init ~user ~group ~interface ~port =
+  let make_socket pf =
+    try
+      let sock = socket pf SOCK_STREAM 0 in
+      setsockopt sock SO_REUSEADDR true;
+      bind sock (ADDR_INET (address interface pf, port));
+      listen sock 10;
+      Some sock
+    with Unix.Unix_error (EAFNOSUPPORT, "socket", _) | Not_found -> None
   in
-  bind sock (ADDR_INET (addr, port));
-  listen sock 10;
-  drop_privileges ~user ~group;
+  try
+    let sock = find_some make_socket [PF_INET6; PF_INET] in
+    drop_privileges ~user ~group;
+    sock
+  with Not_found -> failwith "cannot listen on socket"
+
+let loop sock service =
   while true do
     let fd, _ = accept sock in
-    set_nonblock fd;
-    match fork () with
-    | 0 ->
-	if fork () <> 0 then exit 0;
-	close sock;
-	process_connection config fd service;
-	exit 0
-    | pid ->
-	close fd;
-	ignore (waitpid [] pid)
+    let address = remote_address (getpeername fd) ~with_port: false in
+    if Tcp_wrappers.hosts_ctl Version.name ~address then
+      match fork () with
+      | 0 ->
+          if fork () <> 0 then exit 0;
+          close sock;
+          set_nonblock fd;
+          process_connection config fd service;
+          exit 0
+      | pid ->
+          close fd;
+          ignore (waitpid [] pid)
+    else begin
+      close fd;
+      debug_message "Connection from %s denied by TCP wrappers" address
+    end
   done

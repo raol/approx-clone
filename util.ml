@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -61,10 +61,10 @@ let relative_url path =
     else
       let i = String.index path ':' in
       if path.[i + 1] = '/' && path.[i + 2] = '/' && path.[i + 3] <> '/' then
-	let j = String.index_from path (i + 3) '/' in
-	relative_path (substring path ~from: j)
+        let j = String.index_from path (i + 3) '/' in
+        relative_path (substring path ~from: j)
       else
-	raise Exit
+        raise Exit
   with _ ->
     failwith ("malformed URL: " ^ path)
 
@@ -106,8 +106,8 @@ let with_process ?error cmd =
   let close chan =
     if Unix.close_process_in chan <> Unix.WEXITED 0 then
       failwith (match error with
-		| None -> cmd
-		| Some msg -> msg)
+                | None -> cmd
+                | Some msg -> msg)
   in
   with_resource close Unix.open_process_in cmd
 
@@ -120,8 +120,7 @@ let gensym str =
 let rm file = try Sys.remove file with _ -> ()
 
 let decompressors =
-  [ ".gz", "/bin/gunzip --stdout";
-    ".bz2", "/bin/bunzip2 --stdout" ]
+  [(".gz", "/bin/gunzip --stdout"); (".bz2", "/bin/bunzip2 --stdout")]
 
 let is_compressed file =
   match extension file with
@@ -165,10 +164,10 @@ let newest_version file =
       match cur with
       | None -> Some (name, modtime)
       | Some (f, t) ->
-	  if modtime > t || (modtime = t && name = file) then
-	    (* return the original file if it is tied for newest *)
-	    Some (name, modtime)
-	  else cur
+          if modtime > t || (modtime = t && name = file) then
+            (* return the original file if it is tied for newest *)
+            Some (name, modtime)
+          else cur
     with Unix.Unix_error (Unix.ENOENT, "stat", _) -> cur
   in
   let versions = compressed_versions (without_extension file) in
@@ -187,7 +186,7 @@ let copy_channel src dst =
   loop ()
 
 let open_out_excl file =
-  out_channel_of_descr (openfile file [ O_CREAT; O_WRONLY; O_EXCL ] 0o644)
+  out_channel_of_descr (openfile file [O_CREAT; O_WRONLY; O_EXCL] 0o644)
 
 let with_temp_file name proc =
   let file = gensym name in
@@ -253,13 +252,16 @@ let drop_privileges ~user ~group =
   (try setuid (getpwnam user).pw_uid
    with Not_found -> failwith ("unknown user " ^ user))
 
+let string_of_uerror = function
+  | (err, str, "") -> sprintf "%s: %s" str (error_message err)
+  | (err, str, arg) -> sprintf "%s: %s (%s)" str (error_message err) arg
+
 let string_of_exception exc =
   match exc with
   | Failure str -> "Failure: " ^ str
   | Invalid_argument str -> "Invalid argument: " ^ str
   | Sys_error str -> str
-  | Unix_error (err, str, "") -> sprintf "%s: %s" str (error_message err)
-  | Unix_error (err, str, arg) -> sprintf "%s: %s (%s)" str (error_message err) arg
+  | Unix_error (err, str, arg)-> string_of_uerror (err, str, arg)
   | e -> Printexc.to_string e
 
 let main_program f x =

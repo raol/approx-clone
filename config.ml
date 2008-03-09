@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Util
@@ -54,10 +54,10 @@ let read filename =
     let lines = List.map words_of_line (lines_of_channel chan) in
     close_in chan;
     let enter = function
-      | [ key; value ] -> set key value
+      | [key; value] -> set key value
       | [] -> ()
       | words -> failwith ("malformed line in " ^ filename ^ ": " ^
-			   String.concat " " words)
+                           String.concat " " words)
     in
     List.iter enter lines
   in
