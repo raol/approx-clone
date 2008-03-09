@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Util
@@ -39,27 +39,29 @@ let validate (rdir, (info_list, checksum)) file =
 
 let valid_file file = try validate (read file) file with Not_found -> false
 
-let index_variants =
-  [ compressed_versions "Packages";
-    compressed_versions "Sources" ]
+let is_variant variants file = List.mem (Filename.basename file) variants
 
-let is_index file =
-  List.exists (List.mem (Filename.basename file)) index_variants
+let is_packages_file = is_variant (compressed_versions "Packages")
+
+let is_sources_file = is_variant (compressed_versions "Sources")
+
+let is_index file = is_packages_file file || is_sources_file file
 
 let is_release file =
   match Filename.basename file with
   | "Release" | "Release.gpg" -> true
   | _ -> false
 
-let is_diff_index file =
-  Filename.basename file = "Index" &&
+let diff_index_dir file =
   Filename.check_suffix (Filename.dirname file) ".diff"
+
+let is_diff_index file =
+  Filename.basename file = "Index" && diff_index_dir file
 
 let is_pdiff file =
-  Filename.basename file <> "Index" &&
-  Filename.check_suffix (Filename.dirname file) ".diff"
+  Filename.basename file <> "Index" && diff_index_dir file
 
-let immutable_suffixes = [ ".deb"; ".dsc"; ".tar.gz"; ".diff.gz" ]
+let immutable_suffixes = [".deb"; ".dsc"; ".tar.gz"; ".diff.gz"]
 
 let immutable file =
   List.exists (Filename.check_suffix file) immutable_suffixes || is_pdiff file

@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -49,14 +49,14 @@ let read_paragraph chan =
     | None when lines = [] -> raise End_of_file
     | None | Some "" -> lines
     | Some line when line.[0] = ' ' || line.[0] = '\t' ->
-	(match lines with
-	| last :: others ->
-	    let line =
-	      if line = " ." then ""
-	      else substring line ~from: 1
-	    in
-	    loop ((last ^ "\n" ^ line) :: others)
-	| [] -> failwith ("leading white space: " ^ line))
+        (match lines with
+        | last :: others ->
+            let line =
+              if line = " ." then ""
+              else substring line ~from: 1
+            in
+            loop ((last ^ "\n" ^ line) :: others)
+        | [] -> failwith ("leading white space: " ^ line))
     | Some line -> loop (line :: lines)
   in
   List.rev_map parse (loop [])

@@ -1,0 +1,9 @@
+# approx: proxy server for Debian archive files
+# Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+# Released under the GNU General Public License
+
+<sha1_test.ml>: use_sha
+
+<control_file_test.{byte,native}>: use_syslog
+<ifaddr_test.{byte,native}>: -use_pcre, -use_sha, ifaddr
+<metadata_test.{byte,native}>: use_syslog

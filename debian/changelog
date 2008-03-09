@@ -1,10 +1,31 @@
 approx (3.1.0) unstable; urgency=low
 
+  * Added support for IPv6 and TCP wrappers
+    - added build-dependency on libwrap0-dev
+    - closes: #468058
+  * Fixed mishandling of HTTP redirections
+    - handle redirection status codes and location headers in approx.ml
+    - remove --location option from Url.download (but not Url.download_file)
+    - patch supplied by Håkon Stordahl <haastord@online.no>
+    - closes: #469580
+  * Perform server initializations like binding to port and dropping privileges
+    before daemonizing, so that any failures will be noticed by the init script
+    (closes: #465450)
   * Changed Patch module to use a single composite operator
     instead of a list, so Patch.apply is just function application
-  * Updated standards version and VCS fields in debian/control
+  * Updated Standards-Version, DM-Upload-Allowed and VCS-* in debian/control
+  * Changed from ocamlmakefile to ocamlbuild
+    - removed ocamlmakefile from Build-Depends
+    - added _tags files and myocamlbuild.ml plugin
+    - new, simpler Makefile
+    - updated debian/rules to deal with .native and .byte targets
+  * Improved documentation of the garbage collection algorithm in gc.ml
+  * Stylistic changes (mostly whitespace-only)
+    - use only spaces in indentation, no tabs
+    - write lists like this: [1; 2; 3]
+    - avoid single begin/end lines
 
- -- Eric Cooper <ecc@cmu.edu>  Thu, 10 Jan 2008 13:18:20 -0500
+ -- Eric Cooper <ecc@cmu.edu>  Sun, 09 Mar 2008 17:11:57 -0400
 
 approx (3.0.0) unstable; urgency=low
 

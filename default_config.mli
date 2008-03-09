@@ -8,6 +8,7 @@ val cache_dir : string
 val interface : string
 val port : int
 val max_rate : string  (* bytes/second with optional K, M, or G suffix *)
+val max_redirects : int
 
 val user : string
 val group : string

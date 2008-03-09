@@ -23,6 +23,14 @@ val validate : t -> string -> bool
 
 val valid_file : string -> bool
 
+(* Check if a file is a possibly-compressed Packages file *)
+
+val is_packages_file : string -> bool
+
+(* Check if a file is a possibly-compressed Sources file *)
+
+val is_sources_file : string -> bool
+
 (* Check if a file is an index (Packages, Sources, or a compressed version) *)
 
 val is_index : string -> bool

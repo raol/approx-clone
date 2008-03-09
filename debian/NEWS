@@ -1,3 +1,17 @@
+approx (3.1.0) unstable; urgency=low
+
+  TCP wrappers support has been added. Access control rules can be specified
+  for the approx daemon in /etc/hosts.allow and /etc/hosts.deny.
+
+  Approx now listens on an IPv6 socket if supported by the kernel, otherwise
+  it falls back to IPv4.  The $interface parameter is not supported for IPv6,
+  but TCP wrappers or iptables rules can be used instead.
+
+  A new configuration parameter, $max_redirects, specifies the maximum number
+  of HTTP redirections that will be followed when downloading a remote file.
+
+ -- Eric Cooper <ecc@cmu.edu>  Sun, 09 Mar 2008 17:11:57 -0400
+
 approx (3.0.0) unstable; urgency=low
 
   The approx server now handles pdiffs: incremental diffs to Packages files.
@@ -24,7 +38,7 @@ approx (3.0.0) unstable; urgency=low
   downloaded from remote repositories.
 
  -- Eric Cooper <ecc@cmu.edu>  Tue, 04 Dec 2007 12:24:16 -0500
-  
+
 approx (2.9.0) unstable; urgency=low
 
   Configuration parameters in /etc/approx/approx.conf should now begin
