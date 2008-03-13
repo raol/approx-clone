@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -8,7 +8,7 @@ open Syslog
 
 let printer = ref (fun _ msg -> prerr_string msg; flush stderr)
 
-let message level =
+let message enabled level =
   (* ensure message is newline-terminated,
      otherwise syslog-ng behaves differently than syslog *)
   let terminate str =
@@ -17,15 +17,15 @@ let message level =
     else if str.[n - 1] = '\n' then str
     else str ^ "\n"
   in
-  ksprintf (fun str -> !printer level (terminate str))
+  ksprintf (fun str -> if enabled then !printer level (terminate str))
 
-let error_message fmt = message `LOG_ERR fmt
-let info_message fmt = message `LOG_INFO fmt
-let debug_message fmt = message `LOG_DEBUG fmt
+let error_message fmt = message true `LOG_ERR fmt
+let info_message fmt = message Config.verbose `LOG_INFO fmt
+let debug_message fmt = message Config.debug `LOG_DEBUG fmt
 
 let exception_message exc = error_message "%s" (string_of_exception exc)
 
-let facility = facility_of_string Default_config.syslog
+let facility = facility_of_string Config.syslog
 
 let use_syslog () =
   try

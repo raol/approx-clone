@@ -9,7 +9,7 @@
    distribution, is assumed to be invalid, and removed. *)
 
 open Util
-open Default_config
+open Config
 open Control_file
 
 let usage () =
@@ -42,9 +42,6 @@ let no_checksum = !no_checksum
 let simulate = !simulate
 let quiet = !quiet
 let verbose = !verbose
-
-let print_if yes fmt =
-  Printf.ksprintf (fun str -> if yes then prerr_endline str) fmt
 
 (* The cache is probably only a small subset of all the files in the
    Debian archive, so we start with a table of filenames actually
@@ -169,6 +166,8 @@ let rec prune () =
   | list -> List.iter remove_dir list; if not simulate then prune ()
 
 let garbage_collect () =
+  (* gc must run as the approx user even in simulate mode,
+     because index files are decompressed in the cache *)
   drop_privileges ~user ~group;
   mark ();
   sweep ();

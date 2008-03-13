@@ -5,7 +5,7 @@
 (* Update the Packages and Sources files in the approx cache *)
 
 open Util
-open Default_config
+open Config
 open Log
 
 let usage () =
@@ -13,8 +13,9 @@ let usage () =
 Update the approx cache
 Options:
     -k|--keep|-s|--simulate
-                  do not modify any files
-    -q|--quiet    do not print information about updates and removals";
+                    do not modify or download any files
+    -q|--quiet      do not print information about updates and removals
+    -v|--verbose    print the status of each Packages or Sources file";
   exit 1
 
 let simulate = ref false
@@ -38,22 +39,7 @@ let quiet = !quiet
 let verbose = !verbose
 let files = List.rev !files
 
-let print_if yes = Printf.ksprintf (fun str -> if yes then prerr_endline str)
-
 let print fmt = print_if true fmt
-
-let updates = Hashtbl.create 256
-
-let mark_updated file = Hashtbl.replace updates file ()
-
-let updated file = try Hashtbl.find updates file; true with Not_found -> false
-
-let update file =
-  if not (simulate || updated file) then begin
-    print_if (not quiet) "Updating %s" file;
-    Url.download_file file;
-    mark_updated file
-  end
 
 let remove_pdiffs dir =
   match Filename.basename dir with

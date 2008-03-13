@@ -5,7 +5,7 @@
 <**/*.{mli,ml}>: warn_error_A
 
 <approx.ml>: use_pcre, use_netstring, use_netcgi, use_nethttpd-for-netcgi2
-<config.ml>: use_pcre
+<config_file.ml>: use_pcre
 <log.ml>: use_syslog
 <server.mli>: use_nethttpd-for-netcgi2
 <server.ml>: use_netstring, use_netcgi, use_nethttpd-for-netcgi2

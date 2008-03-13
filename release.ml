@@ -3,7 +3,7 @@
    Released under the GNU General Public License *)
 
 open Util
-open Default_config
+open Config
 open Log
 
 type t = string * ((Control_file.info * string) list * (string -> string))
@@ -33,7 +33,7 @@ let validate (rdir, (info_list, checksum)) file =
     let info = fst (List.find (fun (_, name) -> name = rfile) info_list) in
     Control_file.is_valid checksum info file
   with Not_found ->
-    if debug && Filename.dirname file <> rdir then
+    if Filename.dirname file <> rdir then
       debug_message "%s: not found in %s/Release" file rdir;
     false
 

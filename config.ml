@@ -2,63 +2,40 @@
    Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-open Util
+open Config_file
 
-let lines_of_channel chan =
-  let next () =
-    try Some (input_line chan)
-    with End_of_file -> None
-  in
-  let rec loop list =
-    match next () with
-    | Some line -> loop (line :: list)
-    | None -> List.rev list
-  in
-  loop []
+let config_file = "/etc/approx/approx.conf"
+let cache_dir = "/var/cache/approx"
 
-let comment_re = Pcre.regexp "\\s*#.*$"
+let () = try read config_file with Sys_error _ -> ()
 
-let remove_comment str = Pcre.qreplace ~rex: comment_re str ~templ: ""
+let interface = get "$interface" ~default: "any"
+let port = get_int "$port" ~default: 9999 (* compatible with apt-proxy *)
+let max_rate = get "$max_rate" ~default: "unlimited"
+let max_redirects = get_int "$max_redirects" ~default: 5
 
-let words_of_line line = Pcre.split (remove_comment line)
+let user = get "$user" ~default: "approx"
+let group = get "$group" ~default: "approx"
+let syslog = get "$syslog" ~default: "daemon"
 
-let map = ref []
+let pdiffs = get_bool "$pdiffs" ~default: true
+let offline = get_bool "$offline" ~default: false
+let max_wait = get_int "$max_wait" ~default: 10 (* seconds *)
 
-let get_generic convert ?default k =
-  try convert (List.assoc k !map)
-  with Not_found ->
-    (match default with
-    | Some v -> v
-    | None -> raise Not_found)
+let debug = get_bool "$debug" ~default: false
+let verbose = get_bool "$verbose" ~default: false || debug
 
-let get = get_generic (fun x -> x)
-
-let get_int = get_generic int_of_string
-
-let bool_of_string str =
-  match String.lowercase str with
-  | "true"  | "yes" | "on"  | "1" -> true
-  | "false" | "no"  | "off" | "0" -> false
-  | _ -> failwith ("not a boolean value: " ^ str)
-
-let get_bool = get_generic bool_of_string
-
-let set key value = map := (key, value) :: !map
-
-let fold f init = List.fold_left (fun x (k, v) -> f k v x) init !map
-
-let iter f = fold (fun k v () -> f k v) ()
-
-let read filename =
-  let read_file chan =
-    let lines = List.map words_of_line (lines_of_channel chan) in
-    close_in chan;
-    let enter = function
-      | [key; value] -> set key value
-      | [] -> ()
-      | words -> failwith ("malformed line in " ^ filename ^ ": " ^
-                           String.concat " " words)
-    in
-    List.iter enter lines
-  in
-  with_in_channel open_in filename read_file
+let print_config f =
+  let pf fmt = Printf.ksprintf f fmt in
+  pf "Interface: %s" interface;
+  pf "Port: %d" port;
+  pf "Max rate: %s" max_rate;
+  pf "Max redirects: %d" max_redirects;
+  pf "User: %s" user;
+  pf "Group: %s" group;
+  pf "Syslog: %s" syslog;
+  pf "Pdiffs: %B" pdiffs;
+  pf "Offline: %B" offline;
+  pf "Max wait: %d" max_wait;
+  pf "Verbose: %B" verbose;
+  pf "Debug: %B" debug

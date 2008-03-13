@@ -80,6 +80,8 @@ let without_extension file = fst (split_extension file)
 
 let extension file = snd (split_extension file)
 
+let the = function Some x -> x | None -> raise Not_found
+
 (* private exception to wrap any exception raised during cleanup action *)
 
 exception Unwind of exn
@@ -269,3 +271,5 @@ let main_program f x =
   with e ->
     prerr_endline (string_of_exception e);
     exit 1
+
+let print_if cond = ksprintf (fun str -> if cond then prerr_endline str)

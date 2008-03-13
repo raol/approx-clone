@@ -4,7 +4,7 @@
 
 open Printf
 open Util
-open Default_config
+open Config
 open Log
 
 let string_of_time t =
@@ -24,15 +24,13 @@ let translate_request url =
   let path = relative_url url in
   match explode_path path with
   | dist :: rest ->
-      (try implode_path (Config.get dist :: rest), path
+      (try implode_path (Config_file.get dist :: rest), path
        with Not_found -> failwith ("no remote repository for " ^ dist))
   | [] ->
       invalid_arg "translate_request"
 
 let translate_file file =
-  let dist, path = split_cache_path file in
-  try Config.get dist ^/ path
-  with Not_found -> invalid_arg ("translate_file " ^ file)
+  let dist, path = split_cache_path file in Config_file.get dist ^/ path
 
 type protocol = HTTP | FTP | FILE
 
@@ -78,7 +76,7 @@ let iter_headers proc chan =
 
 let head url callback =
   let cmd = head_command url in
-  if debug then debug_message "Command: %s" cmd;
+  debug_message "Command: %s" cmd;
   with_process cmd ~error: url (iter_headers callback)
 
 let download_command headers header_callback =
@@ -104,7 +102,7 @@ let seq f g x = (f x; g x)
 
 let download url ?(headers=[]) ?header_callback callback =
   let cmd = download_command headers header_callback url in
-  if debug then debug_message "Command: %s" cmd;
+  debug_message "Command: %s" cmd;
   with_process cmd ~error: url
     (match header_callback with
      | Some proc -> seq (iter_headers proc) (iter_body callback)
@@ -120,7 +118,7 @@ let download_file file =
      else [])
   in
   let cmd = curl_command options (translate_file file) in
-  if debug then debug_message "Command: %s" cmd;
+  debug_message "Command: %s" cmd;
   if Sys.command cmd = 0 then
     (* file' may not exist if file was not modified *)
     try Sys.rename file' file with _ -> ()

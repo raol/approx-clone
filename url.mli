@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Translate a request URL to the remote repository URL and
@@ -14,7 +14,8 @@ val translate_request : string -> string * string
 
 val split_cache_path : string -> string * string
 
-(* Find the remote URL corresponding to a given file in the cache *)
+(* Find the remote URL corresponding to a given file in the cache,
+   or raise Not_found if it does not correspond to a known mapping *)
 
 val translate_file : string -> string
 
