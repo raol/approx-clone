@@ -1,4 +1,4 @@
-approx (3.1.0) unstable; urgency=low
+approx (3.1.0~rc1) experimental; urgency=low
 
   TCP wrappers support has been added. Access control rules can be specified
   for the approx daemon in /etc/hosts.allow and /etc/hosts.deny.
@@ -10,7 +10,12 @@ approx (3.1.0) unstable; urgency=low
   A new configuration parameter, $max_redirects, specifies the maximum number
   of HTTP redirections that will be followed when downloading a remote file.
 
- -- Eric Cooper <ecc@cmu.edu>  Sun, 09 Mar 2008 17:11:57 -0400
+  Requests for directories are now passed through without caching, so that
+  tools like "wget -r" can be used to mirror a repository known to approx.
+  Directory requests are detected by a path with a trailing / (or an HTTP
+  redirection to one).
+
+ -- Eric Cooper <ecc@cmu.edu>  Thu, 13 Mar 2008 10:05:56 -0400
 
 approx (3.0.0) unstable; urgency=low
 

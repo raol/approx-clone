@@ -17,6 +17,9 @@ all:
 	@mv -v gc gc_approx
 	@mv -v update update_approx
 
+fast:
+	@$(MAKE) all OCAMLBUILD_OPTS=
+
 clean:
 	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) -clean
 	rm -f approx gc_approx update_approx

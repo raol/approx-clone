@@ -5,7 +5,7 @@
 open Printf
 open Util
 open Log
-open Default_config
+open Config
 
 type paragraph = (string * string) list
 
@@ -146,8 +146,8 @@ let is_valid checksum ((s, n) as info) file =
   match validate ~checksum info file with
   | Valid -> true
   | Wrong_size n' ->
-      if debug then debug_message "%s: size %Ld should be %Ld" file n' n;
+      debug_message "%s: size %Ld should be %Ld" file n' n;
       false
   | Wrong_checksum s' ->
-      if debug then debug_message "%s: checksum %s should be %s" file s' s;
+      debug_message "%s: checksum %s should be %s" file s' s;
       false

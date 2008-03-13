@@ -1,13 +1,15 @@
-approx (3.1.0) unstable; urgency=low
+approx (3.1.0~rc1) experimental; urgency=low
 
   * Added support for IPv6 and TCP wrappers
     - added build-dependency on libwrap0-dev
     - closes: #468058
   * Fixed mishandling of HTTP redirections
-    - handle redirection status codes and location headers in approx.ml
-    - remove --location option from Url.download (but not Url.download_file)
-    - patch supplied by Håkon Stordahl <haastord@online.no>
+    - handle redirection status codes and location headers in approx.ml,
+      following patch supplied by Håkon Stordahl <haastord@online.no>
+    - remove curl --location option from Url.download but not Url.download_file
     - closes: #469580
+  * Added transparent proxying for requests that should be passed through
+    without caching (closes: #469616)
   * Perform server initializations like binding to port and dropping privileges
     before daemonizing, so that any failures will be noticed by the init script
     (closes: #465450)
@@ -20,12 +22,15 @@ approx (3.1.0) unstable; urgency=low
     - new, simpler Makefile
     - updated debian/rules to deal with .native and .byte targets
   * Improved documentation of the garbage collection algorithm in gc.ml
-  * Stylistic changes (mostly whitespace-only)
+  * Changed debug_message and info_message to check corresponding
+    config parameters ($debug, $verbose) so callers don't have to
+  * Renamed config -> config_file and default_config -> config
+  * Style changes (mostly whitespace-only)
     - use only spaces in indentation, no tabs
     - write lists like this: [1; 2; 3]
     - avoid single begin/end lines
 
- -- Eric Cooper <ecc@cmu.edu>  Sun, 09 Mar 2008 17:11:57 -0400
+ -- Eric Cooper <ecc@cmu.edu>  Thu, 13 Mar 2008 10:05:56 -0400
 
 approx (3.0.0) unstable; urgency=low
 

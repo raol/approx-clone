@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Check if the first string is a prefix of the second *)
@@ -60,6 +60,10 @@ val without_extension : string -> string
 (* Return the extension of a filename, including the initial '.' *)
 
 val extension : string -> string
+
+(* Return the underlying value of an option, otherwise raise Not_found *)
+
+val the : 'a option -> 'a
 
 (* Call a function making sure that a cleanup procedure is called
    before returning the result of the function or raising an exception *)
@@ -190,3 +194,7 @@ val string_of_exception : exn -> string
 (* Run the main function of a program and print any uncaught exceptions *)
 
 val main_program : ('a -> unit) -> 'a -> unit
+
+(* Conditionally print on stderr *)
+
+val print_if : bool -> ('a, unit, string, unit) format4 -> 'a

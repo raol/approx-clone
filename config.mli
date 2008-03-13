@@ -1,15 +1,26 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2006  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-val read : string -> unit
+val config_file : string
+val cache_dir : string
 
-val get : ?default:string -> string -> string
-val get_int : ?default:int -> string -> int
-val get_bool : ?default:bool -> string -> bool
+val interface : string
+val port : int
+val max_rate : string  (* bytes/second with optional K, M, or G suffix *)
+val max_redirects : int
 
-val set : string -> string -> unit
+val user : string
+val group : string
+val syslog : string
 
-val fold : (string -> string -> 'a -> 'a) -> 'a -> 'a
+val pdiffs : bool
+val offline : bool
+val max_wait : int     (* seconds *)
 
-val iter : (string -> string -> unit) -> unit
+val verbose : bool
+val debug : bool
+
+(* Print the configuration by applying the given function to each line *)
+
+val print_config : (string -> unit) -> unit
