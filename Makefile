@@ -5,8 +5,11 @@
 OCAMLBUILD := ocamlbuild
 OCAMLBUILD_OPTS := -classic-display
 
-TARGET := $(shell if [ -x /usr/bin/ocamlopt ]; then echo native; \
-		  else echo byte; fi)
+TARGET := native
+
+ifeq ($(TARGET),byte)
+    OCAMLBUILD_OPTS += -byte-plugin
+endif
 
 all:
 	@set -e; for prog in approx gc update; do \
@@ -16,9 +19,6 @@ all:
 	done
 	@mv -v gc gc_approx
 	@mv -v update update_approx
-
-fast:
-	@$(MAKE) all OCAMLBUILD_OPTS=
 
 clean:
 	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) -clean

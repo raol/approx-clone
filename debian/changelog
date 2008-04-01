@@ -1,3 +1,10 @@
+approx (3.1.0~rc2) experimental; urgency=low
+
+  * Pass -byte-plugin flag to ocamlbuild when building bytecode
+    (closes: #471665)
+
+ -- Eric Cooper <ecc@cmu.edu>  Tue, 01 Apr 2008 14:49:03 -0400
+
 approx (3.1.0~rc1) experimental; urgency=low
 
   * Added support for IPv6 and TCP wrappers
