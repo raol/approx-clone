@@ -10,4 +10,5 @@ ifeq ($(OCAML_HAVE_OCAMLOPT),yes)
 else
     DEB_MAKE_BUILD_TARGET = all TARGET=byte
     DEB_DH_GENCONTROL_ARGS += -VF:OCamlRun="ocaml-base-nox-$(OCAML_ABI)"
+    export DEB_BUILD_OPTIONS += nostrip
 endif
