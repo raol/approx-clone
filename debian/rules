@@ -5,10 +5,10 @@ include /usr/share/cdbs/1/class/makefile.mk
 include /usr/share/cdbs/1/class/ocaml.mk
 
 ifeq ($(OCAML_HAVE_OCAMLOPT),yes)
-    DEB_MAKE_BUILD_TARGET = all TARGET=native
+    DEB_MAKE_BUILD_TARGET = TARGET=native
     DEB_DH_GENCONTROL_ARGS += -VF:OCamlRun=""
 else
-    DEB_MAKE_BUILD_TARGET = all TARGET=byte
+    DEB_MAKE_BUILD_TARGET = TARGET=byte
     DEB_DH_GENCONTROL_ARGS += -VF:OCamlRun="ocaml-base-nox-$(OCAML_ABI)"
-    export DEB_BUILD_OPTIONS += nostrip
+    DEB_STRIP_EXCLUDE += usr/sbin
 endif

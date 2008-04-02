@@ -8,10 +8,10 @@ open Pathname
 
 let libraries =
   ["pcre"; "sha"; "syslog";
-   "netsys"; "netstring"; "+netcgi2 netcgi"; "nethttpd-for-netcgi2"]
+   "netsys"; "netstring"; "+netcgi2:netcgi"; "nethttpd-for-netcgi2"]
 
 let split str =
-  let i = String.index str ' ' in
+  let i = String.index str ':' in
   String.sub str 0 i, String.sub str (i+1) (String.length str - (i+1))
 
 let add_library lib =

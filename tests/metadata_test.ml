@@ -4,7 +4,7 @@
 
 open Printf
 open Util
-open Default_config
+open Config
 
 let files = ref []
 

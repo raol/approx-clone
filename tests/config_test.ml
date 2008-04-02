@@ -10,5 +10,5 @@ let file =
   | _ -> eprintf "Usage: %s config-file\n" Sys.argv.(0); exit 1
 
 let () =
-  Config.read file;
-  Config.iter (fun k v -> printf "%s: %s\n" k v)
+  Config_file.read file;
+  Config_file.iter (fun k v -> printf "%s: %s\n" k v)
