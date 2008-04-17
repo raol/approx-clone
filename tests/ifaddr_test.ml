@@ -14,7 +14,7 @@ let interface =
 let () =
   try
     printf "%s: %s\n" interface
-      (string_of_inet_addr (Interface.address interface))
+      (string_of_inet_addr (Network.interface_address interface))
   with Not_found ->
     eprintf "address of interface %s not found\n" interface;
     exit 1

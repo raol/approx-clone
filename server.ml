@@ -38,24 +38,21 @@ let config =
     method config_reactor_synch = `Write
   end
 
-type t = file_descr
+type t = file_descr list
 
 let address interface = function
   | PF_INET ->
       if interface = "any" || interface = "all" then inet_addr_any
-      else begin
-        try
-          Interface.address interface
-        with Not_found ->
-          error_message "IP address for interface %s not found" interface;
-          raise Not_found
+      else begin try
+        Network.interface_address interface
+      with Not_found ->
+        error_message "IP address for interface %s not found" interface;
+        raise Not_found
       end
   | PF_INET6 ->
       if interface = "any" || interface = "all" then inet6_addr_any
       else begin
-        error_message
-          "The $interface parameter (%s) is not supported for IPv6.\n\
-             Attempting to listen on IPv4 socket instead.\n" interface;
+        error_message "Cannot use $interface parameter (%s) for IPv6" interface;
         raise Not_found
       end
   | _ -> failwith "invalid protocol family"
@@ -63,32 +60,27 @@ let address interface = function
 let remote_address ~with_port = function
   | ADDR_INET (host, port) ->
       let addr = string_of_inet_addr host in
-      if with_port then sprintf "%s:%d" addr port else addr
+      if with_port then sprintf "%s port %d" addr port else addr
   | ADDR_UNIX path ->
       failwith ("Unix domain socket " ^ path)
 
-let rec find_some f = function
-  | x :: rest -> (match f x with Some y -> y | None -> find_some f rest)
-  | [] -> raise Not_found
-
 let init ~user ~group ~interface ~port =
-  let make_socket pf =
+  let add_socket list pf =
     try
       let sock = socket pf SOCK_STREAM 0 in
+      if pf = PF_INET6 then Network.set_ipv6_only sock true;
       setsockopt sock SO_REUSEADDR true;
       bind sock (ADDR_INET (address interface pf, port));
       listen sock 10;
-      Some sock
-    with Unix.Unix_error (EAFNOSUPPORT, "socket", _) | Not_found -> None
+      sock :: list
+    with Unix.Unix_error _ | Not_found -> list
   in
-  try
-    let sock = find_some make_socket [PF_INET6; PF_INET] in
-    drop_privileges ~user ~group;
-    sock
-  with Not_found -> failwith "cannot listen on socket"
+  let sockets = List.fold_left add_socket [] [PF_INET6; PF_INET] in
+  drop_privileges ~user ~group;
+  sockets
 
-let loop sock service =
-  while true do
+let loop sockets service =
+  let process sock =
     let fd, _ = accept sock in
     let address = remote_address (getpeername fd) ~with_port: false in
     if Tcp_wrappers.hosts_ctl Version.name ~address then
@@ -106,4 +98,10 @@ let loop sock service =
       close fd;
       debug_message "Connection from %s denied by TCP wrappers" address
     end
+  in
+  if sockets = [] then failwith "no sockets created";
+  while true do
+    match select sockets [] [] (-1.) with
+    | [], _, _ -> failwith "no sockets selected"
+    | ready, _, _ -> List.iter process ready
   done

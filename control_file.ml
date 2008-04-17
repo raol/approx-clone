@@ -5,7 +5,6 @@
 open Printf
 open Util
 open Log
-open Config
 
 type paragraph = (string * string) list
 
