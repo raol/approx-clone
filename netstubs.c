@@ -46,3 +46,15 @@ interface_address(value name)
     else
         caml_raise_not_found();
 }
+
+value
+set_ipv6_only(value descr, value on_off)
+{
+    CAMLparam2(descr, on_off);
+    int fd = Int_val(descr);
+    int v = Bool_val(on_off);
+    if (setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &v, sizeof(int)) == 0)
+        CAMLreturn(Val_unit);
+    else
+        caml_failwith("set_ipv6_only");
+}

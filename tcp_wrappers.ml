@@ -5,5 +5,5 @@
 external wrap_hosts_ctl : string -> string -> string -> string -> bool
   = "wrap_hosts_ctl"
 
-let hosts_ctl ?(address="") ?(host="") ?(user="") daemon =
+let hosts_ctl ?(address="unknown") ?(host="unknown") ?(user="unknown") daemon =
   wrap_hosts_ctl daemon host address user

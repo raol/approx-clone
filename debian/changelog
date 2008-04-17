@@ -1,3 +1,14 @@
+approx (3.2.0) unstable; urgency=low
+
+  * Listen on both IPv4 and IPv6 sockets when available
+  * Add setsockopt IPV6_V6ONLY to allow both kinds of sockets to bind
+    to the same port, as suggested by Julien Cristau <jcristau@debian.org>
+  * Enable -custom for all bytecode executables, not just ones that
+    directly use C stubs, to avoid missing DLLs from libpcre-ocaml, etc.
+    at runtime (closes: #476367)
+
+ -- Eric Cooper <ecc@cmu.edu>  Wed, 16 Apr 2008 21:49:01 -0400
+
 approx (3.1.0) unstable; urgency=low
 
   * Prevent dh_strip from stripping custom bytecode executables

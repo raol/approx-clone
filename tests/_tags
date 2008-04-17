@@ -5,5 +5,5 @@
 <sha1_test.ml>: use_sha
 
 <control_file_test.{byte,native}>: use_syslog
-<ifaddr_test.{byte,native}>: -use_pcre, -use_sha, ifaddr
+<ifaddr_test.{byte,native}>: -use_pcre, -use_sha, netstubs
 <metadata_test.{byte,native}>: use_syslog

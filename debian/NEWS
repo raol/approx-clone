@@ -1,3 +1,9 @@
+approx (3.2.0) unstable; urgency=low
+
+  If both IPv4 and IPv6 sockets are supported, approx will listen on both.
+
+ -- Eric Cooper <ecc@cmu.edu>  Wed, 16 Apr 2008 21:49:01 -0400
+
 approx (3.1.0~rc1) experimental; urgency=low
 
   TCP wrappers support has been added. Access control rules can be specified

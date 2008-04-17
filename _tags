@@ -15,4 +15,4 @@
 <**/*.{byte,native}>: use_unix, use_pcre, use_sha
 <*.{byte,native}>: use_syslog, use_netsys, use_netstring
 <approx.{byte,native}>: use_netcgi, use_nethttpd-for-netcgi2
-<approx.{byte,native}>: ifaddr, libwrap
+<approx.{byte,native}>: netstubs, libwrap
