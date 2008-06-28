@@ -1,7 +1,7 @@
 Concurrency control issues in approx
 
     Eric Cooper <ecc@cmu.edu>
-    2005 May 13
+    June 2008
 
 The priorities for dealing with concurrency in approx are:
 
@@ -10,7 +10,7 @@ The priorities for dealing with concurrency in approx are:
 
 2. maintain good performance (minimize delays due to serialization,
    minimize number of downloads from remote repositories)
-   
+
 There are two sources of potential conflicts:
 
 A: between approx and gc_approx
@@ -21,12 +21,12 @@ might conclude that many current .debs are not reachable and delete
 them from the cache.  While this is not fatal (it's only a cache,
 after all), it would have a severe performance impact.
 
-But approx downloads partial files with a ".tmp" extension, and only
-renames them upon successful completion.  And since the rename is
+But approx downloads partial files with a unique temporary extension, and
+only renames them upon successful completion.  And since the rename is
 atomic, this potential conflict is a non-problem.
 
-Another conflict can occur if gc_approx deletes a *.tmp file that is
-in the process of being downloaded on behalf of an approx client.
+Another conflict can occur if gc_approx deletes a temporary file that
+is in the process of being downloaded on behalf of an approx client.
 To avoid this, gc_approx doesn't delete recently-modified files.
 
 B: between concurrent approx processes
@@ -36,11 +36,14 @@ from delivering a file that has been partially downloaded by another.
 
 But suppose a large download, like the main Packages.gz file, is in
 progress.  Another approx process might decide to download it also.
-To avoid this, we use the presence of a current ".tmp" version of the
+To avoid this, approx creates a hint file in the cache directory
+before starting the download.  We use the presence of a current hint
 file as an indication that the download is already in progress, and
 wait for it (at least for a while).
 
-When a requested file is not in the cache, it might be possible for two
-approx processes to attempt to download it simultaneously, overwriting
-one another's .tmp file.  To prevent this, approx opens the *.tmp
-cache file with the O_EXCL flag.
+There is still a race condition between the time that an approx
+process checks for the non-existence of a hint file and the time it
+creates it, so it is possible for two approx processes to download the
+same file simultaneously.  The atomic rename of unique temporary files
+ensures correctness in this case, at the cost of some network
+bandwidth.

@@ -1,3 +1,13 @@
+approx (3.3.0) unstable; urgency=low
+
+  * Allow empty host name in file URLs (closes: #479022)
+  * Use unique temporary names to avoid race condition
+    when opening cache files (closes: #488080)
+  * Use hint files to avoid (but not eliminate) duplicate downloads
+  * Remove unnecessary getpeername call in server loop
+
+ -- Eric Cooper <ecc@cmu.edu>  Sat, 03 May 2008 16:43:25 -0400
+
 approx (3.2.0) unstable; urgency=low
 
   * Listen on both IPv4 and IPv6 sockets when available
