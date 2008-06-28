@@ -38,29 +38,30 @@ let () =
 
 let stat_file name = try Some (stat name) with Unix_error _ -> None
 
-(* Temporary name in case the download is interrupted *)
+(* Hint that a download is in progress *)
 
-let in_progress name = name ^ ".tmp"
+let in_progress name = name ^ ".hint"
 
 let wait_for_download_in_progress name =
-  let name' = in_progress name in
-  let rec wait n prev =
-    match stat_file name' with
-    | Some { st_size = cur } ->
-        if cur = prev && n = max_wait then begin
+  let hint = in_progress name in
+  let timeout = float_of_int max_wait in
+  let rec wait n =
+    match stat_file hint with
+    | Some { st_mtime = mtime } ->
+        if time () -. mtime > timeout then begin
           error_message "Concurrent download of %s is taking too long" name;
-          (* remove the other process's .tmp file if it still exists,
+          (* remove the other process's hint file if it still exists,
              so we can create our own *)
-          rm name'
+          rm hint
         end else begin
-          if prev = 0L then
+          if n = 0 then
             debug_message "Waiting for concurrent download of %s" name;
           sleep 1;
-          wait (if cur = prev then n + 1 else 0) cur
+          wait (n + 1)
         end
     | None -> ()
   in
-  wait 0 0L
+  wait 0
 
 let debug_headers msg headers =
   debug_message "%s" msg;
@@ -83,7 +84,6 @@ let deliver_local name env =
   debug_headers "Local response" env#output_header_fields;
   Done (`File (`Ok, None, cache_dir ^/ name, 0L, size))
 
-let not_found = Done (`Std_response (`Not_found, None, None))
 let not_modified = Done (`Std_response (`Not_modified, None, None))
 
 let cache_hit name ims mod_time env =
@@ -96,6 +96,8 @@ let cache_hit name ims mod_time env =
       deliver_local name env
     end
   else Missing
+
+let not_found = Done (`Std_response (`Not_found, None, None))
 
 let deny name =
   debug_message "Denying %s" name;
@@ -144,10 +146,11 @@ let make_directory path =
   | "" :: dirs -> loop "/" dirs
   | dirs -> loop "." dirs
 
-let create_file path =
-  make_directory (Filename.dirname path);
-  (* open file exclusively so we don't conflict with a concurrent download *)
-  open_out_excl path
+let create_hint name =
+  make_directory (Filename.dirname name);
+  close (openfile (in_progress name) [O_CREAT; O_WRONLY] 0o644)
+
+let remove_hint name = rm (in_progress name)
 
 type cache_info = { file : string; tmp_file : string; chan : out_channel }
 
@@ -169,8 +172,9 @@ let open_cache file =
   end else
     try
       debug_message "  open cache %s" file;
-      let tmp_file = in_progress file in
-      let chan = create_file tmp_file in
+      make_directory (Filename.dirname file);
+      let tmp_file = gensym file in
+      let chan = open_out_excl tmp_file in
       Cache { file = file; tmp_file = tmp_file; chan = chan }
     with e ->
       error_message "Cannot cache %s" file;
@@ -378,7 +382,13 @@ let download_url url name ims cgi =
     | Url.FTP | Url.FILE -> download_ftp
   in
   let resp = new_response url name in
-  try dl resp url name ims cgi
+  let download_with_hint () =
+    create_hint name;
+    unwind_protect
+      (fun () -> dl resp url name ims cgi)
+      (fun () -> remove_hint name)
+  in
+  try download_with_hint ()
   with e ->
     remove_cache resp.cache;
     if e <> Failure url then info_message "%s" (string_of_exception e);

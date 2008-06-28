@@ -60,7 +60,7 @@ let relative_url path =
     if path.[0] = '/' then relative_path path
     else
       let i = String.index path ':' in
-      if path.[i + 1] = '/' && path.[i + 2] = '/' && path.[i + 3] <> '/' then
+      if path.[i + 1] = '/' && path.[i + 2] = '/' then
         let j = String.index_from path (i + 3) '/' in
         relative_path (substring path ~from: j)
       else

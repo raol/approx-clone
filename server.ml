@@ -81,8 +81,8 @@ let init ~user ~group ~interface ~port =
 
 let loop sockets service =
   let process sock =
-    let fd, _ = accept sock in
-    let address = remote_address (getpeername fd) ~with_port: false in
+    let fd, ip = accept sock in
+    let address = remote_address ip ~with_port: false in
     if Tcp_wrappers.hosts_ctl Version.name ~address then
       match fork () with
       | 0 ->
