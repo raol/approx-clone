@@ -12,3 +12,9 @@ else
     DEB_DH_GENCONTROL_ARGS += -VF:OCamlRun="ocaml-base-nox-$(OCAML_ABI)"
     DEB_STRIP_EXCLUDE += usr/sbin
 endif
+
+configure/approx::
+	debian/mkversion > version.ml
+
+clean::
+	rm -f version.ml
