@@ -76,7 +76,7 @@ let range_of_string str =
 
 (* Ed commands are represented as operators on the
    input channel, output channel, and current line number.
-   When applied, each operator returns the updated the line number. *)
+   When applied, each operator returns the updated line number. *)
 
 type t = in_channel -> out_channel -> int -> int
 
