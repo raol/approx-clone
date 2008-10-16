@@ -132,13 +132,19 @@ let serve_local name ims env =
       else Missing
 
 let make_directory path =
+  (* Create a directory component in the path.  Since it might be
+     created concurrently, we have to ignore the Unix EEXIST error --
+     simply testing for existence first introduces a race condition. *)
+  let make_dir name =
+    try mkdir name 0o755
+    with Unix_error (EEXIST, _, _) ->
+      if not (Sys.is_directory name) then
+        failwith ("file " ^ name ^ " is not a directory")
+  in
   let rec loop cwd = function
     | dir :: rest ->
         let name = cwd ^/ dir in
-        if not (Sys.file_exists name) then
-          mkdir name 0o755
-        else if not (Sys.is_directory name) then
-          failwith ("file " ^ name ^ " is not a directory");
+        make_dir name;
         loop name rest
     | [] -> ()
   in
