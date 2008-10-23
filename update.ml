@@ -9,7 +9,7 @@ open Config
 open Log
 
 let usage () =
-  prerr_endline "Usage: update_approx [options] [files]
+  prerr_endline "Usage: approx-update [options] [files]
 Update the approx cache
 Options:
     -k|--keep|-s|--simulate

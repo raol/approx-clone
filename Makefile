@@ -11,18 +11,21 @@ ifeq ($(TARGET),byte)
     OCAMLBUILD_OPTS += -byte-plugin
 endif
 
+programs = gc update import
+
 all:
-	@set -e; for prog in approx gc update; do \
+	@set -e; for prog in approx $(programs); do \
 	    echo $(OCAMLBUILD) $(OCAMLBUILD_OPTS) $$prog.$(TARGET); \
 	    $(OCAMLBUILD) $(OCAMLBUILD_OPTS) $$prog.$(TARGET); \
 	    cp -pv _build/$$prog.$(TARGET) $$prog; \
 	done
-	@mv -v gc gc_approx
-	@mv -v update update_approx
+	@set -e; for prog in $(programs); do \
+	    mv -v $$prog approx-$$prog; \
+	done
 
 clean:
 	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) -clean
-	rm -f approx gc_approx update_approx
+	rm -f approx $(patsubst %,approx-%,$(programs))
 
 .PHONY: tests
 

@@ -1,0 +1,71 @@
+.\" approx: proxy server for Debian archive files
+.\" Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+.\" Released under the GNU General Public License
+.\" -*- nroff -*-
+.TH APPROX-IMPORT 8 "October 2008"
+.\" Please adjust this date whenever revising the manpage.
+
+.SH NAME
+approx-import \- copy local .deb files into the approx cache
+
+.SH SYNOPSIS
+.PP
+.B approx-import
+[\fIOPTION\fP]... file.deb \&...
+
+.SH DESCRIPTION
+.PP
+.B approx-import
+copies local .deb files,
+such as those found in
+.IR /var/cache/apt/archives ,
+into the
+.BR approx (8)
+cache.
+
+It does so by extracting the Debian package name, version number, and
+architecture from the filename.  If these correspond to a
+package in one of the
+.I Packages
+files in the
+.BR approx (8)
+cache, then the file is copied to the appropriate location in the cache.
+
+Although the size of the file is verified to be correct before copying,
+the MD5, SHA1, and SHA256 cryptographic checksums are not,
+in the interest of speed.
+The
+.BR approx-gc (8)
+command can be run subsequently for that purpose.
+
+.SH OPTIONS
+.TP
+.TP
+.BR \-s ", " \-\^\-simulate
+Scan files but do not actually copy them into the cache.
+.TP
+.BR \-q ", " \-\^\-quiet
+Don't print the names of files that are imported.
+.TP
+.BR \-v ", " \-\^\-verbose
+Print information about each file.
+
+
+.SH FILES
+.TP
+.I /etc/approx/approx.conf
+.br
+Configuration file for
+.B approx
+and related programs.
+.TP
+.I /var/cache/approx
+.br
+Cache directory for archive files.
+
+.SH SEE ALSO
+.IR approx.conf (5),
+.BR approx (8)
+
+.SH AUTHOR
+Eric Cooper <ecc@cmu.edu>
