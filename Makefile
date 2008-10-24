@@ -27,6 +27,9 @@ clean:
 	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) -clean
 	rm -f approx $(patsubst %,approx-%,$(programs))
 
+extra-clean: clean
+	rm -f *~ \#*
+
 .PHONY: tests
 
 test_programs = $(wildcard tests/*.ml)
@@ -36,3 +39,16 @@ tests:
 	    echo $(OCAMLBUILD) $(OCAMLBUILD_OPTS) $$test.$(TARGET); \
 	    $(OCAMLBUILD) $(OCAMLBUILD_OPTS) $$test.$(TARGET); \
 	done
+
+upstream-branch:
+	git-status | grep -q "^# On branch upstream"
+
+release: upstream-branch extra-clean
+	@set -e; \
+	version=$$(sed -n 's/^.*number = "\(.*\)".*$$/\1/p' version.ml); \
+	echo Tagging upstream/$$version; \
+	git tag -f -m "upstream version $$version" upstream/$$version; \
+	package=approx-$$version; \
+	tarball=../$$package.orig.tar.gz; \
+	echo Creating $$tarball; \
+	tar czf $$tarball --transform "s:^\./:$$package/:" --exclude=.git .
