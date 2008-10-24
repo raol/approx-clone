@@ -48,7 +48,7 @@ release: upstream-branch extra-clean
 	version=$$(sed -n 's/^.*number = "\(.*\)".*$$/\1/p' version.ml); \
 	echo Tagging upstream/$$version; \
 	git tag -f -m "upstream version $$version" upstream/$$version; \
-	package=approx-$$version; \
-	tarball=../$$package.orig.tar.gz; \
+	tarball=../approx_$$version.orig.tar.gz; \
 	echo Creating $$tarball; \
+	package=approx-$$version; \
 	tar czf $$tarball --transform "s:^\./:$$package/:" --exclude=.git .
