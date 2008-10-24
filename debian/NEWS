@@ -1,3 +1,14 @@
+approx (3.4-1) unstable; urgency=low
+
+  A new program, approx-import, has been added. It can be used to populate
+  the approx cache with existing .deb files, such as those found in
+  /var/cache/apt/archives.
+
+  For consistency, the other auxiliary programs have been renamed to
+  approx-gc and approx-update.
+
+ -- Eric Cooper <ecc@cmu.edu>  Thu, 23 Oct 2008 21:16:00 -0400
+
 approx (3.2.0) unstable; urgency=low
 
   If both IPv4 and IPv6 sockets are supported, approx will listen on both.

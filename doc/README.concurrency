@@ -13,9 +13,9 @@ The priorities for dealing with concurrency in approx are:
 
 There are two sources of potential conflicts:
 
-A: between approx and gc_approx
+A: between approx and approx-gc
 
-When gc_approx runs, we need to ensure that it reads valid Packages
+When approx-gc runs, we need to ensure that it reads valid Packages
 files.  If it reads a truncated or otherwise corrupt Packages file, it
 might conclude that many current .debs are not reachable and delete
 them from the cache.  While this is not fatal (it's only a cache,
@@ -25,9 +25,9 @@ But approx downloads partial files with a unique temporary extension, and
 only renames them upon successful completion.  And since the rename is
 atomic, this potential conflict is a non-problem.
 
-Another conflict can occur if gc_approx deletes a temporary file that
+Another conflict can occur if approx-gc deletes a temporary file that
 is in the process of being downloaded on behalf of an approx client.
-To avoid this, gc_approx doesn't delete recently-modified files.
+To avoid this, approx-gc doesn't delete recently-modified files.
 
 B: between concurrent approx processes
 

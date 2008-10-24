@@ -22,10 +22,6 @@ let add_library lib =
   ocaml_lib ~extern: true ~dir: ("+" ^ inc) lib
 
 let custom_rules () =
-  rule "Use mkversion to generate version.ml"
-    ~dep: "debian/changelog" ~prod: "version.ml"
-    (fun _ _ -> Cmd (S [P (concat pwd "mkversion"); Sh "> version.ml"]));
-  dep ["compile"; "ocaml"; "file:log.ml"] ["version.ml"];
   dep ["link"; "ocaml"; "netstubs"] ["netstubs.o"];
   dep ["link"; "ocaml"; "libwrap"] ["libwrap.o"];
   flag ["link"; "ocaml"; "libwrap"] & S [A "-cclib"; A "-lwrap"];

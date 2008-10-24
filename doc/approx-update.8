@@ -1,21 +1,21 @@
 .\" approx: proxy server for Debian archive files
-.\" Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+.\" Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH UPDATE_APPROX 8 "November 2007"
+.TH APPROX-UPDATE 8 "October 2008"
 .\" Please adjust this date whenever revising the manpage.
 
 .SH NAME
-update_approx \- update cached Packages and Sources files
+approx-update \- update cached Packages and Sources files
 
 .SH SYNOPSIS
 .PP
-.B update_approx
+.B approx-update
 [\fIOPTION\fP] [\fIFILE\fP]...
 
 .SH DESCRIPTION
 .PP
-.B update_approx
+.B approx-update
 updates the Packages and Sources files in the
 .BR approx (8)
 cache by downloading and applying pdiffs.
@@ -36,7 +36,7 @@ Print the status of each Packages or Sources file.
 To download and apply any pdiffs necessary to bring
 the Packages and Sources files in the cache up to date:
 .IP
-update_approx \-\^\-quiet
+approx-update \-\^\-quiet
 .PP
 This is run as a daily
 .BR cron (8)
@@ -45,7 +45,7 @@ job.
 To show the status of each Packages and Sources file in the cache
 (whether it is up-to-date according to the corresponding Release file):
 .IP
-update_approx \-\^\-keep \-\^\-verbose
+approx-update \-\^\-keep \-\^\-verbose
 
 .SH FILES
 .TP
@@ -62,7 +62,7 @@ Cache directory for archive files.
 .SH SEE ALSO
 .IR approx.conf (5),
 .BR approx (8),
-.BR gc_approx (8),
+.BR approx-gc (8),
 .BR cron (8)
 
 .SH AUTHOR

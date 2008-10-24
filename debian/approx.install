@@ -1,4 +1,5 @@
 approx		usr/sbin
-gc_approx	usr/sbin
-update_approx	usr/sbin
+approx-gc	usr/sbin
+approx-update	usr/sbin
+approx-import	usr/sbin
 etc/approx.conf	etc/approx

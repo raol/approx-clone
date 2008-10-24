@@ -1,3 +1,15 @@
+approx (3.4-1) unstable; urgency=low
+
+  * Change to non-native Debian package
+  * Update VCS info in debian/control to reflect change from svn to git
+  * Fix race condition when creating directory for cache file
+    (closes: #501406)
+  * Add approx-import program to import local .debs into approx cache
+    (closes: #488096)
+  * Renamed auxiliary programs approx-gc and approx-update for consistency
+
+ -- Eric Cooper <ecc@cmu.edu>  Thu, 23 Oct 2008 21:16:00 -0400
+
 approx (3.3.0) unstable; urgency=low
 
   * Allow empty host name in file URLs (closes: #479022)

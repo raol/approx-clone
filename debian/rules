@@ -14,7 +14,7 @@ else
 endif
 
 configure/approx::
-	debian/mkversion > version.ml
+	/usr/bin/perl debian/mkversion.pl > version.ml
 
 clean::
 	rm -f version.ml

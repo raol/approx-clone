@@ -1,21 +1,21 @@
 .\" approx: proxy server for Debian archive files
-.\" Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+.\" Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH GC_APPROX 8 "November 2007"
+.TH APPROX-GC 8 "October 2008"
 .\" Please adjust this date whenever revising the manpage.
 
 .SH NAME
-gc_approx \- garbage-collect the cache of Debian archive files
+approx-gc \- garbage-collect the cache of Debian archive files
 
 .SH SYNOPSIS
 .PP
-.B gc_approx
+.B approx-gc
 [\fIOPTION\fP]...
 
 .SH DESCRIPTION
 .PP
-.B gc_approx
+.B approx-gc
 scans the cache created by
 .BR approx (8)
 and finds files that are corrupted or no longer needed.
@@ -35,7 +35,7 @@ or
 .I Sources
 file.
 .PP
-.B gc_approx
+.B approx-gc
 may take several minutes to finish.
 
 .SH OPTIONS
@@ -57,7 +57,7 @@ Indicate the reason for removal of each file with a prefix character:
 .PP
 To remove all unneeded or corrupted files from the cache:
 .IP
-gc_approx \-\^\-quiet
+approx-gc \-\^\-quiet
 .PP
 This is run as a weekly
 .BR cron (8)
@@ -66,7 +66,7 @@ job.
 To list the files that would be removed from the cache,
 without actually doing so:
 .IP
-gc_approx \-\^\-keep
+approx-gc \-\^\-keep
 
 .SH FILES
 .TP
@@ -83,7 +83,7 @@ Cache directory for archive files.
 .SH SEE ALSO
 .IR approx.conf (5),
 .BR approx (8),
-.BR update_approx (8),
+.BR approx-update (8),
 .BR cron (8)
 
 .SH AUTHOR

@@ -13,7 +13,7 @@ open Config
 open Control_file
 
 let usage () =
-  prerr_endline "Usage: gc_approx [options]
+  prerr_endline "Usage: approx-gc [options]
 Garbage-collect the approx cache
 Options:
     -f|--fast     do not validate checksums

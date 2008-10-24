@@ -1,4 +1,5 @@
 doc/approx.8
-doc/gc_approx.8
-doc/update_approx.8
+doc/approx-gc.8
+doc/approx-update.8
+doc/approx-import.8
 doc/approx.conf.5
