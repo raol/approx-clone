@@ -32,13 +32,18 @@ val explode_path : string -> string list
 
 val implode_path : string list -> string
 
-(* Return a quoted string *)
-
-val quoted_string : string -> string
-
 (* Infix operator to concatenate two pathname components *)
 
 val (^/) : string -> string -> string
+
+(* Create a directory, including any intermediate directories
+   along the specified path (like "mkdir --parents") *)
+
+val make_directory : string -> unit
+
+(* Return a quoted string *)
+
+val quoted_string : string -> string
 
 (* Return the relative portion of a pathname *)
 

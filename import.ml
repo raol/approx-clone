@@ -68,30 +68,37 @@ let packages = Hashtbl.create (List.length files)
 
 let scan_files () =
   let add_file name =
-    try
-      let pkg = package_of_file name in
-      Hashtbl.replace packages pkg.name pkg
-    with Not_found ->
-      print_if verbose "%s: ignored\n" (Filename.basename name)
+    if Sys.file_exists name then
+      try
+        let pkg = package_of_file name in
+        Hashtbl.replace packages pkg.name pkg
+      with Not_found ->
+        print_if verbose "%s: ignored" (Filename.basename name)
+    else
+      print_if true "%s: not found" name
   in
-  List.iter add_file files
+  List.iter add_file files;
+  if Hashtbl.length packages = 0 then exit 1
 
-let print fmt = print_if true fmt
+let index_seen = ref false
+let current_index = ref None
 
 let import_package pkg dst =
+  (match !current_index with
+   | Some (dist, path) ->
+       print_if verbose "# %s/%s" dist path;
+       current_index := None
+   | None -> ());
   let target = cache_dir ^/ dst in
   if Sys.file_exists target then begin
     print_if verbose "%s: present as %s" pkg.base target;
     Hashtbl.remove packages pkg.name  (* don't process it again *)
   end else begin
+    print_if (simulate || not quiet) "%s: copying to %s" pkg.base target;
     if not simulate then begin
-      let cmd =
-        Printf.sprintf "cp -p %s %s %s"
-          (if quiet then "" else "-v") pkg.file target
-      in
-      ignore (Sys.command cmd)
+      make_directory (Filename.dirname target);
+      ignore (Sys.command (Printf.sprintf "cp -p %s %s" pkg.file target))
     end;
-    print_if verbose "%s: copied to %s" pkg.base target
   end
 
 let import_files index =
@@ -107,11 +114,18 @@ let import_files index =
             import_package pkg (dist ^/ List.assoc "filename" fields)
       with Not_found -> ()
     in
+    index_seen := true;
+    current_index := Some (dist, path);
     Control_file.iter check_package index
 
 let import () =
-  if not simulate then drop_privileges ~user ~group;
+  (* import must run as the approx user even in simulate mode,
+     because index files are decompressed in the cache *)
+  drop_privileges ~user ~group;
   scan_files ();
-  iter_non_dirs import_files cache_dir
+  iter_non_dirs import_files cache_dir;
+  print_if (not !index_seen) "%s"
+    "There are no Packages files in the approx cache.\n\
+     Please run \"apt-get update\" first."
 
 let () = main_program import ()

@@ -42,9 +42,30 @@ let explode_path = split '/'
 
 let implode_path = join '/'
 
-let quoted_string str = "\"" ^ String.escaped str ^ "\""
-
 let (^/) = Filename.concat
+
+let make_directory path =
+  (* Create a directory component in the path.  Since it might be
+     created concurrently, we have to ignore the Unix EEXIST error --
+     simply testing for existence first introduces a race condition. *)
+  let make_dir name =
+    try mkdir name 0o755
+    with Unix_error (EEXIST, _, _) ->
+      if not (Sys.is_directory name) then
+        failwith ("file " ^ name ^ " is not a directory")
+  in
+  let rec loop cwd = function
+    | dir :: rest ->
+        let name = cwd ^/ dir in
+        make_dir name;
+        loop name rest
+    | [] -> ()
+  in
+  match explode_path path with
+  | "" :: dirs -> loop "/" dirs
+  | dirs -> loop "." dirs
+
+let quoted_string = sprintf "%S"
 
 let relative_path path =
   let n = String.length path in
