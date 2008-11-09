@@ -3,4 +3,4 @@
    Released under the GNU General Public License *)
 
 let name = "approx"
-let number = "3.4"
+let number = "3.5"

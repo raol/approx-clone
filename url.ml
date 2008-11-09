@@ -50,7 +50,7 @@ let rate_option =
   | str -> "--limit-rate " ^ str
 
 let curl_command options url =
-  sprintf "/usr/bin/curl --fail --silent %s %s %s"
+  sprintf "/usr/bin/curl --fail --silent --header \"Pragma: no-cache\" %s %s %s"
     rate_option (String.concat " " options) (quoted_string url)
 
 let head_command = curl_command ["--head"]
