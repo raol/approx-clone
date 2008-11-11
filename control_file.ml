@@ -45,18 +45,24 @@ let read_paragraph chan =
       with End_of_file -> None
     in
     match next with
-    | None when lines = [] -> raise End_of_file
-    | None | Some "" -> lines
-    | Some line when line.[0] = ' ' || line.[0] = '\t' ->
-        (match lines with
-        | last :: others ->
-            let line =
-              if line = " ." then ""
-              else substring line ~from: 1
-            in
-            loop ((last ^ "\n" ^ line) :: others)
-        | [] -> failwith ("leading white space: " ^ line))
-    | Some line -> loop (line :: lines)
+    | None ->
+        if lines <> [] then lines
+        else raise End_of_file
+    | Some "" ->
+        if lines <> [] then lines
+        else loop []
+    | Some line ->
+        if line.[0] = ' ' || line.[0] = '\t' then
+          match lines with
+          | last :: others ->
+              let line =
+                if line = " ." then ""
+                else substring line ~from: 1
+              in
+              loop ((last ^ "\n" ^ line) :: others)
+          | [] -> failwith ("leading white space: " ^ line)
+        else
+          loop (line :: lines)
   in
   List.rev_map parse (loop [])
 
