@@ -196,7 +196,11 @@ val drop_privileges : user:string -> group:string -> unit
 
 val string_of_exception : exn -> string
 
-(* Run the main function of a program and print any uncaught exceptions *)
+(* Call a procedure and print, but otherwise ignore, any exception *)
+
+val perform : ('a -> unit) -> 'a -> unit
+
+(* Run the main function of a program and print any uncaught exception *)
 
 val main_program : ('a -> unit) -> 'a -> unit
 

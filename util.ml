@@ -229,26 +229,27 @@ let rec fold_dirs f init path =
   let visit acc name =
     fold_dirs f acc (path ^/ name)
   in
-  if Sys.file_exists path && Sys.is_directory path then
-    Array.fold_left visit (f init path) (Sys.readdir path)
+  if directory_exists path then
+    Array.fold_left visit (f init path) (try Sys.readdir path with _ -> [||])
   else
     init
-
-let iter_dirs proc = fold_dirs (fun () -> proc) ()
 
 let rec fold_non_dirs f init path =
   let visit acc name =
     fold_non_dirs f acc (path ^/ name)
   in
-  if Sys.file_exists path then
-    if Sys.is_directory path then
-      Array.fold_left visit init (Sys.readdir path)
-    else
-      f init path
+  if directory_exists path then
+    Array.fold_left visit init (try Sys.readdir path with _ -> [||])
+  else if Sys.file_exists path then
+    f init path
   else
     init
 
-let iter_non_dirs proc = fold_non_dirs (fun () -> proc) ()
+let iter_of_fold fold proc = fold (fun () -> proc) ()
+
+let iter_dirs = iter_of_fold fold_dirs
+
+let iter_non_dirs = iter_of_fold fold_non_dirs
 
 let file_size file = (stat file).st_size
 
@@ -286,6 +287,11 @@ let string_of_exception exc =
   | Sys_error str -> str
   | Unix_error (err, str, arg)-> string_of_uerror (err, str, arg)
   | e -> Printexc.to_string e
+
+let perform f x =
+  try f x
+  with e ->
+    prerr_endline (string_of_exception e)
 
 let main_program f x =
   try f x

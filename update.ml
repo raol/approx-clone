@@ -46,8 +46,8 @@ let remove_pdiffs dir =
   | "Packages.diff" | "Sources.diff" ->
       print_if (not quiet) "Removing %s" dir;
       if not simulate then begin
-        iter_non_dirs Sys.remove dir;
-        Unix.rmdir dir
+        iter_non_dirs (perform Sys.remove) dir;
+        perform Unix.rmdir dir
       end
   | _ -> invalid_arg (dir ^ " is not a pdiff directory")
 

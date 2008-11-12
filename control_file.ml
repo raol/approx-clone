@@ -81,7 +81,7 @@ let fold f init file =
   in
   with_in_channel open_file file read_file
 
-let iter proc = fold (fun () p -> proc p) ()
+let iter proc = fold (fun () -> proc) ()
 
 let read file =
   let once prev p =

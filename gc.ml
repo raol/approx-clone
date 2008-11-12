@@ -142,7 +142,7 @@ let sweep () =
     | status ->
         if inactive file then begin
           print_gc file status;
-          if not simulate then Sys.remove file
+          if not simulate then perform Sys.remove file
         end else
           print_if verbose "%s is not old enough to remove" file
   in
@@ -150,14 +150,18 @@ let sweep () =
 
 let empty_dirs =
   let collect_empty list dir =
-    if Sys.readdir dir = [||] then dir :: list else list
+    try
+      if Sys.readdir dir = [||] then dir :: list else list
+    with e ->
+      prerr_endline (string_of_exception e);
+      list
   in
   fold_dirs collect_empty []
 
 let remove_dir dir =
   print_if (not quiet) "%s%s" (if verbose then "  " else "") dir;
   (* any exception raised by rmdir will terminate the pruning loop *)
-  if not simulate then Unix.rmdir dir
+  if not simulate then perform Unix.rmdir dir
 
 let rec prune () =
   match empty_dirs cache_dir with
