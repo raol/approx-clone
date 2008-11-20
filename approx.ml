@@ -470,28 +470,27 @@ let serve_file env =
       | Missing -> cache_miss url name ims 0.
   with Failure msg | Invalid_argument msg-> forbidden msg
 
-let proxy_service =
-  object
-    method name = "proxy_service"
-    method def_term = `Proxy_service
-    method print fmt = Format.fprintf fmt "%s" "proxy_service"
-    method process_header env =
-      debug_message "Connection from %s"
-        (Server.remote_address env#remote_socket_addr ~with_port: true);
-      if env#cgi_request_method = "GET" && env#cgi_query_string = "" then
-        serve_file env
-      else begin
-        debug_headers (sprintf "Request %s" env#cgi_request_uri)
-          env#input_header_fields;
-        forbidden "invalid HTTP request"
-      end
+let process_header env =
+  debug_message "Connection from %s"
+    (string_of_sockaddr env#remote_socket_addr ~with_port: true);
+  if env#cgi_request_method = "GET" && env#cgi_query_string = "" then
+    serve_file env
+  else begin
+    debug_headers (sprintf "Request %s" env#cgi_request_uri)
+      env#input_header_fields;
+    forbidden "invalid HTTP request"
   end
 
-let server s =
-  Sys.chdir cache_dir;
+let server sockets =
   info_message "Version: %s" Version.number;
   print_config (info_message "%s");
-  Server.loop s proxy_service
+  Server.loop sockets
+    (object
+       method name = "service"
+       method def_term = `Service
+       method print fmt = Format.fprintf fmt "%s" "service"
+       method process_header = process_header
+     end)
 
 let daemonize proc x =
   ignore (setsid ());
@@ -501,11 +500,13 @@ let daemonize proc x =
   if fork () = 0 && fork () = 0 then
     proc x
 
-let () =
-  try
-    let s = Server.init ~user ~group ~interface ~port in
-    if !foreground then server s
-    else daemonize server s
-  with e ->
-    error_message "%s" (string_of_exception e);
-    exit 1
+let approx () =
+  check_id ~user ~group;
+  Sys.chdir cache_dir;
+  match Server.bind ~interface ~port with
+  | [] -> failwith "no sockets created"
+  | sockets ->
+      if !foreground then server sockets
+      else daemonize server sockets
+
+let () = main_program approx ()

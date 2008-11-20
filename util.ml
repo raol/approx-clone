@@ -286,9 +286,17 @@ let check_id ~user ~group =
        failwith ("not running as group " ^ group)
    with Not_found -> failwith ("unknown group " ^ group))
 
+let string_of_sockaddr sockaddr ~with_port =
+  match sockaddr with
+  | ADDR_INET (host, port) ->
+      let addr = string_of_inet_addr host in
+      if with_port then sprintf "%s port %d" addr port else addr
+  | ADDR_UNIX path ->
+      failwith ("Unix domain socket " ^ path)
+
 let string_of_uerror = function
-  | (err, str, "") -> sprintf "%s: %s" str (error_message err)
-  | (err, str, arg) -> sprintf "%s: %s (%s)" str (error_message err) arg
+  | err, str, "" -> sprintf "%s: %s" str (error_message err)
+  | err, str, arg -> sprintf "%s: %s (%s)" str (error_message err) arg
 
 let string_of_exception exc =
   match exc with
