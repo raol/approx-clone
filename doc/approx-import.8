@@ -2,7 +2,7 @@
 .\" Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH APPROX-IMPORT 8 "October 2008"
+.TH APPROX-IMPORT 8 "November 2008"
 .\" Please adjust this date whenever revising the manpage.
 
 .SH NAME
@@ -22,7 +22,7 @@ such as those found in
 into the
 .BR approx (8)
 cache.
-
+.PP
 It does so by extracting the Debian package name, version number, and
 architecture from the filename.  If these correspond to a
 package in one of the
@@ -30,7 +30,7 @@ package in one of the
 files in the
 .BR approx (8)
 cache, then the file is copied to the appropriate location in the cache.
-
+.PP
 Although the size of the file is verified to be correct before copying,
 the MD5, SHA1, and SHA256 cryptographic checksums are not,
 in the interest of speed.
@@ -50,6 +50,21 @@ Don't print the names of files that are imported.
 .BR \-v ", " \-\^\-verbose
 Print information about each file.
 
+.SH EXAMPLES
+.PP
+To import packages from the local
+.BR apt (8)
+cache:
+.IP
+approx-import /var/cache/apt/archives/*.deb
+.PP
+To import packages from another proxy's cache:
+.IP
+find other-cache -name "*.deb" | xargs approx-import
+.PP
+(where
+.I other-cache
+is the pathname of the other proxy's cache directory)
 
 .SH FILES
 .TP
@@ -65,7 +80,8 @@ Cache directory for archive files.
 
 .SH SEE ALSO
 .IR approx.conf (5),
-.BR approx (8)
+.BR approx (8),
+.BR approx-update (8)
 
 .SH AUTHOR
 Eric Cooper <ecc@cmu.edu>

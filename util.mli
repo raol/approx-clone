@@ -32,13 +32,18 @@ val explode_path : string -> string list
 
 val implode_path : string list -> string
 
-(* Return a quoted string *)
-
-val quoted_string : string -> string
-
 (* Infix operator to concatenate two pathname components *)
 
 val (^/) : string -> string -> string
+
+(* Create a directory, including any intermediate directories
+   along the specified path (like "mkdir --parents") *)
+
+val make_directory : string -> unit
+
+(* Return a quoted string *)
+
+val quoted_string : string -> string
 
 (* Return the relative portion of a pathname *)
 
@@ -187,11 +192,19 @@ val file_sha256sum : string -> string
 
 val drop_privileges : user:string -> group:string -> unit
 
+(* Check that the program is executing as the given user and group *)
+
+val check_id : user:string -> group:string -> unit
+
 (* Return a descriptive message for an exception *)
 
 val string_of_exception : exn -> string
 
-(* Run the main function of a program and print any uncaught exceptions *)
+(* Call a procedure and print, but otherwise ignore, any exception *)
+
+val perform : ('a -> unit) -> 'a -> unit
+
+(* Run the main function of a program and print any uncaught exception *)
 
 val main_program : ('a -> unit) -> 'a -> unit
 

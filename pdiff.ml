@@ -44,7 +44,7 @@ let find_pdiff pdiff (diffs, final) =
         Some (index_info, cmds, next)
       end else begin
         debug_message "Removing invalid %s" pdiff;
-        Sys.remove pdiff;
+        rm pdiff;
         None
       end
     in
@@ -82,7 +82,7 @@ let apply pdiff =
           if is_valid file_sha1sum info' file then begin
             debug_message "Applied %s" pdiff;
             compress ~src: file ~dst: index;
-            Sys.remove pdiff
+            rm pdiff
           end else debug_message "Invalid result from %s" pdiff
         end else debug_message "Cannot apply %s" pdiff
       in

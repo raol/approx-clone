@@ -46,8 +46,8 @@ let remove_pdiffs dir =
   | "Packages.diff" | "Sources.diff" ->
       print_if (not quiet) "Removing %s" dir;
       if not simulate then begin
-        iter_non_dirs Sys.remove dir;
-        Unix.rmdir dir
+        iter_non_dirs (perform Sys.remove) dir;
+        perform Unix.rmdir dir
       end
   | _ -> invalid_arg (dir ^ " is not a pdiff directory")
 
@@ -84,7 +84,7 @@ let update_file file =
     | e -> print "%s: %s" file (string_of_exception e)
 
 let update_cache () =
-  if not simulate then drop_privileges ~user ~group;
+  if not simulate then check_id ~user ~group;
   if files <> [] then List.iter update_file files
   else iter_non_dirs update_file cache_dir
 

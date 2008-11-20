@@ -42,9 +42,30 @@ let explode_path = split '/'
 
 let implode_path = join '/'
 
-let quoted_string str = "\"" ^ String.escaped str ^ "\""
-
 let (^/) = Filename.concat
+
+let make_directory path =
+  (* Create a directory component in the path.  Since it might be
+     created concurrently, we have to ignore the Unix EEXIST error --
+     simply testing for existence first introduces a race condition. *)
+  let make_dir name =
+    try mkdir name 0o755
+    with Unix_error (EEXIST, _, _) ->
+      if not (Sys.is_directory name) then
+        failwith ("file " ^ name ^ " is not a directory")
+  in
+  let rec loop cwd = function
+    | dir :: rest ->
+        let name = cwd ^/ dir in
+        make_dir name;
+        loop name rest
+    | [] -> ()
+  in
+  match explode_path path with
+  | "" :: dirs -> loop "/" dirs
+  | dirs -> loop "." dirs
+
+let quoted_string = sprintf "%S"
 
 let relative_path path =
   let n = String.length path in
@@ -134,7 +155,7 @@ let decompress file =
   | "" -> invalid_arg "decompress"
   | ext ->
       let prog = List.assoc ext decompressors in
-      let tmp = gensym file in
+      let tmp = Filename.temp_file "approx" "" in
       let cmd = sprintf "%s %s > %s" prog file tmp in
       if Sys.command cmd = 0 then tmp
       else (rm tmp; failwith "decompress")
@@ -208,26 +229,27 @@ let rec fold_dirs f init path =
   let visit acc name =
     fold_dirs f acc (path ^/ name)
   in
-  if Sys.file_exists path && Sys.is_directory path then
-    Array.fold_left visit (f init path) (Sys.readdir path)
+  if directory_exists path then
+    Array.fold_left visit (f init path) (try Sys.readdir path with _ -> [||])
   else
     init
-
-let iter_dirs proc = fold_dirs (fun () -> proc) ()
 
 let rec fold_non_dirs f init path =
   let visit acc name =
     fold_non_dirs f acc (path ^/ name)
   in
-  if Sys.file_exists path then
-    if Sys.is_directory path then
-      Array.fold_left visit init (Sys.readdir path)
-    else
-      f init path
+  if directory_exists path then
+    Array.fold_left visit init (try Sys.readdir path with _ -> [||])
+  else if Sys.file_exists path then
+    f init path
   else
     init
 
-let iter_non_dirs proc = fold_non_dirs (fun () -> proc) ()
+let iter_of_fold fold proc = fold (fun () -> proc) ()
+
+let iter_dirs = iter_of_fold fold_dirs
+
+let iter_non_dirs = iter_of_fold fold_non_dirs
 
 let file_size file = (stat file).st_size
 
@@ -254,6 +276,16 @@ let drop_privileges ~user ~group =
   (try setuid (getpwnam user).pw_uid
    with Not_found -> failwith ("unknown user " ^ user))
 
+let check_id ~user ~group =
+  (try
+     if getuid () <> (getpwnam user).pw_uid then
+       failwith ("not running as user " ^ user)
+   with Not_found -> failwith ("unknown user " ^ user));
+  (try
+     if getgid () <> (getgrnam group).gr_gid then
+       failwith ("not running as group " ^ group)
+   with Not_found -> failwith ("unknown group " ^ group))
+
 let string_of_uerror = function
   | (err, str, "") -> sprintf "%s: %s" str (error_message err)
   | (err, str, arg) -> sprintf "%s: %s (%s)" str (error_message err) arg
@@ -265,6 +297,11 @@ let string_of_exception exc =
   | Sys_error str -> str
   | Unix_error (err, str, arg)-> string_of_uerror (err, str, arg)
   | e -> Printexc.to_string e
+
+let perform f x =
+  try f x
+  with e ->
+    prerr_endline (string_of_exception e)
 
 let main_program f x =
   try f x

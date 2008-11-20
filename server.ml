@@ -77,6 +77,7 @@ let init ~user ~group ~interface ~port =
   in
   let sockets = List.fold_left add_socket [] [PF_INET6; PF_INET] in
   drop_privileges ~user ~group;
+  check_id ~user ~group;
   sockets
 
 let loop sockets service =
