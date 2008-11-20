@@ -187,7 +187,7 @@ let close_cache cache size mod_time =
       end else begin
         error_message "Size of %s should be %Ld, not %Ld"
           file size (file_size tmp_file);
-        Sys.remove tmp_file;
+        rm tmp_file;
         raise Wrong_size
       end
   | Pass_through -> ()
@@ -198,7 +198,7 @@ let remove_cache cache =
   | Cache { tmp_file = tmp_file; chan = chan } ->
       close_out chan;
       error_message "Removing %s (size: %Ld)" tmp_file (file_size tmp_file);
-      Sys.remove tmp_file
+      rm tmp_file
   | Pass_through | Undefined -> ()
 
 type download_status =

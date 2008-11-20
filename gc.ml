@@ -170,9 +170,7 @@ let rec prune () =
   | list -> List.iter remove_dir list; if not simulate then prune ()
 
 let garbage_collect () =
-  (* gc must run as the approx user even in simulate mode,
-     because index files are decompressed in the cache *)
-  drop_privileges ~user ~group;
+  if not simulate then check_id ~user ~group;
   mark ();
   sweep ();
   prune ()

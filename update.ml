@@ -84,7 +84,7 @@ let update_file file =
     | e -> print "%s: %s" file (string_of_exception e)
 
 let update_cache () =
-  if not simulate then drop_privileges ~user ~group;
+  if not simulate then check_id ~user ~group;
   if files <> [] then List.iter update_file files
   else iter_non_dirs update_file cache_dir
 

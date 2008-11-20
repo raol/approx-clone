@@ -119,9 +119,7 @@ let import_files index =
     Control_file.iter check_package index
 
 let import () =
-  (* import must run as the approx user even in simulate mode,
-     because index files are decompressed in the cache *)
-  drop_privileges ~user ~group;
+  if not simulate then check_id ~user ~group;
   scan_files ();
   iter_non_dirs import_files cache_dir;
   print_if (not !index_seen) "%s"

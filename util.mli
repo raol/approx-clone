@@ -192,6 +192,10 @@ val file_sha256sum : string -> string
 
 val drop_privileges : user:string -> group:string -> unit
 
+(* Check that the program is executing as the given user and group *)
+
+val check_id : user:string -> group:string -> unit
+
 (* Return a descriptive message for an exception *)
 
 val string_of_exception : exn -> string

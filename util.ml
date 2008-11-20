@@ -155,7 +155,7 @@ let decompress file =
   | "" -> invalid_arg "decompress"
   | ext ->
       let prog = List.assoc ext decompressors in
-      let tmp = gensym file in
+      let tmp = Filename.temp_file "approx" "" in
       let cmd = sprintf "%s %s > %s" prog file tmp in
       if Sys.command cmd = 0 then tmp
       else (rm tmp; failwith "decompress")
@@ -275,6 +275,16 @@ let drop_privileges ~user ~group =
    with Not_found -> failwith ("unknown group " ^ group));
   (try setuid (getpwnam user).pw_uid
    with Not_found -> failwith ("unknown user " ^ user))
+
+let check_id ~user ~group =
+  (try
+     if getuid () <> (getpwnam user).pw_uid then
+       failwith ("not running as user " ^ user)
+   with Not_found -> failwith ("unknown user " ^ user));
+  (try
+     if getgid () <> (getgrnam group).gr_gid then
+       failwith ("not running as group " ^ group)
+   with Not_found -> failwith ("unknown group " ^ group))
 
 let string_of_uerror = function
   | (err, str, "") -> sprintf "%s: %s" str (error_message err)
