@@ -1,3 +1,20 @@
+approx (3.5-1) unstable; urgency=low
+
+  * New upstream version
+  * Handle unreadable directories like lost+found more robustly
+    (closes: #488115)
+  * Decompress files in /tmp so gc can be used on a full filesystem
+    (closes: #490028)
+  * Handle multiple blank lines between paragraphs in control files
+    (closes: #501628)
+  * Use "Pragma: no-cache" in case approx is behind a caching proxy
+    (closes: #502405)
+  * Check for correct user and group ID instead of dropping privileges
+    in auxiliary programs like gc and update; use "su" in cron jobs
+  * Create directories when importing files into the cache
+
+ -- Eric Cooper <ecc@cmu.edu>  Wed, 19 Nov 2008 20:42:00 -0500
+
 approx (3.4-1) unstable; urgency=low
 
   * Change to non-native Debian package

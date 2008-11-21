@@ -3,5 +3,5 @@
 # Update the approx(8) cache
 
 if [ -x /usr/sbin/approx-update ]; then
-    /usr/sbin/approx-update --quiet
+    su --shell /bin/sh --command "/usr/sbin/approx-update --quiet" approx
 fi
