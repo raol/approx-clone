@@ -196,6 +196,10 @@ val drop_privileges : user:string -> group:string -> unit
 
 val check_id : user:string -> group:string -> unit
 
+(* Convert a socket address to a string *)
+
+val string_of_sockaddr : Unix.sockaddr -> with_port:bool -> string
+
 (* Return a descriptive message for an exception *)
 
 val string_of_exception : exn -> string

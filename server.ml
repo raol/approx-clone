@@ -4,14 +4,12 @@
 
 open Printf
 open Unix
-open Nethttp
-open Nethttpd_reactor
 open Util
 open Log
 
 let error_response code =
   let msg =
-    try string_of_http_status (http_status_of_int code)
+    try Nethttp.string_of_http_status (Nethttp.http_status_of_int code)
     with Not_found -> "???"
   in
   sprintf "<html><title>%d %s</title><body><h1>%d: %s</h1></body></html>"
@@ -38,8 +36,6 @@ let config =
     method config_reactor_synch = `Write
   end
 
-type t = file_descr list
-
 let address interface = function
   | PF_INET ->
       if interface = "any" || interface = "all" then inet_addr_any
@@ -57,40 +53,35 @@ let address interface = function
       end
   | _ -> failwith "invalid protocol family"
 
-let remote_address ~with_port = function
-  | ADDR_INET (host, port) ->
-      let addr = string_of_inet_addr host in
-      if with_port then sprintf "%s port %d" addr port else addr
-  | ADDR_UNIX path ->
-      failwith ("Unix domain socket " ^ path)
-
-let init ~user ~group ~interface ~port =
+let bind ~interface ~port =
   let add_socket list pf =
     try
       let sock = socket pf SOCK_STREAM 0 in
       if pf = PF_INET6 then Network.set_ipv6_only sock true;
       setsockopt sock SO_REUSEADDR true;
-      bind sock (ADDR_INET (address interface pf, port));
+      Unix.bind sock (ADDR_INET (address interface pf, port));
       listen sock 10;
       sock :: list
-    with Unix.Unix_error _ | Not_found -> list
+    with
+    | Unix_error (EAFNOSUPPORT, _, _) | Not_found ->
+        list
+    | e ->
+        error_message "%s" (string_of_exception e);
+        list
   in
-  let sockets = List.fold_left add_socket [] [PF_INET6; PF_INET] in
-  drop_privileges ~user ~group;
-  check_id ~user ~group;
-  sockets
+  List.fold_left add_socket [] [PF_INET6; PF_INET]
 
 let loop sockets service =
   let process sock =
     let fd, ip = accept sock in
-    let address = remote_address ip ~with_port: false in
+    let address = string_of_sockaddr ip ~with_port: false in
     if Tcp_wrappers.hosts_ctl Version.name ~address then
       match fork () with
       | 0 ->
           if fork () <> 0 then exit 0;
           close sock;
           set_nonblock fd;
-          process_connection config fd service;
+          Nethttpd_reactor.process_connection config fd service;
           exit 0
       | pid ->
           close fd;
@@ -100,7 +91,6 @@ let loop sockets service =
       debug_message "Connection from %s denied by TCP wrappers" address
     end
   in
-  if sockets = [] then failwith "no sockets created";
   while true do
     match select sockets [] [] (-1.) with
     | [], _, _ -> failwith "no sockets selected"

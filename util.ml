@@ -127,12 +127,12 @@ let with_out_channel openf = with_resource close_out openf
 
 let with_process ?error cmd =
   let close chan =
-    if Unix.close_process_in chan <> Unix.WEXITED 0 then
+    if close_process_in chan <> WEXITED 0 then
       failwith (match error with
                 | None -> cmd
                 | Some msg -> msg)
   in
-  with_resource close Unix.open_process_in cmd
+  with_resource close open_process_in cmd
 
 let gensym str =
   sprintf "%s.%d.%09.0f"
@@ -155,7 +155,7 @@ let decompress file =
   | "" -> invalid_arg "decompress"
   | ext ->
       let prog = List.assoc ext decompressors in
-      let tmp = Filename.temp_file "approx" "" in
+      let tmp = "/tmp" ^/ gensym (Filename.basename file) in
       let cmd = sprintf "%s %s > %s" prog file tmp in
       if Sys.command cmd = 0 then tmp
       else (rm tmp; failwith "decompress")
@@ -191,7 +191,7 @@ let newest_version file =
             (* return the original file if it is tied for newest *)
             Some (name, modtime)
           else cur
-    with Unix.Unix_error (Unix.ENOENT, "stat", _) -> cur
+    with Unix_error (ENOENT, "stat", _) -> cur
   in
   let versions = compressed_versions (without_extension file) in
   match List.fold_left newest None versions with
@@ -269,26 +269,52 @@ let file_md5sum = let module F = FileDigest(Digest) in F.sum
 let file_sha1sum = let module F = FileDigest(Sha1) in F.sum
 let file_sha256sum = let module F = FileDigest(Sha256) in F.sum
 
+let user_id =
+  object
+    method kind = "user"
+    method get = getuid
+    method set = setuid
+    method lookup x = (getpwnam x).pw_uid
+  end
+
+let group_id =
+  object
+    method kind = "group"
+    method get = getgid
+    method set = setgid
+    method lookup x = (getgrnam x).gr_gid
+  end
+
 let drop_privileges ~user ~group =
+  let drop id name =
+    try id#set (id#lookup name)
+    with Not_found -> failwith ("unknown " ^ id#kind ^ " " ^ name)
+  in
   (* change group first, since we must still be privileged to change user *)
-  (try setgid (getgrnam group).gr_gid
-   with Not_found -> failwith ("unknown group " ^ group));
-  (try setuid (getpwnam user).pw_uid
-   with Not_found -> failwith ("unknown user " ^ user))
+  drop group_id group;
+  drop user_id user
 
 let check_id ~user ~group =
-  (try
-     if getuid () <> (getpwnam user).pw_uid then
-       failwith ("not running as user " ^ user)
-   with Not_found -> failwith ("unknown user " ^ user));
-  (try
-     if getgid () <> (getgrnam group).gr_gid then
-       failwith ("not running as group " ^ group)
-   with Not_found -> failwith ("unknown group " ^ group))
+  let check id name =
+    try
+      if id#get () <> id#lookup name then
+        failwith ("not running as " ^ id#kind ^ " " ^ name)
+    with Not_found -> failwith ("unknown " ^ id#kind ^ " " ^ name)
+  in
+  check user_id user;
+  check group_id group
+
+let string_of_sockaddr sockaddr ~with_port =
+  match sockaddr with
+  | ADDR_INET (host, port) ->
+      let addr = string_of_inet_addr host in
+      if with_port then sprintf "%s port %d" addr port else addr
+  | ADDR_UNIX path ->
+      failwith ("Unix domain socket " ^ path)
 
 let string_of_uerror = function
-  | (err, str, "") -> sprintf "%s: %s" str (error_message err)
-  | (err, str, arg) -> sprintf "%s: %s (%s)" str (error_message err) arg
+  | err, str, "" -> sprintf "%s: %s" str (error_message err)
+  | err, str, arg -> sprintf "%s: %s (%s)" str (error_message err) arg
 
 let string_of_exception exc =
   match exc with
