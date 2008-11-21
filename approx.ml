@@ -486,9 +486,9 @@ let server sockets =
   print_config (info_message "%s");
   Server.loop sockets
     (object
-       method name = "service"
-       method def_term = `Service
-       method print fmt = Format.fprintf fmt "%s" "service"
+       method name = "proxy_service"
+       method def_term = `Proxy_service
+       method print fmt = Format.fprintf fmt "%s" "proxy_service"
        method process_header = process_header
      end)
 
@@ -501,11 +501,11 @@ let daemonize proc x =
     proc x
 
 let approx () =
-  check_id ~user ~group;
-  Sys.chdir cache_dir;
   match Server.bind ~interface ~port with
   | [] -> failwith "no sockets created"
   | sockets ->
+      drop_privileges ~user ~group;
+      Sys.chdir cache_dir;
       if !foreground then server sockets
       else daemonize server sockets
 

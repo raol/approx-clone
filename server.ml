@@ -63,7 +63,8 @@ let bind ~interface ~port =
       listen sock 10;
       sock :: list
     with
-    | Unix.Unix_error (Unix.EAFNOSUPPORT, _, _) | Not_found -> list
+    | Unix_error (EAFNOSUPPORT, _, _) | Not_found ->
+        list
     | e ->
         error_message "%s" (string_of_exception e);
         list
