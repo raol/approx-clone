@@ -86,12 +86,14 @@ type t = in_channel -> out_channel -> int -> int
 
 let parse_line chan line =
   let last = String.length line - 1 in
-  let (m, n) = range_of_string (String.sub line 0 last) in
-  match line.[last] with
-  | 'a' -> assert (m = n); append (get_lines chan) m
-  | 'c' -> change (get_lines chan) m n
-  | 'd' -> delete m n
-  | _ -> failwith ("malformed ed command: " ^ line)
+  try
+    let (m, n) = range_of_string (String.sub line 0 last) in
+    match line.[last] with
+    | 'a' -> assert (m = n); append (get_lines chan) m
+    | 'c' -> change (get_lines chan) m n
+    | 'd' -> delete m n
+    | _ -> raise Exit
+  with _ -> failwith ("malformed ed command: " ^ line)
 
 (* Parse an input channel containing ed commands.
    "diff --ed" produces commands in decreasing line-number order;
