@@ -2,15 +2,15 @@
 
 include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/makefile.mk
-include /usr/share/cdbs/1/class/ocaml.mk
+include /usr/share/cdbs/1/rules/ocaml.mk
 
-ifeq ($(OCAML_HAVE_OCAMLOPT),yes)
-    DEB_MAKE_BUILD_TARGET = TARGET=native
-    DEB_DH_GENCONTROL_ARGS += -VF:OCamlRun=""
-else
+ifeq ($(OCAML_HAVE_OCAMLOPT),no)
     DEB_MAKE_BUILD_TARGET = TARGET=byte
-    DEB_DH_GENCONTROL_ARGS += -VF:OCamlRun="ocaml-base-nox-$(OCAML_ABI)"
-    DEB_STRIP_EXCLUDE += usr/sbin
+    DEB_DH_INSTALL_ARGS += _build/dllapprox.so $(OCAML_STDLIB_DIR)/stublibs
+    libs_with_stubs := ocamlnet pcre sha syslog
+    comma := ,
+    libdeps := $(patsubst %,lib%-ocaml$(comma),$(libs_with_stubs))
+    DEB_DH_GENCONTROL_ARGS += -VF:OCamlDeps="ocaml-base-nox-$(OCAML_ABI), $(libdeps)"
 endif
 
 configure/approx::
