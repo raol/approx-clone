@@ -1,7 +1,7 @@
 (* approx: proxy server for Debian archive files *)
 
 let copyright =
-   "Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>\n\
+   "Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>\n\
     Released under the GNU General Public License"
 
 open Printf
@@ -367,13 +367,11 @@ let download_url url name ims cgi =
     | Url.FTP | Url.FILE -> download_ftp
   in
   let resp = new_response url name in
-  let download_with_hint () =
+  try
     create_hint name;
     unwind_protect
       (fun () -> dl resp url name ims cgi)
       (fun () -> remove_hint name)
-  in
-  try download_with_hint ()
   with e ->
     remove_cache resp.cache;
     if e <> Failure url then info_message "%s" (string_of_exception e);
