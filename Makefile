@@ -1,5 +1,5 @@
 # approx: proxy server for Debian archive files
-# Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+# Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
 # Released under the GNU General Public License
 
 OCAMLBUILD := ocamlbuild
@@ -11,43 +11,40 @@ ifeq ($(TARGET),byte)
     OCAMLBUILD_OPTS += -byte-plugin
 endif
 
-programs = gc update import
+programs = approx approx-gc approx-update approx-import
 
-all:
-	@set -e; for prog in approx $(programs); do \
-	    echo $(OCAMLBUILD) $(OCAMLBUILD_OPTS) $$prog.$(TARGET); \
-	    $(OCAMLBUILD) $(OCAMLBUILD_OPTS) $$prog.$(TARGET); \
-	    cp -pv _build/$$prog.$(TARGET) $$prog; \
-	done
-	@set -e; for prog in $(programs); do \
-	    mv -v $$prog approx-$$prog; \
-	done
+all: $(programs)
+
+approx:
+	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) approx.$(TARGET)
+	cp -p _build/approx.$(TARGET) $@
+
+approx-%:
+	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) $(@:approx-%=%).$(TARGET)
+	cp -pv _build/$(@:approx-%=%).$(TARGET) $@
 
 clean:
 	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) -clean
-	rm -f approx $(patsubst %,approx-%,$(programs))
+	rm -f $(programs)
 
 extra-clean: clean
-	rm -f *~ \#*
+	rm -f *~ \#* tests/*~ tests/\#*
 
 .PHONY: tests
 
-test_programs = $(wildcard tests/*.ml)
+tests: $(subst .ml,,$(wildcard tests/*.ml))
 
-tests:
-	@set -e; for test in $(test_programs:.ml=); do \
-	    echo $(OCAMLBUILD) $(OCAMLBUILD_OPTS) $$test.$(TARGET); \
-	    $(OCAMLBUILD) $(OCAMLBUILD_OPTS) $$test.$(TARGET); \
-	done
+%_test:
+	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) $@.$(TARGET)
 
 upstream-branch:
-	git-status | grep -q "^# On branch upstream"
+	git status | grep -q "^# On branch upstream"
 
 release: upstream-branch extra-clean
 	@set -e; \
 	version=$$(sed -n 's/^.*number = "\(.*\)".*$$/\1/p' version.ml); \
 	echo Tagging upstream/$$version; \
-	git tag -f -m "upstream version $$version" upstream/$$version; \
+	git tag -m "upstream version $$version" upstream/$$version; \
 	tarball=../approx_$$version.orig.tar.gz; \
 	echo Creating $$tarball; \
 	package=approx-$$version; \

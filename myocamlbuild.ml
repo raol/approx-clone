@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Ocamlbuild_plugin
@@ -12,7 +12,7 @@ let libraries =
 
 let split str =
   let i = String.index str ':' in
-  String.sub str 0 i, String.sub str (i+1) (String.length str - (i+1))
+  String.sub str 0 i, String.sub str (i + 1) (String.length str - (i + 1))
 
 let add_library lib =
   let inc, lib =
@@ -22,11 +22,10 @@ let add_library lib =
   ocaml_lib ~extern: true ~dir: ("+" ^ inc) lib
 
 let custom_rules () =
-  dep ["link"; "ocaml"; "netstubs"] ["netstubs.o"];
-  dep ["link"; "ocaml"; "libwrap"] ["libwrap.o"];
-  flag ["link"; "ocaml"; "libwrap"] & S [A "-cclib"; A "-lwrap"];
-  flag ["link"; "ocaml"; "byte"] & A "-custom";
-  flag ["c"; "compile"] & S [A "-ccopt"; A "-Wall"];
+  flag ["ocamlmklib"; "c"] & S [A "-lwrap"];
+  dep ["link"; "ocaml"; "use_libapprox"] ["libapprox.a"];
+  flag ["link"; "ocaml"; "byte"; "use_libapprox"] & S [A "-dllib"; A "-lapprox"];
+  flag ["link"; "ocaml"; "native"; "use_libapprox"] & S [A "-cclib"; A "-lwrap"];
   List.iter add_library libraries
 
 let () = dispatch (function After_rules -> custom_rules () | _ -> ())

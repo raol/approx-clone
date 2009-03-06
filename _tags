@@ -1,5 +1,5 @@
 # approx: proxy server for Debian archive files
-# Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+# Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
 # Released under the GNU General Public License
 
 <**/*.{mli,ml}>: warn_error_A
@@ -15,5 +15,4 @@
 
 <**/*.{byte,native}>: use_unix, use_pcre, use_sha
 <*.{byte,native}>: use_syslog, use_netsys, use_netstring
-<approx.{byte,native}>: use_netcgi, use_nethttpd-for-netcgi2
-<approx.{byte,native}>: netstubs, libwrap
+<approx.{byte,native}>: use_netcgi, use_nethttpd-for-netcgi2, use_libapprox
