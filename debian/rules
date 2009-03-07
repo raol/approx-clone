@@ -6,7 +6,7 @@ include /usr/share/cdbs/1/rules/ocaml.mk
 
 ifeq ($(OCAML_HAVE_OCAMLOPT),no)
     DEB_MAKE_BUILD_TARGET = TARGET=byte
-    DEB_DH_INSTALL_ARGS += _build/dllapprox.so $(OCAML_STDLIB_DIR)/stublibs
+    DEB_DH_INSTALL_ARGS += _build/dllapprox.so $(OCAML_DLL_DIR)
     libs_with_stubs := ocamlnet pcre sha syslog
     comma := ,
     libdeps := $(patsubst %,lib%-ocaml$(comma),$(libs_with_stubs))
