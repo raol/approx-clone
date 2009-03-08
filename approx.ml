@@ -1,8 +1,6 @@
-(* approx: proxy server for Debian archive files *)
-
-let copyright =
-   "Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>\n\
-    Released under the GNU General Public License"
+(* approx: proxy server for Debian archive files
+   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+   Released under the GNU General Public License *)
 
 open Printf
 open Unix
@@ -10,31 +8,6 @@ open Unix.LargeFile
 open Util
 open Config
 open Log
-
-let usage () =
-  prerr_endline
-    "Usage: approx [options]
-Proxy server for Debian archive files
-
-Options:
-    -f|--foreground    remain in foreground instead of detaching
-    -v|--version       display version information and exit";
-  exit 1
-
-let version () =
-  eprintf "%s %s\n" Version.name Version.number;
-  prerr_endline copyright;
-  exit 0
-
-let foreground = ref false
-
-let () =
-  for i = 1 to Array.length Sys.argv - 1 do
-    match Sys.argv.(i) with
-    | "-f" | "--foreground" -> foreground := true
-    | "-v" | "--version" -> version ()
-    | _ -> usage ()
-  done
 
 let stat_file name = try Some (stat name) with Unix_error _ -> None
 
@@ -479,32 +452,47 @@ let process_header env =
     forbidden "invalid HTTP request"
   end
 
-let server sockets =
-  info_message "Version: %s" Version.number;
-  print_config (info_message "%s");
-  Server.loop sockets
-    (object
-       method name = "proxy_service"
-       method def_term = `Proxy_service
-       method print fmt = Format.fprintf fmt "%s" "proxy_service"
-       method process_header = process_header
-     end)
+let error_response code =
+  let msg =
+    try Nethttp.string_of_http_status (Nethttp.http_status_of_int code)
+    with Not_found -> "???"
+  in
+  sprintf "<html><title>%d %s</title><body><h1>%d: %s</h1></body></html>"
+    code msg code msg
 
-let daemonize proc x =
-  ignore (setsid ());
-  use_syslog ();
-  List.iter close [stdin; stdout; stderr];
-  (* double fork to detach daemon *)
-  if fork () = 0 && fork () = 0 then
-    proc x
+let version = Version.name ^ "/" ^ Version.number
+
+let config =
+  object
+    (* http_protocol_config *)
+    method config_max_reqline_length = 256
+    method config_max_header_length = 32768
+    method config_max_trailer_length = 32768
+    method config_limit_pipeline_length = 5
+    method config_limit_pipeline_size = 250000
+    method config_announce_server = `Ocamlnet_and version
+    (* http_processor_config *)
+    method config_timeout_next_request = 15.
+    method config_timeout = 300.
+    method config_cgi = Netcgi1_compat.Netcgi_env.default_config
+    method config_error_response n = error_response n
+    method config_log_error _ _ _ _ msg = error_message "%s" msg
+    (* http_reactor_config *)
+    method config_reactor_synch = `Write
+  end
+
+let proxy_service =
+  object
+    method name = "proxy_service"
+    method def_term = `Proxy_service
+    method print fmt = Format.fprintf fmt "%s" "proxy_service"
+    method process_header = process_header
+  end
 
 let approx () =
-  match Server.bind ~interface ~port with
-  | [] -> failwith "no sockets created"
-  | sockets ->
-      drop_privileges ~user ~group;
-      Sys.chdir cache_dir;
-      if !foreground then server sockets
-      else daemonize server sockets
+  check_id ~user ~group;
+  Sys.chdir cache_dir;
+  set_nonblock stdin;
+  Nethttpd_reactor.process_connection config stdin proxy_service
 
 let () = main_program approx ()

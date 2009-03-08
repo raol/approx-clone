@@ -22,10 +22,6 @@ let add_library lib =
   ocaml_lib ~extern: true ~dir: ("+" ^ inc) lib
 
 let custom_rules () =
-  flag ["ocamlmklib"; "c"] & S [A "-lwrap"];
-  dep ["link"; "ocaml"; "use_libapprox"] ["libapprox.a"];
-  flag ["link"; "ocaml"; "byte"; "use_libapprox"] & S [A "-dllib"; A "-lapprox"];
-  flag ["link"; "ocaml"; "native"; "use_libapprox"] & S [A "-cclib"; A "-lwrap"];
   List.iter add_library libraries
 
 let () = dispatch (function After_rules -> custom_rules () | _ -> ())
