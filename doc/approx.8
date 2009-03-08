@@ -1,8 +1,8 @@
 .\" approx: proxy server for Debian archive files
-.\" Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+.\" Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH APPROX 8 "October 2008"
+.TH APPROX 8 "March 2009"
 .\" Please adjust this date whenever revising the manpage.
 
 .SH NAME
@@ -11,11 +11,10 @@ approx \- proxy server for Debian archive files
 .SH SYNOPSIS
 .PP
 .B approx
-[\fIOPTION\fP]...
 
 .SH DESCRIPTION
 .B approx
-listens for HTTP requests made by
+responds to HTTP requests made by
 .BR apt\-get (8).
 It maintains a cache of Debian archive files that have been previously
 downloaded, so that it can respond with a local copy when possible.
@@ -31,22 +30,14 @@ Debian packages.  The
 .BR approx-gc (8)
 program removes these from the cache.
 
-.SH OPTIONS
-.TP
-.BR \-f ", " \-\^\-foreground
-Run in the foreground instead of detaching as a daemon,
-and print messages to standard error instead of the system log.
-.TP
-.BR \-v ", " \-\^\-version
-Display
+.SH USAGE
+.PP
 .B approx
-version information and exit.
+is invoked by
+.BR inetd (8).
 
 .SH EXAMPLES
-By default,
-.B approx
-listens on port 9999 (for compatibility with
-.BR apt\-proxy (8)).
+.PP
 Suppose that a client machine's
 .I /etc/apt/sources.list
 file contains the following lines:
@@ -113,27 +104,10 @@ and related programs.
 .I /var/cache/approx
 .br
 Cache directory for archive files.
-.TP
-.I /etc/default/approx
-.br
-This file is read by the init script
-.I /etc/init.d/approx
-that starts
-.BR approx .
-It can be used to set environment variables
-for the
-.B approx
-daemon and its child processes,
-in particular
-.BR curl (1).
-For example, setting the
-.B http_proxy
-environment variable will cause
-.B approx
-to use an upstream HTTP proxy when downloading from remote repositories.
 
 .SH SEE ALSO
 .IR approx.conf (5),
+.BR inetd (8),
 .BR approx-import (8),
 .BR approx-update (8),
 .BR approx-gc (8),
