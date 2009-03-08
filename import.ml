@@ -119,7 +119,7 @@ let import_files index =
     Control_file.iter check_package index
 
 let import () =
-  if not simulate then check_id ~user ~group;
+  if not simulate then drop_privileges ~user ~group;
   scan_files ();
   iter_non_dirs import_files cache_dir;
   print_if (not !index_seen) "%s"
