@@ -1,8 +1,8 @@
 .\" approx: proxy server for Debian archive files
-.\" Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+.\" Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH APPROX.CONF 5 "October 2008"
+.TH APPROX.CONF 5 "March 2009"
 .\" Please adjust this date when revising the manpage.
 
 .SH NAME
@@ -20,14 +20,6 @@ Comments start with a "#" character and continue to the end of the line.
 .PP
 Names that begin with the "$" character are reserved for use as
 configuration parameters.  The following parameters are currently defined:
-.IP $interface
-Specifies the name of the network interface on which the
-.BR approx (8)
-server listens for HTTP requests (default: any)
-.IP $port
-Specifies the TCP port on which the
-.BR approx (8)
-server listens for HTTP requests (default: 9999)
 .IP $max_rate
 Specifies the maximum download rate from remote repositories,
 in bytes per second (default: unlimited).
@@ -37,8 +29,8 @@ to indicate kilobytes, megabytes, or gigabytes per second, respectively.
 Specifies the maximum number of HTTP redirections that will be followed
 when downloading a remote file (default: 5)
 .IP "$user, $group"
-Specifies the name of the user and group to use after the daemon drops
-privileges (default: approx)
+Specifies the user and group that
+owns the files in the approx cache (default: approx)
 .IP $syslog
 Specifies the
 .BR syslog (3)
