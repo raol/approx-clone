@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Eric Cooper <ecc@cmu.edu>
 Uploaders: Sylvain Le Gall <gildor@debian.org>, Ralf Treinen <treinen@debian.org>
 DM-Upload-Allowed: yes
-Build-Depends: debhelper (>= 7.0), cdbs, dh-ocaml, ocaml-nox (>= 3.11), ocaml-best-compilers, libnethttpd-ocaml-dev (>= 2.2.9), libpcre-ocaml-dev (>= 5.15), libsha-ocaml-dev (>= 1.5), libsyslog-ocaml-dev (>= 1.4), libwrap0-dev
+Build-Depends: debhelper (>= 7.0), cdbs, dh-ocaml, ocaml-nox (>= 3.11), ocaml-best-compilers, libnethttpd-ocaml-dev (>= 2.2.9), libpcre-ocaml-dev (>= 5.15), libsha-ocaml-dev (>= 1.5), libsyslog-ocaml-dev (>= 1.4)
 Standards-Version: 3.8.0
 Vcs-Git: git://git.debian.org/git/pkg-ocaml-maint/packages/approx.git
 Vcs-Browser: http://git.debian.org/?p=pkg-ocaml-maint/packages/approx.git
@@ -12,7 +12,7 @@ Homepage: http://git.debian.org/?p=pkg-ocaml-maint/packages/approx.git
 
 Package: approx
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, ${F:OCamlDeps}, lsb-base (>= 3.2), adduser, bzip2, curl
+Depends: ${shlibs:Depends}, ${misc:Depends}, ${F:OCamlDeps}, lsb-base (>= 3.2), adduser, bzip2, curl, update-inetd
 Description: caching proxy server for Debian archive files
  Approx is an HTTP-based Debian archive server.
  It fetches packages from remote repositories on demand,
@@ -31,6 +31,3 @@ Description: caching proxy server for Debian archive files
  Approx can be used as a replacement for apt-proxy,
  with no need to modify clients' /etc/apt/sources.list files,
  or as an alternative to apt-cacher.
- .
- Approx is intended to be robust, simple, and efficient.
- It is written in OCaml (Objective Caml).

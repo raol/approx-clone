@@ -1,4 +1,0 @@
-# Default settings for approx, included by the /etc/init.d/approx shell script
-
-# Uncomment and edit this definition to have approx use a proxy server
-#export http_proxy=HOST:PORT

@@ -12,9 +12,3 @@ ifeq ($(OCAML_HAVE_OCAMLOPT),no)
     libdeps := $(patsubst %,lib%-ocaml$(comma),$(libs_with_stubs))
     DEB_DH_GENCONTROL_ARGS += -VF:OCamlDeps="ocaml-base-nox-$(OCAML_ABI), $(libdeps)"
 endif
-
-configure/approx::
-	/usr/bin/perl debian/mkversion.pl > version.ml
-
-clean::
-	rm -f version.ml

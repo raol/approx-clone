@@ -4,15 +4,6 @@ if [ "$1" != "configure" ]; then
     exit 0
 fi
 
-# print the value set for the key ($1) or the specified default ($2) if not set
-# warning: don't insert any whitespace between the double and single quotes!
-
-approx_config() {
-    key="$1"
-    default="$2"
-    awk 'BEGIN { found = 0 } $1 == "'$key'" { found = 1; print $2; exit } END { if (!found) print "'$default'" }' /etc/approx/approx.conf
-}
-
 # add the approx user
 adduser --quiet --system --group --no-create-home --home /var/cache/approx approx
 
@@ -22,31 +13,18 @@ if [ ! -d /var/cache/approx ]; then
     chown approx:approx /var/cache/approx
 fi
 
-# make sure the cache is owned by the approx user and group
-if dpkg --compare-versions "$oldversion" lt 2.07; then
-    chown -R approx:approx /var/cache/approx/.
+# add entry to /etc/inetd.conf
+update-inetd --add '9999\t\tstream\ttcp\tnowait\tapprox\t/usr/sbin/approx'
+
+# remove unused init script
+if [ -f /etc/init.d/approx ]; then
+    rm -f /etc/init.d/approx
+    update-rc.d approx remove >/dev/null
 fi
 
-# check for non-standard cache location
-cache=$(approx_config cache /var/cache/approx)
-if dpkg --compare-versions "$oldversion" lt 1.13 && [ "$cache" != /var/cache/approx ]; then
-    cat >&2 <<EOF
-Warning: the location of the cache can no longer be set in approx.conf
-         (you appear to have it set to $cache).
-         See /usr/share/doc/approx/NEWS.Debian.gz for details.
-EOF
-fi
-
-# check for potential conflict with apt-proxy
-port=$(approx_config port 9999)
-if [ -x /usr/sbin/apt-proxy ] && [ "$port" = 9999 ]; then
-    cat >&2 <<EOF
-Warning: apt-proxy appears to be installed also.
-         For compatibility with client sources.list files,
-         approx uses the same port (9999) by default.
-         Please stop or remove apt-proxy, or configure
-         one of them to listen on a different port.
-EOF
+# remove unused defaults file
+if [ -f /etc/default/approx ]; then
+    rm -f /etc/default/approx
 fi
 
 #DEBHELPER#

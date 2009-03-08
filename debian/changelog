@@ -1,3 +1,13 @@
+approx (4.0-1) unstable; urgency=low
+
+  * New upstream version
+  * Change approx to run under inetd (closes: #517217, #479493)
+  * Update packaging for OCaml 3.11 (closes: #518727)
+  * Revert to dropping privileges in gc, update, and import
+    (closes: #510761)
+
+ -- Eric Cooper <ecc@cmu.edu>  Sun, 08 Mar 2009 15:07:56 -0400
+
 approx (3.5-1) unstable; urgency=low
 
   * New upstream version
