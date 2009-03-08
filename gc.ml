@@ -170,7 +170,7 @@ let rec prune () =
   | list -> List.iter remove_dir list; if not simulate then prune ()
 
 let garbage_collect () =
-  if not simulate then check_id ~user ~group;
+  if not simulate then drop_privileges ~user ~group;
   mark ();
   sweep ();
   prune ()
