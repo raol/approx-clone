@@ -23,6 +23,8 @@ approx-%:
 	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) $(@:approx-%=%).$(TARGET)
 	cp -pv _build/$(@:approx-%=%).$(TARGET) $@
 
+$(programs): $(wildcard *.ml*)
+
 clean:
 	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) -clean
 	rm -f $(programs)
