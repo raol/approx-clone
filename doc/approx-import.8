@@ -1,8 +1,8 @@
 .\" approx: proxy server for Debian archive files
-.\" Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+.\" Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH APPROX-IMPORT 8 "November 2008"
+.TH APPROX-IMPORT 8 "March 2009"
 .\" Please adjust this date whenever revising the manpage.
 
 .SH NAME
@@ -23,32 +23,35 @@ into the
 .BR approx (8)
 cache.
 .PP
-It does so by extracting the Debian package name, version number, and
-architecture from the filename.  If these correspond to a
-package in one of the
+It does so by computing the MD5 checksum of each argument.
+If it matches a package in one of the
 .I Packages
 files in the
 .BR approx (8)
 cache, then the file is copied to the appropriate location in the cache.
 .PP
-Although the size of the file is verified to be correct before copying,
-the MD5, SHA1, and SHA256 cryptographic checksums are not,
-in the interest of speed.
+Note that all
+.I Packages
+files must be scanned, regardless of how many .deb files are being imported,
+and this process may take several minutes.
+.PP
 The
-.BR approx-gc (8)
-command can be run subsequently for that purpose.
+.B approx-import
+command must be run by the superuser or the
+.BR approx (8)
+user.
 
 .SH OPTIONS
 .TP
 .TP
 .BR \-s ", " \-\^\-simulate
-Scan files but do not actually copy them into the cache.
+Process files but do not actually copy them into the cache.
 .TP
 .BR \-q ", " \-\^\-quiet
 Don't print the names of files that are imported.
 .TP
 .BR \-v ", " \-\^\-verbose
-Print information about each file.
+Print the disposition of each file.
 
 .SH EXAMPLES
 .PP
@@ -80,8 +83,7 @@ Cache directory for archive files.
 
 .SH SEE ALSO
 .IR approx.conf (5),
-.BR approx (8),
-.BR approx-update (8)
+.BR approx (8)
 
 .SH AUTHOR
 Eric Cooper <ecc@cmu.edu>
