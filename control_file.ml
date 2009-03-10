@@ -1,9 +1,9 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-open Printf
 open Util
+open Config
 open Log
 
 type paragraph = (string * string) list
@@ -81,7 +81,7 @@ let fold f init file =
   in
   with_in_channel open_file file read_file
 
-let iter proc = fold (fun () -> proc) ()
+let iter = iter_of_fold fold
 
 let read file =
   let once prev p =
@@ -136,23 +136,21 @@ type validity =
 
 let validate ?checksum (sum, size) file =
   let n = file_size file in
-  if n <> size then
-    Wrong_size n
+  if n <> size then Wrong_size n
   else
-    let s =
-      match checksum with
-      | Some file_checksum -> file_checksum file
-      | None -> sum
-    in
-    if s <> sum then Wrong_checksum s
-    else Valid
+    match checksum with
+    | Some file_checksum ->
+        let s = file_checksum file in
+        if s <> sum then Wrong_checksum s
+        else Valid
+    | None -> Valid
 
 let is_valid checksum ((s, n) as info) file =
   match validate ~checksum info file with
   | Valid -> true
   | Wrong_size n' ->
-      debug_message "%s: size %Ld should be %Ld" file n' n;
+      debug_message "%s: size %Ld should be %Ld" (shorten file) n' n;
       false
   | Wrong_checksum s' ->
-      debug_message "%s: checksum %s should be %s" file s' s;
+      debug_message "%s: checksum %s should be %s" (shorten file) s' s;
       false
