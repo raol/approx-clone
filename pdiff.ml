@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Util
@@ -109,10 +109,10 @@ let apply_pdiffs file pdiffs final index =
   try
     List.iter patch pdiffs;
     if is_valid file_sha1sum final file then begin
-      debug_message "Updated %s" index;
+      debug_message "Updated %s" (shorten index);
       compress ~src: file ~dst: index;
       remove_pdiffs pdiffs
-    end else debug_message "Invalid update of %s" index
+    end else debug_message "Invalid update of %s" (shorten index)
   with Exit -> ()
 
 let update index =

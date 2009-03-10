@@ -3,9 +3,27 @@
    Released under the GNU General Public License *)
 
 open Config_file
+open Util
+
+let version = "4.0"
 
 let config_file = "/etc/approx/approx.conf"
+
 let cache_dir = "/var/cache/approx"
+
+let split_cache_path path =
+  if is_prefix cache_dir path then
+    let i = String.length cache_dir + 1 in
+    let j = String.index_from path i '/' in
+    substring path ~from: i ~until: j, substring path ~from: (j + 1)
+  else
+    invalid_arg "split_cache_path"
+
+let shorten path =
+  if is_prefix cache_dir path then
+    substring path ~from: (String.length cache_dir + 1)
+  else
+    path
 
 let () = try read config_file with Sys_error _ -> ()
 

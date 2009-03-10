@@ -1,8 +1,7 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-open Printf
 open Util
 open Config
 open Log
@@ -11,14 +10,6 @@ let string_of_time t =
   Netdate.format ~fmt: "%a, %d %b %Y %T GMT" (Netdate.create ~zone: 0 t)
 
 let time_of_string = Netdate.parse_epoch
-
-let split_cache_path path =
-  if is_prefix cache_dir path then
-    let i = String.length cache_dir + 1 in
-    let j = String.index_from path i '/' in
-    substring path ~from: i ~until: j, substring path ~from: (j + 1)
-  else
-    invalid_arg "split_cache_path"
 
 let translate_request url =
   let path = relative_url url in
@@ -30,7 +21,8 @@ let translate_request url =
       invalid_arg "translate_request"
 
 let translate_file file =
-  let dist, path = split_cache_path file in Config_file.get dist ^/ path
+  let dist, path = split_cache_path file in
+  Config_file.get dist ^/ path
 
 type protocol = HTTP | FTP | FILE
 
@@ -50,7 +42,8 @@ let rate_option =
   | str -> "--limit-rate " ^ str
 
 let curl_command options url =
-  sprintf "/usr/bin/curl --fail --silent --header \"Pragma: no-cache\" %s %s %s"
+  Printf.sprintf
+    "/usr/bin/curl --fail --silent --header \"Pragma: no-cache\" %s %s %s"
     rate_option (String.concat " " options) (quoted_string url)
 
 let head_command = curl_command ["--head"]

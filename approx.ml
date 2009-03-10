@@ -460,7 +460,7 @@ let error_response code =
   sprintf "<html><title>%d %s</title><body><h1>%d: %s</h1></body></html>"
     code msg code msg
 
-let version = Version.name ^ "/" ^ Version.number
+let approx_version = "approx/" ^ version
 
 let config =
   object
@@ -470,7 +470,7 @@ let config =
     method config_max_trailer_length = 32768
     method config_limit_pipeline_length = 5
     method config_limit_pipeline_size = 250000
-    method config_announce_server = `Ocamlnet_and version
+    method config_announce_server = `Ocamlnet_and approx_version
     (* http_processor_config *)
     method config_timeout_next_request = 15.
     method config_timeout = 300.

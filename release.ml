@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Util
@@ -28,13 +28,13 @@ let read file =
 
 let validate (rdir, (info_list, checksum)) file =
   Sys.file_exists file &&
-  let rfile = substring ~from: (String.length rdir + 1) file in
+  let rfile = substring file ~from: (String.length rdir + 1) in
   try
     let info = fst (List.find (fun (_, name) -> name = rfile) info_list) in
     Control_file.is_valid checksum info file
   with Not_found ->
     if Filename.dirname file <> rdir then
-      debug_message "%s: not found in %s/Release" file rdir;
+      debug_message "%s: not found in %s/Release" (shorten file) (shorten rdir);
     false
 
 let valid_file file = try validate (read file) file with Not_found -> false

@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Garbage-collect the approx cache using a mark-sweep algorithm.
@@ -13,7 +13,7 @@ open Config
 open Control_file
 
 let usage () =
-  prerr_endline "Usage: approx-gc [options]
+  print "Usage: approx-gc [options]
 Garbage-collect the approx cache
 Options:
     -f|--fast     do not validate checksums
@@ -48,16 +48,16 @@ let verbose = !verbose
    present in this cache, then check their validity as we process the
    Packages and Sources files *)
 
-let files = Hashtbl.create 4096
-let get_status = Hashtbl.find files
-let set_status = Hashtbl.replace files
-let iter_status proc = Hashtbl.iter proc files
+let file_table = Hashtbl.create 4096
+let get_status = Hashtbl.find file_table
+let set_status = Hashtbl.replace file_table
+let iter_status proc = Hashtbl.iter proc file_table
 
 (* Check if a file is part of a known distribution *)
 
 let dist_is_known file =
-  try ignore (Url.translate_file file); true
-  with Not_found -> false
+  let dist, _ = split_cache_path file in
+  Config_file.mem dist
 
 (* Scan the cache, initializing the status of candidates for garbage
    collection to None.  Packages and Sources files should not be
@@ -112,9 +112,9 @@ let mark_source prefix fields =
   List.iter (mark_file checksum (prefix ^/ dir)) info
 
 let mark_index index =
-  print_if verbose "# %s" index;
-  let dist, _ = Url.split_cache_path index in
+  let dist, path = split_cache_path index in
   let prefix = cache_dir ^/ dist in
+  if verbose then print "[ %s/%s ]" dist path;
   if Release.is_sources_file index then
     Control_file.iter (mark_source prefix) index
   else
@@ -123,15 +123,15 @@ let mark_index index =
 let mark () =
   List.iter mark_index (scan_files ())
 
-let status_prefix = function
-  | None -> "  "
-  | Some (Wrong_size _) -> "= "
-  | Some (Wrong_checksum _) -> "! "
+let status_suffix = function
+  | None -> ""
+  | Some (Wrong_size _) -> ": incorrect size"
+  | Some (Wrong_checksum _) -> ": incorrect checksum"
   | Some Valid -> assert false
 
 let print_gc file status =
-  let prefix = if verbose then status_prefix status else "" in
-  print_if (not quiet) "%s%s" prefix file
+  if not quiet then
+    print "%s%s" (shorten file) (if verbose then status_suffix status else "")
 
 let inactive file =
   Unix.time () -. file_modtime file > 300.  (* 5 minutes *)
@@ -144,7 +144,7 @@ let sweep () =
           print_gc file status;
           if not simulate then perform Sys.remove file
         end else
-          print_if verbose "%s is not old enough to remove" file
+          if verbose then print "%s: not old enough to remove" (shorten file)
   in
   iter_status gc
 
@@ -153,13 +153,15 @@ let empty_dirs =
     try
       if Sys.readdir dir = [||] then dir :: list else list
     with e ->
-      prerr_endline (string_of_exception e);
+      print "%s" (string_of_exception e);
       list
   in
   fold_dirs collect_empty []
 
 let remove_dir dir =
-  print_if (not quiet) "%s%s" (if verbose then "  " else "") dir;
+  if not quiet then begin
+    print "%s%s" (shorten dir) (if verbose then ": empty directory" else "/")
+  end;
   (* any exception raised by rmdir will terminate the pruning loop *)
   if not simulate then perform Unix.rmdir dir
 
