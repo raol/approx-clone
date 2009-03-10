@@ -1,11 +1,11 @@
 Template: approx/port
 Type: string
 Default: 9999
-Description: TCP port for approx service:
+_Description: TCP port for approx service:
  Please enter the numeric TCP port on which approx should listen for requests.
  The default is 9999 (for compatibility with apt-proxy).
 
 Template: approx/numeric_port
 Type: error
-Description: Port must be numeric
+_Description: Port must be numeric
   The port must be specified as a decimal number.
