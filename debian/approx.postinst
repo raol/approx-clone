@@ -14,17 +14,17 @@ if [ ! -d /var/cache/approx ]; then
 fi
 
 # add entry to /etc/inetd.conf
-update-inetd --add '9999\t\tstream\ttcp\tnowait\tapprox\t/usr/sbin/approx'
+update-inetd --add "9999\t\tstream\ttcp\tnowait\tapprox\t/usr/sbin/approx"
+
+# remove unused defaults file
+if [ -f /etc/default/approx ]; then
+    rm -f /etc/default/approx
+fi
 
 # remove unused init script
 if [ -f /etc/init.d/approx ]; then
     rm -f /etc/init.d/approx
     update-rc.d approx remove >/dev/null
-fi
-
-# remove unused defaults file
-if [ -f /etc/default/approx ]; then
-    rm -f /etc/default/approx
 fi
 
 #DEBHELPER#

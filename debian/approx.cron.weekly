@@ -3,5 +3,5 @@
 # Garbage collect the approx(8) cache
 
 if [ -x /usr/sbin/approx-gc ]; then
-    su --shell /bin/sh --command "/usr/sbin/approx-gc --quiet" approx
+    /usr/sbin/approx-gc --quiet
 fi

@@ -1,3 +1,13 @@
+approx (4.0-1) unstable; urgency=low
+
+  The approx program no longer runs as an independent daemon;
+  it is now run by inetd.  Since the listening port and addresses
+  can be specified in /etc/inetd.conf, the $port and $interface
+  configuration parameters have been removed.  Host access control
+  using /etc/hosts.allow and /etc/hosts.deny is also supported by inetd.
+
+ -- Eric Cooper <ecc@cmu.edu>  Tue, 10 Mar 2009 13:37:00 -0400
+
 approx (3.4-1) unstable; urgency=low
 
   A new program, approx-import, has been added. It can be used to populate
