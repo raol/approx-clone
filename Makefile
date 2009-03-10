@@ -42,5 +42,6 @@ package := approx-$(version)
 excludes := $(tarball) .git _build "*~" "\#*"
 
 tarball:
+	touch $(tarball)
 	tar -czf $(tarball) $(excludes:%=--exclude=%) \
-	    --transform "s:^\./:$(package)/:" .
+	    --transform "s:^\.$$:$(package):;s:^\./:$(package)/:" .
