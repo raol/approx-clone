@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -7,7 +7,8 @@ open Unix
 open Unix.LargeFile
 
 let is_prefix pre str =
-  let prefix_len = String.length pre and string_len = String.length str in
+  let prefix_len = String.length pre in
+  let string_len = String.length str in
   let rec loop i =
     if i = prefix_len then true
     else if i = string_len || pre.[i] <> str.[i] then false
@@ -94,7 +95,10 @@ let split_extension file =
   (* look for '.' in basename only, not parent directories *)
   try
     let i = String.rindex base '.' in
-    (Filename.dirname file ^/ substring ~until: i base, substring ~from: i base)
+    let dir = Filename.dirname file in
+    let name = substring base ~until: i in
+    let ext = substring base ~from: i in
+    (if dir = "." then name else dir ^/ name), ext
   with Not_found -> (file, "")
 
 let without_extension file = fst (split_extension file)
@@ -288,7 +292,11 @@ let group_id =
 let drop_privileges ~user ~group =
   let drop id name =
     try id#set (id#lookup name)
-    with Not_found -> failwith ("unknown " ^ id#kind ^ " " ^ name)
+    with
+    | Not_found -> failwith ("unknown " ^ id#kind ^ " " ^ name)
+    | Unix_error (EPERM, _, _) ->
+        failwith (Sys.argv.(0) ^ " must be run by root"
+                  ^ (if user <> "root" then " or by " ^ user else ""))
   in
   (* change group first, since we must still be privileged to change user *)
   drop group_id group;
@@ -335,4 +343,4 @@ let main_program f x =
     prerr_endline (string_of_exception e);
     exit 1
 
-let print_if cond = ksprintf (fun str -> if cond then prerr_endline str)
+let print fmt = ksprintf prerr_endline fmt

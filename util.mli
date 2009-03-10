@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Check if the first string is a prefix of the second *)
@@ -156,6 +156,10 @@ val update_ctime : string -> unit
 
 val directory_exists : string -> bool
 
+(* Create a generic iterator function from a fold function *)
+
+val iter_of_fold : ((unit -> 'a) -> unit -> 'b) -> 'a -> 'b
+
 (* Fold a function over each directory below a given path *)
 
 val fold_dirs : ('a -> string -> 'a) -> 'a -> string -> 'a
@@ -212,6 +216,6 @@ val perform : ('a -> unit) -> 'a -> unit
 
 val main_program : ('a -> unit) -> 'a -> unit
 
-(* Conditionally print on stderr *)
+(* Print on stderr and append a newline *)
 
-val print_if : bool -> ('a, unit, string, unit) format4 -> 'a
+val print : ('a, unit, string, unit) format4 -> 'a
