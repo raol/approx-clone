@@ -16,6 +16,9 @@ if [ ! -d /var/cache/approx ]; then
     chown approx:approx /var/cache/approx
 fi
 
+# first remove any "vanilla" entry from /etc/inetd.conf
+update-inetd --remove '^(\d|\w)+\s.*\bapprox\b'
+
 # add entry to /etc/inetd.conf
 db_get approx/port
 port="$RET"

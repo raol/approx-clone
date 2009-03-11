@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: approx@packages.debian.org\n"
-"POT-Creation-Date: 2009-03-10 18:46-0400\n"
+"POT-Creation-Date: 2009-03-11 12:25-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -26,18 +26,7 @@ msgstr ""
 #. Description
 #: ../approx.templates:1001
 msgid ""
-"Please enter the numeric TCP port on which approx should listen for "
-"requests. The default is 9999 (for compatibility with apt-proxy)."
-msgstr ""
-
-#. Type: error
-#. Description
-#: ../approx.templates:2001
-msgid "Port must be numeric"
-msgstr ""
-
-#. Type: error
-#. Description
-#: ../approx.templates:2001
-msgid " The port must be specified as a decimal number."
+"Please enter the TCP port on which approx should listen for requests. The "
+"default is the value used by apt-proxy, for compatibility with its clients' /"
+"etc/apt/sources.list files."
 msgstr ""
