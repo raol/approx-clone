@@ -6,7 +6,7 @@ open Util
 open Syslog
 
 let facility = facility_of_string Config.syslog
-let log = openlog ~facility Sys.argv.(0)
+let log = openlog ~facility (Filename.basename Sys.argv.(0))
 
 let message enabled level =
   (* ensure message is newline-terminated,
