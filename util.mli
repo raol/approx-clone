@@ -192,7 +192,7 @@ val file_sha1sum : string -> string
 
 val file_sha256sum : string -> string
 
-(* Drop privileges (user and group ID) to those of the specified name *)
+(* Drop privileges to those of the given user and group *)
 
 val drop_privileges : user:string -> group:string -> unit
 

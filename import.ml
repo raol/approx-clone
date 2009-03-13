@@ -86,9 +86,9 @@ let package_of_file file =
         status = Not_seen }
   | _ -> raise Not_found
 
-let package_version = function
-  | { epoch = ""; version = version } -> version
-  | { epoch = epoch; version = version } -> epoch ^ ":" ^ version
+let without_epoch version =
+  try substring ~from: (String.index version ':' + 1) version
+  with Not_found -> version
 
 let packages = Hashtbl.create (List.length files)
 
@@ -136,7 +136,7 @@ let maybe_import pkg fields dist =
         pkg.base kind (List.assoc kind fields)
   in
   if not (imported pkg.status) then
-    if package_version pkg = List.assoc "version" fields then
+    if pkg.version = without_epoch (List.assoc "version" fields) then
       if pkg.arch = List.assoc "architecture" fields then
         if pkg.size = Int64.of_string (List.assoc "size" fields) then
           import_package pkg (dist ^/ List.assoc "filename" fields)
