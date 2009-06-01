@@ -294,7 +294,7 @@ let process_body resp cgi str pos len =
       cgi#output#really_output str pos len
   end
 
-(* Download a file from an HTTP repository *)
+(* Download a file from an HTTP or HTTPS repository *)
 
 let download_http resp url name ims cgi =
   let headers =
@@ -336,7 +336,7 @@ let download_ftp resp url name ims cgi =
 let download_url url name ims cgi =
   let dl =
     match Url.protocol url with
-    | Url.HTTP -> download_http
+    | Url.HTTP | Url.HTTPS -> download_http
     | Url.FTP | Url.FILE -> download_ftp
   in
   let resp = new_response url name in

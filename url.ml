@@ -24,12 +24,13 @@ let translate_file file =
   let dist, path = split_cache_path file in
   Config_file.get dist ^/ path
 
-type protocol = HTTP | FTP | FILE
+type protocol = HTTP | HTTPS | FTP | FILE
 
 let protocol url =
   try
     match String.lowercase (substring url ~until: (String.index url ':')) with
     | "http" -> HTTP
+    | "https" -> HTTPS
     | "ftp" -> FTP
     | "file" -> FILE
     | proto -> invalid_arg ("unsupported URL protocol " ^ proto)
