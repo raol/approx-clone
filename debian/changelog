@@ -1,3 +1,23 @@
+approx (4.0-2) unstable; urgency=low
+
+  * Debconf templates and debian/control reviewed by the debian-l10n-english
+    team (closes: #522644)
+  * Debconf translation updates:
+    - Georgian (closes: #523427)
+    - Italian (closes: #523489)
+    - Swedish (closes: #523836)
+    - Portuguese (closes: #524110)
+    - German (closes: #524398)
+    - Galician (closes: #524401)
+    - Spanish (closes: #525271)
+    - French (closes: #525519)
+    - Russian (closes: #525521)
+    - Finnish (closes: #526370)
+  * Thanks to Christian Perrier for coordinating the above
+    reviews and translations
+
+ -- Eric Cooper <ecc@cmu.edu>  Mon, 01 Jun 2009 16:14:51 -0400
+
 approx (4.0-1) unstable; urgency=low
 
   * New upstream version
