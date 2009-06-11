@@ -1,3 +1,9 @@
+approx (4.0-3) unstable; urgency=low
+
+  * Add Japanese debconf translation (closes: #524624)
+
+ -- Eric Cooper <ecc@cmu.edu>  Thu, 11 Jun 2009 15:53:01 -0400
+
 approx (4.0-2) unstable; urgency=low
 
   * Debconf templates and debian/control reviewed by the debian-l10n-english
