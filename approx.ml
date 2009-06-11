@@ -41,8 +41,12 @@ let debug_headers msg headers =
   List.iter (fun (x, y) -> debug_message "  %s: %s" x y) headers
 
 let proxy_headers size modtime =
-  ["Content-Type", "text/plain"; "Content-Length", Int64.to_string size] @
-  (if modtime <> 0. then ["Last-Modified", Url.string_of_time modtime] else [])
+  let headers =
+    ["Content-Type", "text/plain";
+     "Content-Length", Int64.to_string size]
+  in
+  if modtime = 0. then headers
+  else ("Last-Modified", Url.string_of_time modtime) :: headers
 
 type local_status =
   | Done of Nethttpd_types.http_service_reaction
@@ -218,11 +222,10 @@ let send_header size modtime (cgi : cgi) =
   debug_headers "Proxy response" cgi#environment#output_header_fields
 
 let pass_through_header resp (cgi : cgi) =
+  let fields = ["Content-Type", [resp.content_type]] in
   let fields =
-    ["Content-Type", [resp.content_type]] @
-    (if resp.length >= 0L then
-       ["Content-Length", [Int64.to_string resp.length]]
-     else [])
+    if resp.length < 0L then fields
+    else ("Content-Length", [Int64.to_string resp.length]) :: fields
   in
   cgi#set_header ~status: `Ok ~fields ();
   debug_headers "Pass-through response" cgi#environment#output_header_fields
@@ -424,12 +427,11 @@ let ims_time env =
   try Netdate.parse_epoch (env#input_header#field "If-Modified-Since")
   with Not_found | Invalid_argument _ -> 0.
 
-let forbidden msg = `Std_response (`Forbidden, None, Some msg)
+let server_error msg = `Std_response (`Internal_server_error, None, Some msg)
 
 let serve_file env =
   (* handle URL-encoded '+', '~', etc. *)
   let path = Netencoding.Url.decode ~plus: false env#cgi_request_uri in
-  debug_headers (sprintf "Request %s" path) env#input_header_fields;
   try
     let url, name = Url.translate_request path in
     if should_pass_through name then cache_miss url name 0. 0.
@@ -439,18 +441,17 @@ let serve_file env =
       | Done reaction -> reaction
       | Stale mod_time -> cache_miss url name ims mod_time
       | Missing -> cache_miss url name ims 0.
-  with Failure msg | Invalid_argument msg-> forbidden msg
+  with Failure msg | Invalid_argument msg-> server_error msg
 
 let process_header env =
   debug_message "Connection from %s"
     (string_of_sockaddr env#remote_socket_addr ~with_port: true);
+  debug_headers (sprintf "Request: %s" env#cgi_request_uri)
+    env#input_header_fields;
   if env#cgi_request_method = "GET" && env#cgi_query_string = "" then
     serve_file env
-  else begin
-    debug_headers (sprintf "Request %s" env#cgi_request_uri)
-      env#input_header_fields;
-    forbidden "invalid HTTP request"
-  end
+  else
+    `Std_response (`Forbidden, None, Some "invalid HTTP request")
 
 let error_response code =
   let msg =
@@ -460,8 +461,6 @@ let error_response code =
   sprintf "<html><title>%d %s</title><body><h1>%d: %s</h1></body></html>"
     code msg code msg
 
-let approx_version = "approx/" ^ version
-
 let config =
   object
     (* http_protocol_config *)
@@ -470,7 +469,7 @@ let config =
     method config_max_trailer_length = 32768
     method config_limit_pipeline_length = 5
     method config_limit_pipeline_size = 250000
-    method config_announce_server = `Ocamlnet_and approx_version
+    method config_announce_server = `Ocamlnet_and ("approx/" ^ version)
     (* http_processor_config *)
     method config_timeout_next_request = 15.
     method config_timeout = 300.
