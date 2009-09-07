@@ -41,40 +41,29 @@ let debug_headers msg headers =
   List.iter (fun (x, y) -> debug_message "  %s: %s" x y) headers
 
 let proxy_headers size modtime =
-  ["Content-Type", "text/plain"; "Content-Length", Int64.to_string size] @
-  (if modtime <> 0. then ["Last-Modified", Url.string_of_time modtime] else [])
+  let headers =
+    ["Content-Type", "text/plain";
+     "Content-Length", Int64.to_string size]
+  in
+  if modtime = 0. then headers
+  else ("Last-Modified", Url.string_of_time modtime) :: headers
 
 type local_status =
   | Done of Nethttpd_types.http_service_reaction
-  | Stale of float
-  | Missing
+  | Cache_miss of float
 
 (* Deliver a file from the local cache *)
 
 let deliver_local name env =
+  debug_message "  => delivering from cache";
   let size = file_size name in
   env#set_output_header_fields (proxy_headers size (file_modtime name));
   debug_headers "Local response" env#output_header_fields;
   Done (`File (`Ok, None, cache_dir ^/ name, 0L, size))
 
-let not_modified = Done (`Std_response (`Not_modified, None, None))
-
-let cache_hit name ims mod_time env =
-  if Release.immutable name || Release.valid_file name then
-    if mod_time <= ims then begin
-      debug_message "  => not modified";
-      not_modified
-    end else begin
-      debug_message "  => delivering from cache";
-      deliver_local name env
-    end
-  else Missing
-
-let not_found = Done (`Std_response (`Not_found, None, None))
-
-let deny name =
-  debug_message "Denying %s" name;
-  not_found
+let not_modified () =
+  debug_message "  => not modified";
+  Done (`Std_response (`Not_modified, None, None))
 
 (* See if the given file should be denied (reported to the client as
    not found) rather than fetched remotely. This is done in two cases:
@@ -91,18 +80,28 @@ let should_deny name =
   (pdiffs && Release.is_diff_index name &&
      Release.valid_file (Pdiff.file_of_diff_index name ^ ".gz"))
 
+let deny name =
+  debug_message "Denying %s" name;
+  Done (`Std_response (`Not_found, None, None))
+
 (* Attempt to serve the requested file from the local cache *)
 
 let serve_local name ims env =
+  let deliver_if_newer mod_time =
+    if mod_time > ims then deliver_local name env
+    else not_modified ()
+  in
   wait_for_download_in_progress name;
   match stat_file name with
   | Some { st_mtime = mod_time } ->
-      if Release.is_release name then Stale mod_time
+      if Release.is_release name then Cache_miss mod_time
       else if should_deny name then deny name
-      else cache_hit name ims mod_time env
+      else if Release.immutable name || Release.valid_file name then
+        deliver_if_newer mod_time
+      else Cache_miss mod_time
   | None ->
       if should_deny name then deny name
-      else Missing
+      else Cache_miss 0.
 
 let create_hint name =
   make_directory (Filename.dirname name);
@@ -218,11 +217,10 @@ let send_header size modtime (cgi : cgi) =
   debug_headers "Proxy response" cgi#environment#output_header_fields
 
 let pass_through_header resp (cgi : cgi) =
+  let fields = ["Content-Type", [resp.content_type]] in
   let fields =
-    ["Content-Type", [resp.content_type]] @
-    (if resp.length >= 0L then
-       ["Content-Length", [Int64.to_string resp.length]]
-     else [])
+    if resp.length < 0L then fields
+    else ("Content-Length", [Int64.to_string resp.length]) :: fields
   in
   cgi#set_header ~status: `Ok ~fields ();
   debug_headers "Pass-through response" cgi#environment#output_header_fields
@@ -294,7 +292,7 @@ let process_body resp cgi str pos len =
       cgi#output#really_output str pos len
   end
 
-(* Download a file from an HTTP repository *)
+(* Download a file from an HTTP or HTTPS repository *)
 
 let download_http resp url name ims cgi =
   let headers =
@@ -336,7 +334,7 @@ let download_ftp resp url name ims cgi =
 let download_url url name ims cgi =
   let dl =
     match Url.protocol url with
-    | Url.HTTP -> download_http
+    | Url.HTTP | Url.HTTPS -> download_http
     | Url.FTP | Url.FILE -> download_ftp
   in
   let resp = new_response url name in
@@ -381,7 +379,7 @@ let serve_remote url name ims mod_time cgi =
     raise (Nethttpd_types.Standard_response (code, None, None))
   in
   let copy_if_newer () =
-    (* deliver the the cached copy if it is newer than the client's *)
+    (* deliver the cached copy if it is newer than the client's *)
     if mod_time > ims then copy_from_cache name cgi
     else respond `Not_modified
   in
@@ -424,12 +422,11 @@ let ims_time env =
   try Netdate.parse_epoch (env#input_header#field "If-Modified-Since")
   with Not_found | Invalid_argument _ -> 0.
 
-let forbidden msg = `Std_response (`Forbidden, None, Some msg)
+let server_error msg = `Std_response (`Internal_server_error, None, Some msg)
 
 let serve_file env =
   (* handle URL-encoded '+', '~', etc. *)
   let path = Netencoding.Url.decode ~plus: false env#cgi_request_uri in
-  debug_headers (sprintf "Request %s" path) env#input_header_fields;
   try
     let url, name = Url.translate_request path in
     if should_pass_through name then cache_miss url name 0. 0.
@@ -437,20 +434,18 @@ let serve_file env =
       let ims = ims_time env in
       match serve_local name ims env with
       | Done reaction -> reaction
-      | Stale mod_time -> cache_miss url name ims mod_time
-      | Missing -> cache_miss url name ims 0.
-  with Failure msg | Invalid_argument msg-> forbidden msg
+      | Cache_miss mod_time -> cache_miss url name ims mod_time
+  with Failure msg | Invalid_argument msg-> server_error msg
 
 let process_header env =
   debug_message "Connection from %s"
     (string_of_sockaddr env#remote_socket_addr ~with_port: true);
+  debug_headers (sprintf "Request: %s" env#cgi_request_uri)
+    env#input_header_fields;
   if env#cgi_request_method = "GET" && env#cgi_query_string = "" then
     serve_file env
-  else begin
-    debug_headers (sprintf "Request %s" env#cgi_request_uri)
-      env#input_header_fields;
-    forbidden "invalid HTTP request"
-  end
+  else
+    `Std_response (`Forbidden, None, Some "invalid HTTP request")
 
 let error_response code =
   let msg =
@@ -460,8 +455,6 @@ let error_response code =
   sprintf "<html><title>%d %s</title><body><h1>%d: %s</h1></body></html>"
     code msg code msg
 
-let approx_version = "approx/" ^ version
-
 let config =
   object
     (* http_protocol_config *)
@@ -470,7 +463,7 @@ let config =
     method config_max_trailer_length = 32768
     method config_limit_pipeline_length = 5
     method config_limit_pipeline_size = 250000
-    method config_announce_server = `Ocamlnet_and approx_version
+    method config_announce_server = `Ocamlnet_and ("approx/" ^ version)
     (* http_processor_config *)
     method config_timeout_next_request = 15.
     method config_timeout = 300.

@@ -12,7 +12,7 @@ val translate_request : string -> string * string
 
 val translate_file : string -> string
 
-type protocol = HTTP | FTP | FILE
+type protocol = HTTP | HTTPS | FTP | FILE
 
 val protocol : string -> protocol
 

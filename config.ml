@@ -5,7 +5,7 @@
 open Config_file
 open Util
 
-let version = "4.0"
+let version = "4.1"
 
 let config_file = "/etc/approx/approx.conf"
 

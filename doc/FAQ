@@ -1,0 +1,58 @@
+Changing the location of the approx cache
+
+  Move your cache where you want it, then
+  replace the /var/cache/approx directory by a symlink:
+
+      mv /var/cache/approx /somewhere
+      ln -s /somewhere/approx /var/cache/approx
+
+  You should use a subdirectory for the cache, not a top-level
+  filesystem with a lost+found directory in it, to avoid complaints from
+  the approx-gc program.
+
+Exporting a local package repository
+
+  This is supported with file URLs.  Note that the syntax for file URLs
+  requires 3 leading slashes (two for the URL syntax, and one for the root
+  of the pathname).  So you can add something like this to /etc/approx.conf:
+
+      local   file:///my/local/repo
+
+  The repo must have the structure that apt expects, including a
+  Packages.gz index.  You can maintain a local repo with a tool like
+  dpkg-scanpackages or reprepro.
+
+Changing the TCP port on which approx listens
+
+  Run "dpkg-reconfigure approx" and enter the desired port number
+  when prompted.
+
+Changing the IP addresses on which approx listens
+
+  Add a host address specifier at the beginning of the approx entry
+  in /etc/inetd.conf.  See the inetd(8) manual page for details.
+
+Controlling access to approx using TCP wrappers (hosts.allow and hosts.deny)
+
+  The /etc/hosts.allow and /etc/hosts.deny files can be used for
+  host-based control of the approx service.
+
+  After adding the appropriate entries (see the hosts_access(5) manual page),
+  add the line
+      OPTIONS="-l"
+  to the file /etc/default/openbsd-inetd and then restart openbsd-inetd.
+
+Making approx use a proxy for its downloads
+
+  Since approx uses the curl(1) command to download files from
+  remote repositories, you can use the http_proxy environment variable
+  (or one of the others documented in the curl(1) manual page).
+
+  To pass this to approx, modify the inetd.conf entry for approx to run
+  an executable wrapper script instead of the /usr/sbin/approx binary.
+  You can use something like this for the wrapper:
+
+      #!/bin/sh
+
+      export http_proxy=myproxy.org:1234
+      exec /usr/sbin/approx
