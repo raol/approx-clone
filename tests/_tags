@@ -10,7 +10,6 @@
 # so only additions and deletions to those are needed here
 
 <control_file_test.{byte,native}>: use_syslog
-<ifaddr_test.{byte,native}>: -use_pcre, -use_sha, use_libapprox
 <metadata_test.{byte,native}>: use_syslog
 <patch_test.{byte,native}>: -use_pcre
 <sha1_test.{byte,native}>: -use_pcre
