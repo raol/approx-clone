@@ -50,35 +50,20 @@ let proxy_headers size modtime =
 
 type local_status =
   | Done of Nethttpd_types.http_service_reaction
-  | Stale of float
-  | Missing
+  | Cache_miss of float
 
 (* Deliver a file from the local cache *)
 
 let deliver_local name env =
+  debug_message "  => delivering from cache";
   let size = file_size name in
   env#set_output_header_fields (proxy_headers size (file_modtime name));
   debug_headers "Local response" env#output_header_fields;
   Done (`File (`Ok, None, cache_dir ^/ name, 0L, size))
 
-let not_modified = Done (`Std_response (`Not_modified, None, None))
-
-let cache_hit name ims mod_time env =
-  if Release.immutable name || Release.valid_file name then
-    if mod_time <= ims then begin
-      debug_message "  => not modified";
-      not_modified
-    end else begin
-      debug_message "  => delivering from cache";
-      deliver_local name env
-    end
-  else Missing
-
-let not_found = Done (`Std_response (`Not_found, None, None))
-
-let deny name =
-  debug_message "Denying %s" name;
-  not_found
+let not_modified () =
+  debug_message "  => not modified";
+  Done (`Std_response (`Not_modified, None, None))
 
 (* See if the given file should be denied (reported to the client as
    not found) rather than fetched remotely. This is done in two cases:
@@ -95,18 +80,28 @@ let should_deny name =
   (pdiffs && Release.is_diff_index name &&
      Release.valid_file (Pdiff.file_of_diff_index name ^ ".gz"))
 
+let deny name =
+  debug_message "Denying %s" name;
+  Done (`Std_response (`Not_found, None, None))
+
 (* Attempt to serve the requested file from the local cache *)
 
 let serve_local name ims env =
+  let deliver_if_newer mod_time =
+    if mod_time > ims then deliver_local name env
+    else not_modified ()
+  in
   wait_for_download_in_progress name;
   match stat_file name with
   | Some { st_mtime = mod_time } ->
-      if Release.is_release name then Stale mod_time
+      if Release.is_release name then Cache_miss mod_time
       else if should_deny name then deny name
-      else cache_hit name ims mod_time env
+      else if Release.immutable name || Release.valid_file name then
+        deliver_if_newer mod_time
+      else Cache_miss mod_time
   | None ->
       if should_deny name then deny name
-      else Missing
+      else Cache_miss 0.
 
 let create_hint name =
   make_directory (Filename.dirname name);
@@ -384,7 +379,7 @@ let serve_remote url name ims mod_time cgi =
     raise (Nethttpd_types.Standard_response (code, None, None))
   in
   let copy_if_newer () =
-    (* deliver the the cached copy if it is newer than the client's *)
+    (* deliver the cached copy if it is newer than the client's *)
     if mod_time > ims then copy_from_cache name cgi
     else respond `Not_modified
   in
@@ -439,8 +434,7 @@ let serve_file env =
       let ims = ims_time env in
       match serve_local name ims env with
       | Done reaction -> reaction
-      | Stale mod_time -> cache_miss url name ims mod_time
-      | Missing -> cache_miss url name ims 0.
+      | Cache_miss mod_time -> cache_miss url name ims mod_time
   with Failure msg | Invalid_argument msg-> server_error msg
 
 let process_header env =
