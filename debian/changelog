@@ -1,3 +1,22 @@
+approx (4.1-1) unstable; urgency=low
+
+  * New upstream version
+  * Ignore epoch when comparing versions for importing
+    (closes: #518763, #545424)
+  * Deliver files properly in offline mode (closes: #524960)
+  * Support udebs
+    - patch from Matthew Palmer <mpalmer@debian.org>
+    - closes: #527188
+  * Support https in URLs
+    - patch from Andres Salomon <dilinger@collabora.co.uk>
+    - closes: #531218
+  * Add Czech debconf translation (closes: #537107)
+  * Fix update-inetd call in postrm script
+  * Update Standards-Version to 3.8.3
+  * Add FAQ file
+
+ -- Eric Cooper <ecc@cmu.edu>  Mon, 07 Sep 2009 18:16:20 -0400
+
 approx (4.0-3) unstable; urgency=low
 
   * Add Japanese debconf translation (closes: #524624)
