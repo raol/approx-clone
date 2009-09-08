@@ -2,7 +2,7 @@
 
 remove_inetd() {
     if [ -x "$(command -v update-inetd)" ]; then
-        update-inetd --remove /usr/sbin/approx
+        update-inetd --remove "^.*approx"
     fi
 }
 
