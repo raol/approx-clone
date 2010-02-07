@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -341,6 +341,7 @@ let main_program f x =
   try f x
   with e ->
     prerr_endline (string_of_exception e);
+    Printexc.print_backtrace Pervasives.stderr;
     exit 1
 
 let print fmt = ksprintf prerr_endline fmt
