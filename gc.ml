@@ -10,6 +10,7 @@
 
 open Util
 open Config
+open Program
 
 let usage () =
   print "Usage: approx-gc [options]

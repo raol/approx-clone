@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Check if the first string is a prefix of the second *)
@@ -203,19 +203,3 @@ val check_id : user:string -> group:string -> unit
 (* Convert a socket address to a string *)
 
 val string_of_sockaddr : Unix.sockaddr -> with_port:bool -> string
-
-(* Return a descriptive message for an exception *)
-
-val string_of_exception : exn -> string
-
-(* Call a procedure and print, but otherwise ignore, any exception *)
-
-val perform : ('a -> unit) -> 'a -> unit
-
-(* Run the main function of a program and print any uncaught exception *)
-
-val main_program : ('a -> unit) -> 'a -> unit
-
-(* Print on stderr and append a newline *)
-
-val print : ('a, unit, string, unit) format4 -> 'a
