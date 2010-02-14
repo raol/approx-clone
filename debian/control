@@ -13,7 +13,7 @@ Build-Depends:
  debhelper (>= 7.0),
  cdbs (>= 0.4.62),,
  dh-ocaml (>= 0.9)
-Standards-Version: 3.8.3
+Standards-Version: 3.8.4
 Vcs-Git: git://git.debian.org/git/pkg-ocaml-maint/packages/approx.git
 Vcs-Browser: http://git.debian.org/?p=pkg-ocaml-maint/packages/approx.git
 Homepage: http://git.debian.org/?p=pkg-ocaml-maint/packages/approx.git
@@ -29,6 +29,7 @@ Depends:
  curl,
  openbsd-inetd | inet-superserver,
  update-inetd
+Suggests: libconfig-model-approx-perl
 Description: caching proxy server for Debian archive files
  Approx is an HTTP-based proxy server for Debian-style package archives.
  It fetches files from remote repositories on demand,
