@@ -1,11 +1,11 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Config_file
 open Util
 
-let version = "4.1"
+let version = "4.2"
 
 let config_file = "/etc/approx/approx.conf"
 
