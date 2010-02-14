@@ -61,7 +61,9 @@ let is_diff_index file =
 let is_pdiff file =
   Filename.basename file <> "Index" && diff_index_dir file
 
-let immutable_suffixes = [".deb"; ".dsc"; ".tar.gz"; ".diff.gz"; ".udeb"]
+let immutable_suffixes =
+  [".deb"; ".udeb"; ".dsc"; ".diff.gz";
+   ".tar.gz"; ".tar.bz2"; ".tar.lzma"; ".tar.xz"]
 
 let immutable file =
   List.exists (Filename.check_suffix file) immutable_suffixes || is_pdiff file

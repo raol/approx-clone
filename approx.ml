@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -8,6 +8,7 @@ open Unix.LargeFile
 open Util
 open Config
 open Log
+open Program
 
 let stat_file name = try Some (stat name) with Unix_error _ -> None
 

@@ -1,11 +1,12 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Import local files into the approx cache *)
 
 open Util
 open Config
+open Program
 
 let usage () =
   print "Usage: approx-import [options] file ...
@@ -133,13 +134,13 @@ let maybe_import pkg fields dist =
   let mismatch kind =
     if verbose then
       print "%s: %s mismatch (should be %s)"
-        pkg.base kind (List.assoc kind fields)
+        pkg.base kind (Control_file.lookup kind fields)
   in
   if not (imported pkg.status) then
-    if pkg.version = without_epoch (List.assoc "version" fields) then
-      if pkg.arch = List.assoc "architecture" fields then
-        if pkg.size = Int64.of_string (List.assoc "size" fields) then
-          import_package pkg (dist ^/ List.assoc "filename" fields)
+    if pkg.version = without_epoch (Control_file.lookup "version" fields) then
+      if pkg.arch = Control_file.lookup "architecture" fields then
+        if pkg.size = Int64.of_string (Control_file.lookup "size" fields) then
+          import_package pkg (dist ^/ Control_file.lookup "filename" fields)
         else mismatch "size"
       else mismatch "architecture"
     else mismatch "version"
@@ -151,7 +152,7 @@ let import_files index =
     let dist, path = split_cache_path index in
     let check_package fields =
       try
-        let md5sum = List.assoc "md5sum" fields in
+        let md5sum = Control_file.lookup "md5sum" fields in
         maybe_import (Hashtbl.find packages md5sum) fields dist
       with Not_found -> ()
     in

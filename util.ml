@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -319,28 +319,3 @@ let string_of_sockaddr sockaddr ~with_port =
       if with_port then sprintf "%s port %d" addr port else addr
   | ADDR_UNIX path ->
       failwith ("Unix domain socket " ^ path)
-
-let string_of_uerror = function
-  | err, str, "" -> sprintf "%s: %s" str (error_message err)
-  | err, str, arg -> sprintf "%s: %s (%s)" str (error_message err) arg
-
-let string_of_exception exc =
-  match exc with
-  | Failure str -> "Failure: " ^ str
-  | Invalid_argument str -> "Invalid argument: " ^ str
-  | Sys_error str -> str
-  | Unix_error (err, str, arg)-> string_of_uerror (err, str, arg)
-  | e -> Printexc.to_string e
-
-let perform f x =
-  try f x
-  with e ->
-    prerr_endline (string_of_exception e)
-
-let main_program f x =
-  try f x
-  with e ->
-    prerr_endline (string_of_exception e);
-    exit 1
-
-let print fmt = ksprintf prerr_endline fmt
