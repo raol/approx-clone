@@ -1,3 +1,17 @@
+approx (4.2-1) unstable; urgency=low
+
+  * New upstream version
+  * Improve handling of invalid index files
+  * Recognize compressed tarballs from 3.0 (quilt) format
+  * Use dh-ocaml (>= 0.9) and simplify debian/rules
+  * Update build-deps
+  * Drop lsb-base dependency since approx no longer needs an init script
+  * Update Standards-Version to 3.8.4
+  * Suggest libconfig-model-approx-perl (closes: #554388)
+  * Change to 3.0 (quilt) format
+
+ -- Eric Cooper <ecc@cmu.edu>  Sun, 14 Feb 2010 16:52:00 -0500
+
 approx (4.1-1) unstable; urgency=low
 
   * New upstream version
