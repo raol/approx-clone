@@ -1,11 +1,10 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Util
 open Config
 open Log
-open Control_file
 
 let file_of_diff_index diff_index =
   Filename.chop_suffix (Filename.dirname diff_index) ".diff"
@@ -16,10 +15,10 @@ let read_diff_index dir =
   let diff_index = dir ^/ "Index" in
   if not (Sys.file_exists diff_index) then
     failwith (diff_index ^ " does not exist");
-  let items = read diff_index in
-  let current = List.assoc "sha1-current" items ^ " current" in
+  let items = Control_file.read diff_index in
+  let current = Control_file.lookup "sha1-current" items ^ " current" in
   let current_info =
-    match info_list current with
+    match Control_file.info_list current with
     | [info, "current"] -> info
     | _ -> failwith ("unexpected SHA1-Current entry: " ^ current)
   in
@@ -27,8 +26,8 @@ let read_diff_index dir =
     if name <> name' then failwith (diff_index ^ " is inconsistent");
     (index_info, dir ^/ name, patch_info)
   in
-  let history = info_list (List.assoc "sha1-history" items) in
-  let patches = info_list (List.assoc "sha1-patches" items) in
+  let history = Control_file.lookup_info "sha1-history" items in
+  let patches = Control_file.lookup_info "sha1-patches" items in
   List.map2 combine history patches, current_info
 
 let rec find_tail p = function
@@ -38,7 +37,7 @@ let rec find_tail p = function
 let find_pdiff pdiff (diffs, final) =
   let check_pdiff (index_info, _, pdiff_info) next =
     let check pdiff' =
-      if is_valid file_sha1sum pdiff_info pdiff' then begin
+      if Control_file.is_valid file_sha1sum pdiff_info pdiff' then begin
         debug_message "Parsing %s" pdiff;
         let cmds = with_in_channel open_in pdiff' Patch.parse in
         Some (index_info, cmds, next)
@@ -77,9 +76,9 @@ let apply pdiff =
   | Some (info, cmds, info') ->
       let index = Filename.chop_suffix dir ".diff" ^ ".gz" in
       let patch file =
-        if is_valid file_sha1sum info file then begin
+        if Control_file.is_valid file_sha1sum info file then begin
           apply_pdiff cmds file;
-          if is_valid file_sha1sum info' file then begin
+          if Control_file.is_valid file_sha1sum info' file then begin
             debug_message "Applied %s" pdiff;
             compress ~src: file ~dst: index;
             rm pdiff
@@ -96,10 +95,11 @@ let apply_pdiffs file pdiffs final index =
   let patch (index_info, name, pdiff_info) =
     let pdiff = name ^ ".gz" in
     let check_and_apply pdiff' =
-      if is_valid file_sha1sum pdiff_info pdiff' then begin
+      if Control_file.is_valid file_sha1sum pdiff_info pdiff' then begin
         debug_message "Parsing %s" pdiff;
         let cmds = with_in_channel open_in pdiff' Patch.parse in
-        if is_valid file_sha1sum index_info file then apply_pdiff cmds file
+        if Control_file.is_valid file_sha1sum index_info file then
+          apply_pdiff cmds file
         else (debug_message "Invalid index %s" file; raise Exit)
       end else (debug_message "Invalid pdiff %s" pdiff; raise Exit)
     in
@@ -108,7 +108,7 @@ let apply_pdiffs file pdiffs final index =
   in
   try
     List.iter patch pdiffs;
-    if is_valid file_sha1sum final file then begin
+    if Control_file.is_valid file_sha1sum final file then begin
       debug_message "Updated %s" (shorten index);
       compress ~src: file ~dst: index;
       remove_pdiffs pdiffs

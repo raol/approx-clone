@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Garbage-collect the approx cache using a mark-sweep algorithm.
@@ -10,7 +10,6 @@
 
 open Util
 open Config
-open Control_file
 
 let usage () =
   print "Usage: approx-gc [options]
@@ -92,22 +91,21 @@ let mark_file checksum prefix (info, file) =
   let path = prefix ^/ canonical file in
   try
     match get_status path with
-    | None -> set_status path (Some (validate ?checksum info path))
+    | None -> set_status path (Some (Control_file.validate ?checksum info path))
     | Some _ -> (* already marked *) ()
   with
     Not_found -> ()
 
 let mark_package prefix fields =
-  let filename = List.assoc "filename" fields in
-  let size = Int64.of_string (List.assoc "size" fields) in
-  let sum, func = get_checksum fields in
+  let filename = Control_file.lookup "filename" fields in
+  let size = Int64.of_string (Control_file.lookup "size" fields) in
+  let sum, func = Control_file.get_checksum fields in
   let checksum = if no_checksum then None else Some func in
   mark_file checksum prefix ((sum, size), filename)
 
 let mark_source prefix fields =
-  let dir = List.assoc "directory" fields in
-  let files = List.assoc "files" fields in
-  let info = info_list files in
+  let dir = Control_file.lookup "directory" fields in
+  let info = Control_file.lookup_info "files" fields in
   let checksum = if no_checksum then None else Some file_md5sum in
   List.iter (mark_file checksum (prefix ^/ dir)) info
 
@@ -125,9 +123,9 @@ let mark () =
 
 let status_suffix = function
   | None -> ""
-  | Some (Wrong_size _) -> ": incorrect size"
-  | Some (Wrong_checksum _) -> ": incorrect checksum"
-  | Some Valid -> assert false
+  | Some (Control_file.Wrong_size _) -> ": incorrect size"
+  | Some (Control_file.Wrong_checksum _) -> ": incorrect checksum"
+  | Some Control_file.Valid -> assert false
 
 let print_gc file status =
   if not quiet then
@@ -138,7 +136,7 @@ let inactive file =
 
 let sweep () =
   let gc file = function
-    | Some Valid -> ()
+    | Some Control_file.Valid -> ()
     | status ->
         if inactive file then begin
           print_gc file status;
