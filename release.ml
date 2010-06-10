@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Util
@@ -37,7 +37,9 @@ let validate (rdir, (info_list, checksum)) file =
       debug_message "%s: not found in %s/Release" (shorten file) (shorten rdir);
     false
 
-let valid_file file = try validate (read file) file with Not_found -> false
+let valid_file file =
+  try validate (read file) file
+  with Control_file.Missing _ -> false
 
 let is_variant variants file = List.mem (Filename.basename file) variants
 
