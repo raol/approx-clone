@@ -10,16 +10,22 @@ Changing the location of the approx cache
   filesystem with a lost+found directory in it, to avoid complaints from
   the approx-gc program.
 
+Changing the temporary directory used by approx
+
+  The TMPDIR environment variable can be used to specify the temporary
+  directory used by approx. Please see the section on
+  "Passing environment variables to approx", below.
+
 Exporting a local package repository
 
-  This is supported with file URLs.  Note that the syntax for file URLs
+  This is supported with file URLs. Note that the syntax for file URLs
   requires 3 leading slashes (two for the URL syntax, and one for the root
-  of the pathname).  So you can add something like this to /etc/approx.conf:
+  of the pathname). So you can add something like this to /etc/approx.conf:
 
       local   file:///my/local/repo
 
   The repo must have the structure that apt expects, including a
-  Packages.gz index.  You can maintain a local repo with a tool like
+  Packages.gz index. You can maintain a local repo with a tool like
   dpkg-scanpackages or reprepro.
 
 Changing the TCP port on which approx listens
@@ -30,7 +36,7 @@ Changing the TCP port on which approx listens
 Changing the IP addresses on which approx listens
 
   Add a host address specifier at the beginning of the approx entry
-  in /etc/inetd.conf.  See the inetd(8) manual page for details.
+  in /etc/inetd.conf. See the inetd(8) manual page for details.
 
 Controlling access to approx using TCP wrappers (hosts.allow and hosts.deny)
 
@@ -47,12 +53,26 @@ Making approx use a proxy for its downloads
   Since approx uses the curl(1) command to download files from
   remote repositories, you can use the http_proxy environment variable
   (or one of the others documented in the curl(1) manual page).
+  Please see the section on "Passing environment variables to approx", below.
 
-  To pass this to approx, modify the inetd.conf entry for approx to run
-  an executable wrapper script instead of the /usr/sbin/approx binary.
-  You can use something like this for the wrapper:
+Handling high client load
 
-      #!/bin/sh
+  The openbsd-inetd version of inetd limits the rate of requests by default.
+  See the inetd(8) man page for ways to change the limit.
 
-      export http_proxy=myproxy.org:1234
-      exec /usr/sbin/approx
+Passing environment variables to approx
+
+  The openbsd-inetd version of inetd passes only certain environment
+  variables to servers. Here are some workarounds:
+
+  1. Modify the inetd.conf entry for approx to run an executable wrapper
+     script instead of the /usr/sbin/approx binary. You can use something
+     like this for the wrapper:
+
+         #!/bin/sh
+         export MY_ENVIRONMENT_VARIABLE=...
+         exec /usr/sbin/approx
+
+  2. Modify the inetd.conf entry for approx to run the "/usr/bin/env" command,
+     with the desired environment variable settings and "/usr/sbin/approx"
+     as arguments.
