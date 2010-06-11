@@ -99,6 +99,10 @@ val with_process : ?error:string -> string -> (in_channel -> 'a) -> 'a
 
 val gensym : string -> string
 
+(* Return the name of the temporary file directory *)
+
+val tmp_dir : unit -> string
+
 (* Attempt to remove a file but ignore any errors *)
 
 val rm : string -> unit
