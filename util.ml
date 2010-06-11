@@ -47,7 +47,7 @@ let (^/) = Filename.concat
 
 let make_directory path =
   (* Create a directory component in the path.  Since it might be
-     created concurrently, we have to ignore the Unix EEXIST error --
+     created concurrently, we have to ignore the Unix EEXIST error:
      simply testing for existence first introduces a race condition. *)
   let make_dir name =
     try mkdir name 0o755
@@ -249,11 +249,13 @@ let update_ctime name =
 let directory_exists dir =
   Sys.file_exists dir && Sys.is_directory dir
 
+let is_symlink name = (lstat name).st_kind = S_LNK
+
 let rec fold_dirs f init path =
   let visit acc name =
     fold_dirs f acc (path ^/ name)
   in
-  if directory_exists path then
+  if directory_exists path && not (is_symlink path) then
     Array.fold_left visit (f init path) (try Sys.readdir path with _ -> [||])
   else
     init
@@ -262,9 +264,9 @@ let rec fold_non_dirs f init path =
   let visit acc name =
     fold_non_dirs f acc (path ^/ name)
   in
-  if directory_exists path then
+  if directory_exists path && not (is_symlink path) then
     Array.fold_left visit init (try Sys.readdir path with _ -> [||])
-  else if Sys.file_exists path then
+  else if Sys.file_exists path && not (is_symlink path) then
     f init path
   else
     init

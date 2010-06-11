@@ -160,6 +160,10 @@ val update_ctime : string -> unit
 
 val directory_exists : string -> bool
 
+(* Check if a filename is a symbolic link *)
+
+val is_symlink : string -> bool
+
 (* Create a generic iterator function from a fold function *)
 
 val iter_of_fold : ((unit -> 'a) -> unit -> 'b) -> 'a -> 'b
