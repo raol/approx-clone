@@ -47,7 +47,7 @@ let (^/) = Filename.concat
 
 let make_directory path =
   (* Create a directory component in the path.  Since it might be
-     created concurrently, we have to ignore the Unix EEXIST error --
+     created concurrently, we have to ignore the Unix EEXIST error:
      simply testing for existence first introduces a race condition. *)
   let make_dir name =
     try mkdir name 0o755
@@ -144,6 +144,25 @@ let gensym str =
     (getpid ())
     (fst (modf (gettimeofday ())) *. 1e9)
 
+(* Use the default temporary directory unless it has been set
+   to something inaccessible, in which case use "/tmp" *)
+
+let tmp_dir_name = ref None
+
+let tmp_dir () =
+  match !tmp_dir_name with
+  | Some dir -> dir
+  | None ->
+      let dir =
+        try
+          let dir = Filename.temp_dir_name in
+          access dir [R_OK; W_OK; X_OK];
+          dir
+        with Unix_error _ -> "/tmp"
+      in
+      tmp_dir_name := Some dir;
+      dir
+
 let rm file = try Sys.remove file with _ -> ()
 
 let decompressors =
@@ -154,12 +173,17 @@ let is_compressed file =
   | "" -> false
   | ext -> List.mem_assoc ext decompressors
 
+(* Decompress a file to a temporary file,
+   rather than reading from a pipe or using the CamlZip library,
+   so that we detect corrupted files before partially processing them.
+   This is also significantly faster than using CamlZip. *)
+
 let decompress file =
   match extension file with
   | "" -> invalid_arg "decompress"
   | ext ->
       let prog = List.assoc ext decompressors in
-      let tmp = "/tmp" ^/ gensym (Filename.basename file) in
+      let tmp = (tmp_dir ()) ^/ gensym (Filename.basename file) in
       let cmd = sprintf "%s %s > %s" prog file tmp in
       if Sys.command cmd = 0 then tmp
       else (rm tmp; failwith "decompress")
@@ -170,11 +194,7 @@ let decompress_and_apply f file =
   if is_compressed file then with_decompressed file f
   else f file
 
-(* Return a channel for reading a possibly compressed file.
-   We decompress it to a temporary file first,
-   rather than reading from a pipe or using the CamlZip library,
-   so that we detect corrupted files before partially processing them.
-   This is also significantly faster than using CamlZip. *)
+(* Return a channel for reading a possibly compressed file. *)
 
 let open_file = decompress_and_apply open_in
 
@@ -229,11 +249,13 @@ let update_ctime name =
 let directory_exists dir =
   Sys.file_exists dir && Sys.is_directory dir
 
+let is_symlink name = (lstat name).st_kind = S_LNK
+
 let rec fold_dirs f init path =
   let visit acc name =
     fold_dirs f acc (path ^/ name)
   in
-  if directory_exists path then
+  if directory_exists path && not (is_symlink path) then
     Array.fold_left visit (f init path) (try Sys.readdir path with _ -> [||])
   else
     init
@@ -242,9 +264,9 @@ let rec fold_non_dirs f init path =
   let visit acc name =
     fold_non_dirs f acc (path ^/ name)
   in
-  if directory_exists path then
+  if directory_exists path && not (is_symlink path) then
     Array.fold_left visit init (try Sys.readdir path with _ -> [||])
-  else if Sys.file_exists path then
+  else if Sys.file_exists path && not (is_symlink path) then
     f init path
   else
     init

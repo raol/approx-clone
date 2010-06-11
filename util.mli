@@ -99,6 +99,10 @@ val with_process : ?error:string -> string -> (in_channel -> 'a) -> 'a
 
 val gensym : string -> string
 
+(* Return the name of the temporary file directory *)
+
+val tmp_dir : unit -> string
+
 (* Attempt to remove a file but ignore any errors *)
 
 val rm : string -> unit
@@ -155,6 +159,10 @@ val update_ctime : string -> unit
 (* Check if a filename exists and is a directory *)
 
 val directory_exists : string -> bool
+
+(* Check if a filename is a symbolic link *)
+
+val is_symlink : string -> bool
 
 (* Create a generic iterator function from a fold function *)
 
