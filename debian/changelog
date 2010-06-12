@@ -1,3 +1,14 @@
+approx (4.3-1) unstable; urgency=low
+
+  * New upstream version
+  * Use TMPDIR if accessible, otherwise use /tmp (closes: #573593)
+  * Catch correct exception when Release file is missing md5sum section
+    (closes: #573039)
+  * Add explanation for openbsd-inetd rate-limiting (closes: #581220)
+  * Avoid symlinks when traversing directories (closes: #582294)
+
+ -- Eric Cooper <ecc@cmu.edu>  Sat, 12 Jun 2010 10:35:25 -0400
+
 approx (4.2-1) unstable; urgency=low
 
   * New upstream version
