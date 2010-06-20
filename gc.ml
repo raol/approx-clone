@@ -139,11 +139,11 @@ let sweep () =
   let gc file = function
     | Some Control_file.Valid -> ()
     | status ->
-        if inactive file then begin
-          print_gc file status;
-          if not simulate then perform Sys.remove file
-        end else
-          if verbose then print "%s: not old enough to remove" (shorten file)
+        if inactive file then
+          (print_gc file status;
+           if not simulate then perform Sys.remove file)
+        else if verbose then
+          print "%s: not old enough to remove" (shorten file)
   in
   iter_status gc
 
@@ -158,9 +158,8 @@ let empty_dirs =
   fold_dirs collect_empty []
 
 let remove_dir dir =
-  if not quiet then begin
-    print "%s%s" (shorten dir) (if verbose then ": empty directory" else "/")
-  end;
+  if not quiet then
+    print "%s%s" (shorten dir) (if verbose then ": empty directory" else "/");
   (* any exception raised by rmdir will terminate the pruning loop *)
   if not simulate then perform Unix.rmdir dir
 
