@@ -425,18 +425,31 @@ let ims_time env =
 
 let server_error msg = `Std_response (`Internal_server_error, None, Some msg)
 
+let is_repository name =
+  try String.index name '/' = String.length name - 1
+  with Not_found -> true
+
+let redirect url =
+  debug_message "  => redirect to %s" url;
+  let header = new Netmime.basic_mime_header ["Location", url] in
+  `Std_response (`Temporary_redirect, Some header, None)
+
 let serve_file env =
   (* handle URL-encoded '+', '~', etc. *)
   let path = Netencoding.Url.decode ~plus: false env#cgi_request_uri in
-  try
-    let url, name = Url.translate_request path in
-    if should_pass_through name then cache_miss url name 0. 0.
-    else
-      let ims = ims_time env in
-      match serve_local name ims env with
-      | Done reaction -> reaction
-      | Cache_miss mod_time -> cache_miss url name ims mod_time
-  with Failure msg | Invalid_argument msg-> server_error msg
+  if path = "/" then
+    `Static (`Ok, None, Config.index)
+  else
+    try
+      let url, name = Url.translate_request path in
+      if is_repository name then redirect url
+      else if should_pass_through name then cache_miss url name 0. 0.
+      else
+        let ims = ims_time env in
+        match serve_local name ims env with
+        | Done reaction -> reaction
+        | Cache_miss mod_time -> cache_miss url name ims mod_time
+    with Failure msg | Invalid_argument msg-> server_error msg
 
 let process_header env =
   debug_message "Connection from %s"

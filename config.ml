@@ -40,3 +40,49 @@ let max_wait = get_int "$max_wait" ~default: 10 (* seconds *)
 
 let debug = get_bool "$debug" ~default: false
 let verbose = get_bool "$verbose" ~default: false || debug
+
+let collect k v (r, s) =
+  if k.[0] = '$' then r, (k, v) :: s
+  else (k, v) :: r, s
+
+let repositories, parameters = fold collect ([], [])
+
+let sort_config = List.sort (fun x y -> compare (fst x) (fst y))
+
+let repository_table =
+  String.concat "\n"
+    (List.map
+       (fun (k, v) ->
+          "<tr><td>" ^ k ^ "</td>\
+               <td><a href=\"" ^ v ^ "\">" ^ v ^ "</a></td></tr>")
+       (sort_config repositories))
+
+let parameter_table =
+  String.concat "\n"
+    (List.map
+       (fun (k, v) -> "<tr><td>" ^ k ^ "</td><td>" ^ v ^ "</td></tr>")
+       (sort_config parameters))
+
+let css =
+  "body { margin: 12pt }\n\
+   td { padding-left: 12pt }\n\
+   td h2 { padding-top: 18pt }\n"
+
+let index =
+  "<html>\n\
+     <head>\n\
+       <title>approx server</title>\n\
+       <style type=\"text/css\">\n" ^
+       css ^
+      "</style>\n\
+     </head>\n\
+     <body>\n\
+       <h1>approx " ^ version ^ "</h1>\n\
+       <table>\n\
+         <tr><td colspan=\"2\"><h2>Repository Mappings</h2></td></tr>\n" ^
+         repository_table ^
+        "<tr><td colspan=\"2\"><h2>Configuration Parameters</h2></td></tr>\n" ^
+         parameter_table ^
+      "</table>\n\
+     </body>\n\
+   </html>"
