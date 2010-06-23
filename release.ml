@@ -39,7 +39,7 @@ let validate (rdir, (info_list, checksum)) file =
 
 let valid_file file =
   try validate (read file) file
-  with Control_file.Missing _ -> false
+  with Not_found | Control_file.Missing _ -> false
 
 let is_variant variants file = List.mem (Filename.basename file) variants
 
