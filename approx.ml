@@ -423,7 +423,14 @@ let ims_time env =
   try Netdate.parse_epoch (env#input_header#field "If-Modified-Since")
   with Not_found | Invalid_argument _ -> 0.
 
-let server_error msg = `Std_response (`Internal_server_error, None, Some msg)
+let server_error e =
+  let bt = Printexc.get_backtrace () in
+  if bt <> "" then begin
+    error_message "%s" "Uncaught exception";
+    let pr s = if s <> "" then error_message "  %s" s in
+    List.iter pr (split_lines bt)
+  end;
+  `Std_response (`Internal_server_error, None, Some (string_of_exception e))
 
 let is_repository name =
   try String.index name '/' = String.length name - 1
@@ -449,7 +456,7 @@ let serve_file env =
         match serve_local name ims env with
         | Done reaction -> reaction
         | Cache_miss mod_time -> cache_miss url name ims mod_time
-    with Failure msg | Invalid_argument msg-> server_error msg
+    with e -> server_error e
 
 let process_header env =
   debug_message "Connection from %s"
