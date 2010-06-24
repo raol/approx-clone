@@ -1,8 +1,8 @@
 .\" approx: proxy server for Debian archive files
-.\" Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+.\" Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH APPROX.CONF 5 "March 2009"
+.TH APPROX.CONF 5 "June 2010"
 .\" Please adjust this date when revising the manpage.
 
 .SH NAME
@@ -20,6 +20,12 @@ Comments start with a "#" character and continue to the end of the line.
 .PP
 Names that begin with the "$" character are reserved for use as
 configuration parameters.  The following parameters are currently defined:
+.IP $cache
+Specifies the location of the approx cache directory
+(default:
+.IR /var/cache/approx ).
+It and all its subdirectories must be owned by the approx server
+(see also the $user and $group parameters, below.)
 .IP $max_rate
 Specifies the maximum download rate from remote repositories,
 in bytes per second (default: unlimited).

@@ -23,15 +23,15 @@ let verbose = ref false
 let files = ref []
 
 let () =
-  for i = 1 to Array.length Sys.argv - 1 do
-    match Sys.argv.(i) with
-    | "-k" | "--keep" | "-s" | "--simulate" -> simulate := true
-    | "-q" | "--quiet" -> quiet := true
-    | "-v" | "--verbose" -> verbose := true
-    | arg ->
-        if arg.[0] = '-' then usage ()
-        else files := arg :: !files
-  done
+  List.iter
+    (function
+       | "-k" | "--keep" | "-s" | "--simulate" -> simulate := true
+       | "-q" | "--quiet" -> quiet := true
+       | "-v" | "--verbose" -> verbose := true
+       | arg ->
+           if arg.[0] = '-' then usage ()
+           else files := arg :: !files)
+    arguments
 
 let simulate = !simulate
 let quiet = !quiet

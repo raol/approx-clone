@@ -1,8 +1,8 @@
 .\" approx: proxy server for Debian archive files
-.\" Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+.\" Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH APPROX-GC 8 "March 2009"
+.TH APPROX-GC 8 "June 2010"
 .\" Please adjust this date whenever revising the manpage.
 
 .SH NAME
@@ -39,6 +39,10 @@ file.
 may take several minutes to finish.
 
 .SH OPTIONS
+.TP
+.BR \-c " file, " \-\^\-config " file"
+Specify an additional configuration file.
+May be used multiple times.
 .TP
 .BR \-f ", " \-\^\-fast
 Don't perform checksum validation.
@@ -77,7 +81,7 @@ and related programs.
 .TP
 .I /var/cache/approx
 .br
-Cache directory for archive files.
+Default cache directory for archive files.
 
 .SH SEE ALSO
 .IR approx.conf (5),

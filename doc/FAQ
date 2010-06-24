@@ -1,15 +1,3 @@
-Changing the location of the approx cache
-
-  Move your cache where you want it, then
-  replace the /var/cache/approx directory by a symlink:
-
-      mv /var/cache/approx /somewhere
-      ln -s /somewhere/approx /var/cache/approx
-
-  You should use a subdirectory for the cache, not a top-level
-  filesystem with a lost+found directory in it, to avoid complaints from
-  the approx-gc program.
-
 Changing the temporary directory used by approx
 
   The TMPDIR environment variable can be used to specify the temporary
@@ -19,8 +7,9 @@ Changing the temporary directory used by approx
 Exporting a local package repository
 
   This is supported with file URLs. Note that the syntax for file URLs
-  requires 3 leading slashes (two for the URL syntax, and one for the root
-  of the pathname). So you can add something like this to /etc/approx.conf:
+  requires 3 leading slashes (two for the URL syntax, and one for
+  the root of the pathname). So you can add something like this
+  to /etc/approx/approx.conf:
 
       local   file:///my/local/repo
 
