@@ -472,7 +472,7 @@ let serve_file env =
         | Cache_miss mod_time -> cache_miss url name ims mod_time
     with e -> server_error e
 
-let process_header env =
+let process_request env =
   debug_message "Connection from %s"
     (string_of_sockaddr env#remote_socket_addr ~with_port: true);
   let meth = env#cgi_request_method in
@@ -515,7 +515,7 @@ let proxy_service =
     method name = "proxy_service"
     method def_term = `Proxy_service
     method print fmt = Format.fprintf fmt "%s" "proxy_service"
-    method process_header = process_header
+    method process_header = process_request
   end
 
 let approx () =
