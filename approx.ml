@@ -53,6 +53,8 @@ type local_status =
   | Done of Nethttpd_types.http_service_reaction
   | Cache_miss of float
 
+let head_request env = env#cgi_request_method = "HEAD"
+
 (* Deliver a file from the local cache *)
 
 let deliver_local name env =
@@ -60,7 +62,8 @@ let deliver_local name env =
   let size = file_size name in
   env#set_output_header_fields (proxy_headers size (file_modtime name));
   debug_headers "Local response" env#output_header_fields;
-  Done (`File (`Ok, None, cache_dir ^/ name, 0L, size))
+  let file = if head_request env then "/dev/null" else cache_dir ^/ name in
+  Done (`File (`Ok, None, file, 0L, size))
 
 let not_modified () =
   debug_message "  => not modified";
@@ -235,6 +238,10 @@ let finish_delivery resp =
     close_cache resp.cache resp.length resp.last_modified;
   if resp.length >= 0L or resp.cache = Pass_through then Delivered else Cached
 
+let finish_head resp cgi =
+  send_header resp.length resp.last_modified cgi;
+  Delivered
+
 let with_pair rex str proc =
   match Pcre.extract ~rex ~full_match: false str with
   | [| a; b |] -> proc (a, b)
@@ -301,11 +308,15 @@ let download_http resp url name ims cgi =
   in
   let header_callback = process_header resp in
   let body_callback = process_body resp cgi in
+  let is_head = head_request cgi#environment in
   let rec loop redirects =
     resp.status <- 0;
-    Url.download resp.location ~headers ~header_callback body_callback;
+    if is_head then
+      Url.head url header_callback
+    else
+      Url.download resp.location ~headers ~header_callback body_callback;
     match resp.status with
-    | 200 -> finish_delivery resp
+    | 200 -> if is_head then finish_head resp cgi else finish_delivery resp
     | 304 -> Not_modified
     | 301 | 302 | 303 | 307 ->
         if redirects < max_redirects then loop (redirects + 1)
@@ -326,6 +337,7 @@ let download_ftp resp url name ims cgi =
   debug_message "  ims %s  mtime %s"
     (Url.string_of_time ims) (Url.string_of_time mod_time);
   if 0. < mod_time && mod_time <= ims then Not_modified
+  else if head_request cgi#environment then finish_head resp cgi
   else begin
     resp.status <- 200;  (* for process_body *)
     Url.download url (process_body resp cgi);
@@ -372,7 +384,8 @@ let copy_from_cache name cgi =
   wait_for_download_in_progress name;
   send_header (file_size name) (file_modtime name) cgi;
   let output = cgi#output in
-  with_in_channel open_in name (copy_to output);
+  if not (head_request cgi#environment) then
+    with_in_channel open_in name (copy_to output);
   output#commit_work ()
 
 let serve_remote url name ims mod_time cgi =
@@ -389,7 +402,7 @@ let serve_remote url name ims mod_time cgi =
   match status with
   | Delivered ->
       cgi#output#commit_work ();
-      cleanup_after url name
+      if not (head_request cgi#environment) then cleanup_after url name
   | Cached ->
       copy_from_cache name cgi;
       cleanup_after url name
@@ -445,7 +458,8 @@ let serve_file env =
   (* handle URL-encoded '+', '~', etc. *)
   let path = Netencoding.Url.decode ~plus: false env#cgi_request_uri in
   if path = "/" then
-    `Static (`Ok, None, Config.index)
+    let content = if head_request env then "" else Config.index in
+    `Static (`Ok, None, content)
   else
     try
       let url, name = Url.translate_request path in
@@ -461,9 +475,10 @@ let serve_file env =
 let process_header env =
   debug_message "Connection from %s"
     (string_of_sockaddr env#remote_socket_addr ~with_port: true);
-  debug_headers (sprintf "Request: %s" env#cgi_request_uri)
+  let meth = env#cgi_request_method in
+  debug_headers (sprintf "Request: %s %s" meth env#cgi_request_uri)
     env#input_header_fields;
-  if env#cgi_request_method = "GET" && env#cgi_query_string = "" then
+  if (meth = "GET" || meth = "HEAD") && env#cgi_query_string = "" then
     serve_file env
   else
     `Std_response (`Forbidden, None, Some "invalid HTTP request")
