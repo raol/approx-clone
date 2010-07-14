@@ -8,13 +8,7 @@ case "$1" in
 esac
 
 # add the approx user
-adduser --quiet --system --group --no-create-home --home /var/cache/approx approx
-
-# create the approx cache directory if necessary
-if [ ! -d /var/cache/approx ]; then
-    mkdir /var/cache/approx
-    chown approx:approx /var/cache/approx
-fi
+adduser --quiet --system --group --home /var/cache/approx approx
 
 # first remove any "vanilla" entry from /etc/inetd.conf
 update-inetd --remove '^(\d|\w)+\s.*\bapprox\b'
