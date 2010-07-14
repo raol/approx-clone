@@ -1,3 +1,13 @@
+approx (4.4-1) unstable; urgency=low
+
+  The configuration file for approx can now be specified on the command line
+  (i.e., the /etc/inetd.conf entry) using the "-c" or "--config" option.
+
+  The pathname of the cache directory can now be specified in the
+  configuration file using the $cache parameter.
+
+ -- Eric Cooper <ecc@cmu.edu>  Tue, 13 Jul 2010 17:49:35 -0400
+
 approx (4.0-1) unstable; urgency=low
 
   The approx program no longer runs as an independent daemon;

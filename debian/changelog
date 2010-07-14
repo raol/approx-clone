@@ -1,3 +1,15 @@
+approx (4.4-1) unstable; urgency=low
+
+  * New upstream version
+  * Provide directory index for cache (closes: #577969)
+  * Redirect requests for top levels of remote repositories
+  * Handle Not_found exception from find_directory (closes: #573039)
+  * Support multiple config files and alternate cache location
+    (closes: #519497, #580663)
+  * Support for HEAD requests (closes: #524984)
+
+ -- Eric Cooper <ecc@cmu.edu>  Tue, 13 Jul 2010 17:49:35 -0400
+
 approx (4.3-1) unstable; urgency=low
 
   * New upstream version
