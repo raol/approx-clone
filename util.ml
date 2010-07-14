@@ -251,25 +251,37 @@ let directory_exists dir =
 
 let is_symlink name = (lstat name).st_kind = S_LNK
 
-let rec fold_dirs f init path =
-  let visit acc name =
-    fold_dirs f acc (path ^/ name)
-  in
-  if directory_exists path && not (is_symlink path) then
-    Array.fold_left visit (f init path) (try Sys.readdir path with _ -> [||])
-  else
-    init
+let directory_uid name =
+  try
+    let stats = stat name in
+    if stats.st_kind = S_DIR then Some (stats.st_dev, stats.st_ino)
+    else None
+  with _ -> None
 
-let rec fold_non_dirs f init path =
-  let visit acc name =
-    fold_non_dirs f acc (path ^/ name)
+let fold_fs_tree non_dirs f init path =
+  let rec walk uids_seen init path =
+    let visit uids acc name =
+      walk uids acc (path ^/ name)
+    in
+    let uid = directory_uid path in
+    if uid <> None then
+      if List.mem uid uids_seen then (* cycle detected *)
+        init
+      else
+        let uids_seen = uid :: uids_seen in
+        let children = try Sys.readdir path with _ -> [||] in
+        let init = if non_dirs then init else f init path in
+        Array.fold_left (visit uids_seen) init children
+    else if non_dirs && Sys.file_exists path then
+      f init path
+    else
+      init
   in
-  if directory_exists path && not (is_symlink path) then
-    Array.fold_left visit init (try Sys.readdir path with _ -> [||])
-  else if Sys.file_exists path && not (is_symlink path) then
-    f init path
-  else
-    init
+  walk [] init path
+
+let fold_dirs f = fold_fs_tree false f
+
+let fold_non_dirs f = fold_fs_tree true f
 
 let iter_of_fold fold proc = fold (fun () -> proc) ()
 
