@@ -16,7 +16,7 @@ update-inetd --remove '^(\d|\w)+\s.*\bapprox\b'
 # add entry to /etc/inetd.conf
 db_get approx/port
 port="$RET"
-update-inetd --add "$port\t\tstream\ttcp\tnowait\tapprox\t/usr/sbin/approx"
+update-inetd --add "$port\t\tstream\ttcp\tnowait\tapprox\t/usr/sbin/approx /usr/sbin/approx"
 
 if dpkg --compare-versions "$2" lt "4.0"; then
     if [ -f /etc/default/approx ]; then
