@@ -55,8 +55,13 @@ let find_pdiff pdiff (diffs, final) =
   | [cur] -> check_pdiff cur final
   | [] -> None
 
+(* Pdiff application must result in a Packages or Sources file
+   that is identical to the one in the official archive.
+   So this function must use the same gzip parameters that dak does --
+   see http://ftp-master.debian.org/git/dak.git *)
+
 let compress ~src ~dst =
-  let cmd = Printf.sprintf "/bin/gzip -9 --no-name --stdout %s > %s" src dst in
+  let cmd = Printf.sprintf "/bin/gzip --rsyncable -9cn %s > %s" src dst in
   debug_message "Compressing: %s" cmd;
   if Sys.command cmd <> 0 then failwith "compress"
 
