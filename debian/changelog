@@ -1,3 +1,16 @@
+approx (4.5-1) unstable; urgency=low
+
+  * New upstream version
+  * The inetd.conf entry created by the postinst script requires an
+    additional argv[0] after the approx pathname.  This problem went
+    unnoticed with openbsd-inetd, but inetutils-inetd would exec the program
+    with an empty argv[] (closes: #589937)
+  * Compress files with the same gzip parameters that dak uses,
+    so pdiff application can succeed (closes: #593428)
+  * Update Standards-Version to 3.9.1
+
+ -- Eric Cooper <ecc@cmu.edu>  Wed, 18 Aug 2010 09:10:40 -0400
+
 approx (4.4-1) unstable; urgency=low
 
   * New upstream version
@@ -7,6 +20,8 @@ approx (4.4-1) unstable; urgency=low
   * Support multiple config files and alternate cache location
     (closes: #519497, #580663)
   * Support for HEAD requests (closes: #524984)
+  * Detect cycles when traversing directory trees (closes: #582294)
+  * Update Standards-Version to 3.9.0
 
  -- Eric Cooper <ecc@cmu.edu>  Tue, 13 Jul 2010 17:49:35 -0400
 
