@@ -1,3 +1,15 @@
+approx (4.6-1) unstable; urgency=low
+
+  * New upstream version
+  * Support InRelease files (release files with inline signatures)
+  * Add Danish debconf translation (closes: #596464)
+  * Add FAQ entry about changing cache location (closes: #597949)
+  * Improve redirect handling (closes: #611975)
+  * Use dh instead of cdbs
+  * Update Standards-Version to 3.9.2
+
+ -- Eric Cooper <ecc@cmu.edu>  Thu, 28 Apr 2011 14:22:11 -0400
+
 approx (4.5-1) unstable; urgency=low
 
   * New upstream version
