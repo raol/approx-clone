@@ -1,23 +1,11 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2007  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-(* Find the first directory in the path leading to the given file
-   that contains a Release file, or raise Not_found *)
+(* Find the newest InRelease or Release file in the given directory
+   or raise Not_found *)
 
-val find_directory : string -> string
-
-(* Abstract type representing Release file contents *)
-
-type t
-
-(* Read the Release file corresponding to the given file, or raise Not_found *)
-
-val read : string -> t
-
-(* Validate a file using the information from a Release file *)
-
-val validate : t -> string -> bool
+val newest : string -> string
 
 (* Check if a file is valid according to the corresponding Release file *)
 
@@ -35,7 +23,7 @@ val is_sources_file : string -> bool
 
 val is_index : string -> bool
 
-(* Check if a file is a Release file *)
+(* Check if a file is an InRelease, Release, or Release.gpg file *)
 
 val is_release : string -> bool
 

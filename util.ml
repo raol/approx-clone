@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -204,21 +204,16 @@ let compressed_versions name =
 
 let file_modtime file = (stat file).st_mtime
 
-let newest_version file =
+let newest_file list =
   let newest cur name =
     try
       let modtime = file_modtime name in
       match cur with
+      | Some (f, t) -> if modtime > t then Some (name, modtime) else cur
       | None -> Some (name, modtime)
-      | Some (f, t) ->
-          if modtime > t || (modtime = t && name = file) then
-            (* return the original file if it is tied for newest *)
-            Some (name, modtime)
-          else cur
     with Unix_error (ENOENT, "stat", _) -> cur
   in
-  let versions = compressed_versions (without_extension file) in
-  match List.fold_left newest None versions with
+  match List.fold_left newest None list with
   | Some (f, _) -> f
   | None -> raise Not_found
 

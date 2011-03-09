@@ -1,40 +1,44 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Util
 open Config
 open Log
 
-type t = string * ((Control_file.info * string) list * (string -> string))
+let newest dir = newest_file [dir ^/ "InRelease"; dir ^/ "Release"]
 
-let find_directory file =
+(* Find the first Release file in the path leading to the given file
+   or raise Not_found *)
+
+let find file =
   let rec loop i =
     let dir = substring file ~until: i in
-    if Sys.file_exists (dir ^/ "Release") then dir
-    else loop (String.index_from file (i + 1) '/')
+    try newest dir
+    with Not_found -> loop (String.index_from file (i + 1) '/')
   in
   (* if pathname is absolute, start relative to the cache directory *)
   let start =
     if file.[0] <> '/' then 0
     else if is_prefix cache_dir file then String.length cache_dir + 1
-    else invalid_arg "Release.find_directory"
+    else invalid_arg "Release.find"
   in
   loop start
 
 let read file =
-  let rdir = find_directory file in
-  rdir, Control_file.read_checksum_info (rdir ^/ "Release")
+  let release = find file in
+  release, Control_file.read_checksum_info release
 
-let validate (rdir, (info_list, checksum)) file =
+let validate (release, (info_list, checksum)) file =
   Sys.file_exists file &&
+  let rdir = Filename.dirname release in
   let rfile = substring file ~from: (String.length rdir + 1) in
   try
     let info = fst (List.find (fun (_, name) -> name = rfile) info_list) in
     Control_file.is_valid checksum info file
   with Not_found ->
     if Filename.dirname file <> rdir then
-      debug_message "%s: not found in %s/Release" (shorten file) (shorten rdir);
+      debug_message "%s: not found in %s" (shorten file) (shorten release);
     false
 
 let valid_file file =
@@ -51,7 +55,7 @@ let is_index file = is_packages_file file || is_sources_file file
 
 let is_release file =
   match Filename.basename file with
-  | "Release" | "Release.gpg" -> true
+  | "InRelease" | "Release" | "Release.gpg" -> true
   | _ -> false
 
 let diff_index_dir file =

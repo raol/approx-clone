@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Check if the first string is a prefix of the second *)
@@ -129,9 +129,9 @@ val decompress_and_apply : (string -> 'a) -> string -> 'a
 
 val compressed_versions : string -> string list
 
-(* Return the newest possibly-compressed version of the given file *)
+(* Return the newest file in a list, or raise Not_found if none exist *)
 
-val newest_version : string -> string
+val newest_file : string list -> string
 
 (* Open a file for input, decompressing it if necessary *)
 

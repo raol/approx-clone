@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Util
@@ -37,6 +37,8 @@ let rec trim_right s i =
   in
   loop i
 
+let trim s = substring s ~until: (trim_right s (String.length s))
+
 let parse line =
   try
     let i = String.index line ':' in
@@ -49,19 +51,54 @@ let parse line =
     name, info
   with _ -> failwith ("malformed line: " ^ line)
 
-let read_paragraph file n chan =
-  let trim s =
-    substring s ~until: (trim_right s (String.length s))
+let next_line chan =
+  try Some (trim (input_line chan))
+  with End_of_file -> None
+
+(* Check if a file is a signed control file *)
+
+let is_signed file = Filename.basename file = "InRelease"
+
+(* Check the initial lines of a cleartext signed message
+   (as defined in RFC 4880) and return the new line number *)
+
+let skip_initial_lines chan =
+  let is_hash line = is_prefix "Hash:" line in
+  let rec loop n =
+    match next_line chan with
+    | None -> failwith "EOF in PGP header"
+    | Some "" -> n + 1
+    | Some line ->
+      if is_hash line then loop (n + 1)
+      else failwith ("unexpected line in PGP header: " ^ line)
   in
+  begin match next_line chan with  (* line 1 *)
+  | Some "-----BEGIN PGP SIGNED MESSAGE-----" -> ()
+  | _ -> failwith "missing PGP header"
+  end;
+  begin match next_line chan with  (* line 2 *)
+  | None -> failwith "EOF in PGP header"
+  | Some line ->
+      if not (is_hash line) then failwith "missing Hash in PGP header"
+  end;
+  loop 3
+
+let rec skip_final_lines chan =
+  match next_line chan with
+  | None -> ()
+  | Some _ -> skip_final_lines chan
+
+let read_paragraph file n chan =
   let rec loop lines i j =
-    let next =
-      try Some (trim (input_line chan))
-      with End_of_file -> None
-    in
-    match next with
+    match next_line chan with
     | None ->
         if lines <> [] then lines, i, j + 1
         else raise End_of_file
+    | Some "-----BEGIN PGP SIGNATURE-----" when is_signed file ->
+        if lines <> [] then begin
+          skip_final_lines chan;
+          lines, i, j + 1
+        end else raise End_of_file
     | Some "" ->
         if lines <> [] then lines, i, j + 1
         else loop [] (i + 1) (j + 1)
@@ -78,6 +115,7 @@ let read_paragraph file n chan =
         else
           loop (line :: lines) i (j + 1)
   in
+  let n = if n = 1 && is_signed file then skip_initial_lines chan else n in
   let fields, i, j = loop [] n n in
   { file = file; line = i; fields = List.rev_map parse fields }, j
 
@@ -107,30 +145,6 @@ let read file =
   match fold once None file with
   | Some p -> p
   | None -> failwith (file ^ " contains no paragraphs")
-
-(* Not used yet:
-
-(* A more efficient alternative to map that builds the result list
-   in reverse order *)
-
-let rev_map f = fold (fun acc p -> f p :: acc) []
-
-(* Map a function over each paragraph in a Debian control file *)
-
-let map f file = List.rev (rev_map f file)
-
-(* A more efficient alternative to filter that builds the result list
-   in reverse order *)
-
-val rev_filter : (paragraph -> bool) -> string -> paragraph list
-
-let rev_filter f = fold (fun acc p -> if f p then p :: acc else acc) []
-
-(* Return a list of paragraphs satisfying a predicate *)
-
-let filter f file = List.rev (rev_filter f file)
-
-*)
 
 let get_checksum par =
   if defined "sha256" par then
