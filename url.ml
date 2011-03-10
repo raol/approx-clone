@@ -22,6 +22,20 @@ let translate_request url =
   | [] ->
       invalid_arg "translate_request"
 
+let reverse_translate url =
+  let longest_match k v r =
+    if k.[0] <> '$' && is_prefix v url then
+      match r with
+      | Some (dist, repo) as orig ->
+          if String.length v > String.length repo then Some (k, v) else orig
+      | None -> Some (k, v)
+    else
+      r
+  in
+  match Config_file.fold longest_match None with
+  | Some (dist, repo) -> dist ^/ substring url ~from: (String.length repo + 1)
+  | None -> raise Not_found
+
 let translate_file file =
   let dist, path = split_cache_path file in
   Config_file.get dist ^/ path
