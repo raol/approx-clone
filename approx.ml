@@ -199,18 +199,15 @@ type response_state =
     mutable body_seen : bool;
     mutable cache : cache_state }
 
-let new_response =
-  let initial_state =
-    { name = "";
-      status = 0;
-      length = -1L;
-      last_modified = 0.;
-      location = "";
-      content_type = "text/plain";
-      body_seen = false;
-      cache = Undefined }
-  in
-  fun url name -> { initial_state with name = name; location = url }
+let new_response url name =
+  { name = name;
+    status = 0;
+    length = -1L;
+    last_modified = 0.;
+    location = url;
+    content_type = "text/plain";
+    body_seen = false;
+    cache = Undefined }
 
 type cgi = Netcgi1_compat.Netcgi_types.cgi_activation
 
@@ -458,8 +455,7 @@ let serve_file env =
   (* handle URL-encoded '+', '~', etc. *)
   let path = Netencoding.Url.decode ~plus: false env#cgi_request_uri in
   if path = "/" then
-    let content = if head_request env then "" else Config.index in
-    `Static (`Ok, None, content)
+    `Static (`Ok, None, if head_request env then "" else Config.index)
   else
     try
       let url, name = Url.translate_request path in
