@@ -466,7 +466,9 @@ let serve_file env =
         match serve_local name ims env with
         | Done reaction -> reaction
         | Cache_miss mod_time -> cache_miss url name ims mod_time
-    with e -> server_error e
+    with
+    | Not_found -> `Std_response (`Not_found, None, None)
+    | e -> server_error e
 
 let process_request env =
   debug_message "Connection from %s"
