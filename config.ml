@@ -89,7 +89,7 @@ let repository_table items =
   String.concat ""
     (List.map
        (fun (k, v) ->
-          "<tr><td>" ^ k ^ "</td>\
+          "<tr><td><a href=\"/" ^ k ^ "\">" ^ k ^ "</a></td>\
                <td><a href=\"" ^ v ^ "\">" ^ v ^ "</a></td></tr>\n")
        (sort_config items))
 
