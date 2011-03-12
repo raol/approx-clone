@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Garbage-collect the approx cache using a mark-sweep algorithm.
@@ -59,21 +59,41 @@ let dist_is_known file =
   let dist, _ = split_cache_path file in
   Config_file.mem dist
 
-(* Scan the cache, initializing the status of candidates for garbage
-   collection to None.  Packages and Sources files should not be
-   removed unless there is a newer version, so they are not entered
-   into the status table.  Instead they are returned as a list of
-   roots for the marking phase.  Release and Release.gpg files are
-   also omitted since they are unreachable from the roots and would
-   otherwise be removed. *)
+(* Scan the cache and add candidates for garbage collection to the
+   status table.  If a file is not in this table, it will not be
+   removed.
+
+   Packages and Sources files ("index files") are collected and
+   returned as the list of roots for the marking phase.  They are
+   added to the table only if there is a newer version (otherwise all
+   the packages they reference would be subject to possible removal).
+
+   Since Release files are unreachable from the roots and would
+   otherwise be removed, they are also added to the table only if
+   there is a newer version. *)
+
+let newest_index file =
+  newest_file (compressed_versions (without_extension file))
+
+let newest_release file =
+  Release.newest (Filename.dirname file)
 
 let scan_files () =
   let scan roots file =
-    if dist_is_known file then
-      if Release.is_index file && file = newest_version file then file :: roots
-      else if Release.is_release file then roots
-      else (set_status file None; roots)
-    else (set_status file None; roots)
+    let add () = set_status file None; roots in
+    let skip_root () = file :: roots in
+    let skip () = roots in
+    if not (dist_is_known file) then
+      add ()
+    else if Release.is_index file then
+      if file = newest_index file then skip_root ()
+      else add ()
+    else if Release.is_release file then
+      (* treat Release.gpg the same as Release *)
+      if without_extension file = newest_release file then skip ()
+      else add ()
+    else
+      add ()
   in
   fold_non_dirs scan [] cache_dir
 

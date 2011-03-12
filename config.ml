@@ -1,11 +1,11 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Config_file
 open Util
 
-let version = "4.5"
+let version = "4.6"
 
 let default_config = "/etc/approx/approx.conf"
 
@@ -89,7 +89,7 @@ let repository_table items =
   String.concat ""
     (List.map
        (fun (k, v) ->
-          "<tr><td>" ^ k ^ "</td>\
+          "<tr><td><a href=\"/" ^ k ^ "\">" ^ k ^ "</a></td>\
                <td><a href=\"" ^ v ^ "\">" ^ v ^ "</a></td></tr>\n")
        (sort_config items))
 

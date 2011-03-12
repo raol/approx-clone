@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -124,7 +124,9 @@ type cache_state =
 
 let should_pass_through name =
   if Sys.file_exists name then Sys.is_directory name
-  else let n = String.length name in n > 0 && name.[n - 1] = '/'
+  else
+    let n = String.length name in
+    n = 0 || name.[n - 1] = '/' || not (String.contains name '/')
 
 let open_cache file =
   if should_pass_through file then begin
@@ -181,12 +183,14 @@ type download_status =
   | Delivered
   | Cached
   | Not_modified
+  | Redirect of string
   | File_not_found
 
 let string_of_download_status = function
   | Delivered -> "delivered"
   | Cached -> "cached"
   | Not_modified -> "not modified"
+  | Redirect url -> "redirected to " ^ url
   | File_not_found -> "not found"
 
 type response_state =
@@ -199,18 +203,15 @@ type response_state =
     mutable body_seen : bool;
     mutable cache : cache_state }
 
-let new_response =
-  let initial_state =
-    { name = "";
-      status = 0;
-      length = -1L;
-      last_modified = 0.;
-      location = "";
-      content_type = "text/plain";
-      body_seen = false;
-      cache = Undefined }
-  in
-  fun url name -> { initial_state with name = name; location = url }
+let new_response url name =
+  { name = name;
+    status = 0;
+    length = -1L;
+    last_modified = 0.;
+    location = url;
+    content_type = "text/plain";
+    body_seen = false;
+    cache = Undefined }
 
 type cgi = Netcgi1_compat.Netcgi_types.cgi_activation
 
@@ -230,12 +231,7 @@ let pass_through_header resp (cgi : cgi) =
   debug_headers "Pass-through response" cgi#environment#output_header_fields
 
 let finish_delivery resp =
-  if should_pass_through (relative_url resp.location) then
-    (* the request was redirected to content that should not be cached,
-       like a directory listing *)
-    remove_cache resp.cache
-  else
-    close_cache resp.cache resp.length resp.last_modified;
+  close_cache resp.cache resp.length resp.last_modified;
   if resp.length >= 0L or resp.cache = Pass_through then Delivered else Cached
 
 let finish_head resp cgi =
@@ -319,11 +315,16 @@ let download_http resp url name ims cgi =
     | 200 -> if is_head then finish_head resp cgi else finish_delivery resp
     | 304 -> Not_modified
     | 301 | 302 | 303 | 307 ->
-        if redirects < max_redirects then loop (redirects + 1)
-        else begin
+        if should_pass_through (relative_url resp.location) then begin
+          (* the request was redirected to content that should not be cached,
+             like a directory listing *)
+          remove_cache resp.cache;
+          Redirect resp.location
+        end else if redirects >= max_redirects then begin
           error_message "Too many redirections for %s" url;
           File_not_found
-        end
+        end else
+          loop (redirects + 1)
     | 404 -> File_not_found
     | n -> error_message "Unexpected status code: %d" n; File_not_found
   in
@@ -388,9 +389,18 @@ let copy_from_cache name cgi =
     with_in_channel open_in name (copy_to output);
   output#commit_work ()
 
+let redirect url (cgi : cgi) =
+  let url' =
+    try
+      let path = Url.reverse_translate url in
+      cgi#url ~with_script_name: `None ~with_path_info: (`This path) ()
+    with Not_found -> url
+  in
+  new Netmime.basic_mime_header ["Location", url']
+
 let serve_remote url name ims mod_time cgi =
-  let respond code =
-    raise (Nethttpd_types.Standard_response (code, None, None))
+  let respond ?header code =
+    raise (Nethttpd_types.Standard_response (code, header, None))
   in
   let copy_if_newer () =
     (* deliver the cached copy if it is newer than the client's *)
@@ -408,6 +418,8 @@ let serve_remote url name ims mod_time cgi =
       cleanup_after url name
   | Not_modified ->
       copy_if_newer ()
+  | Redirect url' ->
+      respond `Found ~header: (redirect url' cgi)
   | File_not_found ->
       if offline && Sys.file_exists name then copy_if_newer ()
       else respond `Not_found
@@ -445,32 +457,23 @@ let server_error e =
   end;
   `Std_response (`Internal_server_error, None, Some (string_of_exception e))
 
-let is_repository name =
-  try String.index name '/' = String.length name - 1
-  with Not_found -> true
-
-let redirect url =
-  debug_message "  => redirect to %s" url;
-  let header = new Netmime.basic_mime_header ["Location", url] in
-  `Std_response (`Temporary_redirect, Some header, None)
-
 let serve_file env =
   (* handle URL-encoded '+', '~', etc. *)
   let path = Netencoding.Url.decode ~plus: false env#cgi_request_uri in
   if path = "/" then
-    let content = if head_request env then "" else Config.index in
-    `Static (`Ok, None, content)
+    `Static (`Ok, None, if head_request env then "" else Config.index)
   else
     try
       let url, name = Url.translate_request path in
-      if is_repository name then redirect url
-      else if should_pass_through name then cache_miss url name 0. 0.
+      if should_pass_through name then cache_miss url name 0. 0.
       else
         let ims = ims_time env in
         match serve_local name ims env with
         | Done reaction -> reaction
         | Cache_miss mod_time -> cache_miss url name ims mod_time
-    with e -> server_error e
+    with
+    | Not_found -> `Std_response (`Not_found, None, None)
+    | e -> server_error e
 
 let process_request env =
   debug_message "Connection from %s"

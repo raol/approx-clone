@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Util
@@ -16,9 +16,25 @@ let translate_request url =
   match explode_path path with
   | dist :: rest ->
       (try implode_path (Config_file.get dist :: rest), path
-       with Not_found -> failwith ("no remote repository for " ^ dist))
+       with Not_found ->
+	 error_message "No remote repository for %s" dist;
+	 raise Not_found)
   | [] ->
       invalid_arg "translate_request"
+
+let reverse_translate url =
+  let longest_match k v r =
+    if k.[0] <> '$' && is_prefix v url then
+      match r with
+      | Some (dist, repo) as orig ->
+          if String.length v > String.length repo then Some (k, v) else orig
+      | None -> Some (k, v)
+    else
+      r
+  in
+  match Config_file.fold longest_match None with
+  | Some (dist, repo) -> dist ^/ substring url ~from: (String.length repo + 1)
+  | None -> raise Not_found
 
 let translate_file file =
   let dist, path = split_cache_path file in
