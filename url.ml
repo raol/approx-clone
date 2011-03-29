@@ -9,7 +9,7 @@ open Util
 let string_of_time t =
   Netdate.format ~fmt: "%a, %d %b %Y %T GMT" (Netdate.create ~zone: 0 t)
 
-let time_of_string = Netdate.parse_epoch
+let time_of_string = Netdate.parse_epoch ?zone: None
 
 let translate_request url =
   let path = relative_url url in

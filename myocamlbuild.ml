@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Ocamlbuild_plugin
@@ -8,7 +8,8 @@ open Pathname
 
 let libraries =
   ["pcre"; "sha"; "syslog";
-   "netsys"; "netstring"; "netcgi2:netcgi"; "nethttpd-for-netcgi2"]
+   "netsys_oothr"; "netsys"; "equeue";
+   "netstring"; "netcgi2:netcgi"; "nethttpd"]
 
 let split str =
   let i = String.index str ':' in
