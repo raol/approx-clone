@@ -12,7 +12,7 @@ Build-Depends:
  libsha-ocaml-dev,
  libsyslog-ocaml-dev,
  ocaml-nox
-Standards-Version: 3.9.1
+Standards-Version: 3.9.2
 Vcs-Git: git://git.debian.org/git/pkg-ocaml-maint/packages/approx.git
 Vcs-Browser: http://git.debian.org/?p=pkg-ocaml-maint/packages/approx.git
 Homepage: http://git.debian.org/?p=pkg-ocaml-maint/packages/approx.git
