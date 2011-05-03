@@ -41,11 +41,7 @@ let find_pdiff pdiff (diffs, final) =
         debug_message "Parsing %s" pdiff;
         let cmds = with_in_channel open_in pdiff' Patch.parse in
         Some (index_info, cmds, next)
-      end else begin
-        debug_message "Removing invalid %s" pdiff;
-        rm pdiff;
-        None
-      end
+      end else None
     in
     with_decompressed pdiff check
   in
@@ -85,16 +81,12 @@ let apply pdiff =
           apply_pdiff cmds file;
           if Control_file.is_valid file_sha1sum info' file then begin
             debug_message "Applied %s" pdiff;
-            compress ~src: file ~dst: index;
-            rm pdiff
+            compress ~src: file ~dst: index
           end else debug_message "Invalid result from %s" pdiff
         end else debug_message "Cannot apply %s" pdiff
       in
       if Sys.file_exists index then decompress_and_apply patch index
       else debug_message "Index %s not found" index
-
-let remove_pdiffs pdiffs =
-  List.iter (fun (_, file, _) -> rm (file ^ ".gz"))  pdiffs
 
 let apply_pdiffs file pdiffs final index =
   let patch (index_info, name, pdiff_info) =
@@ -115,8 +107,7 @@ let apply_pdiffs file pdiffs final index =
     List.iter patch pdiffs;
     if Control_file.is_valid file_sha1sum final file then begin
       info_message "Updated %s" (shorten index);
-      compress ~src: file ~dst: index;
-      remove_pdiffs pdiffs
+      compress ~src: file ~dst: index
     end else error_message "Invalid update of %s" (shorten index)
   with Exit -> ()
 

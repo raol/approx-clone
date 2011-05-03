@@ -4,9 +4,9 @@
 
 (* Garbage-collect the approx cache using a mark-sweep algorithm.
    Any file in the cache whose name, size, and checksum match an entry
-   in a Packages or Sources file is assumed to be valid, and kept.
-   Anything else, other than a release or index file from a known
-   distribution, is assumed to be invalid, and removed. *)
+   in a Packages, Sources, or DiffIndex file is assumed to be valid,
+   and kept. Anything else, other than a release, index, or DiffIndex file
+   from a known distribution, is assumed to be invalid, and removed. *)
 
 open Util
 open Config
@@ -68,6 +68,9 @@ let dist_is_known file =
    added to the table only if there is a newer version (otherwise all
    the packages they reference would be subject to possible removal).
 
+   DiffIndex files are also returned in the list of roots, so that
+   pdiff files will be marked.
+
    Since Release files are unreachable from the roots and would
    otherwise be removed, they are also added to the table only if
    there is a newer version. *)
@@ -88,6 +91,7 @@ let scan_files () =
     else if Release.is_index file then
       if file = newest_index file then skip_root ()
       else add ()
+    else if Release.is_diff_index file then skip_root ()
     else if Release.is_release file then
       (* treat Release.gpg the same as Release *)
       if without_extension file = newest_release file then skip ()
@@ -108,36 +112,60 @@ let canonical path =
 (* If a file is present in the status table, mark it with the result
    of checking its size and checksum against the given information *)
 
-let mark_file checksum prefix (info, file) =
-  let path = prefix ^/ canonical file in
+let mark_generic pf vf checksum (info, file) =
+  let path = pf (canonical file) in
   try
     match get_status path with
-    | None -> set_status path (Some (Control_file.validate ?checksum info path))
-    | Some _ -> (* already marked *) ()
+    | None ->
+        set_status path (Some (vf path (Control_file.validate ?checksum info)))
+    | Some _ -> (* already marked *)
+        ()
   with
     Not_found -> ()
+
+let mark_file prefix = mark_generic ((^/) prefix) (fun f k -> k f)
 
 let mark_package prefix fields =
   let filename = Control_file.lookup "filename" fields in
   let size = Int64.of_string (Control_file.lookup "size" fields) in
   let sum, func = Control_file.get_checksum fields in
   let checksum = if no_checksum then None else Some func in
-  mark_file checksum prefix ((sum, size), filename)
+  mark_file prefix checksum ((sum, size), filename)
 
 let mark_source prefix fields =
   let dir = Control_file.lookup "directory" fields in
   let info = Control_file.lookup_info "files" fields in
   let checksum = if no_checksum then None else Some file_md5sum in
-  List.iter (mark_file checksum (prefix ^/ dir)) info
+  List.iter (mark_file (prefix ^/ dir) checksum) info
+
+(* Like mark_file, but deals with the complication that
+   the DiffIndex file refers only to uncompressed pdiffs  *)
+
+let mark_pdiff prefix =
+  mark_generic (fun f -> prefix ^/ f ^ ".gz") with_decompressed
+
+let mark_diff_index prefix index =
+  let items = Control_file.read index in
+  let pdiffs = Control_file.lookup_info "sha1-patches" items in
+  let checksum = if no_checksum then None else Some file_sha1sum in
+  List.iter (mark_pdiff prefix checksum) pdiffs
 
 let mark_index index =
-  let dist, path = split_cache_path index in
-  let prefix = cache_dir ^/ dist in
-  if verbose then print "[ %s/%s ]" dist path;
-  if Release.is_sources_file index then
-    Control_file.iter (mark_source prefix) index
+  if verbose then print "[ %s ]" (shorten index);
+  if Release.is_index index then
+    let dist, _ = split_cache_path index in
+    let prefix = cache_dir ^/ dist in
+    if Release.is_packages_file index then
+      Control_file.iter (mark_package prefix) index
+    else if Release.is_sources_file index then
+      Control_file.iter (mark_source prefix) index
+    else
+      file_message index "not a Packages or Sources file"
+  else if Release.is_diff_index index then
+    let prefix = Filename.dirname index in
+    mark_diff_index prefix index
   else
-    Control_file.iter (mark_package prefix) index
+    file_message index "unexpected index file"
 
 let mark () =
   List.iter mark_index (scan_files ())
@@ -163,7 +191,7 @@ let sweep () =
           (print_gc file status;
            if not simulate then perform Sys.remove file)
         else if verbose then
-          print "%s: not old enough to remove" (shorten file)
+          file_message file "not old enough to remove"
   in
   iter_status gc
 

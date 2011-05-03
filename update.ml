@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Update the Packages and Sources files in the approx cache *)
@@ -35,23 +35,11 @@ let simulate = !simulate
 let quiet = !quiet
 let verbose = !verbose
 
-let remove_pdiffs dir =
-  match Filename.basename dir with
-  | "Packages.diff" | "Sources.diff" ->
-      if not quiet then print "[ removing %s ]" (shorten dir);
-      if not simulate then begin
-        iter_non_dirs (perform Sys.remove) dir;
-        perform Unix.rmdir dir
-      end
-  | _ -> invalid_arg (shorten dir ^ " is not a pdiff directory")
-
 let update_valid file =
-  if verbose then print "%s: valid" (shorten file);
-  let dir = Pdiff.directory file in
-  if directory_exists dir then remove_pdiffs dir
+  if verbose then file_message file "valid"
 
 let update_invalid file =
-  if verbose then print "%s: invalid" (shorten file);
+  if verbose then file_message file "invalid";
   let diff_index = Pdiff.directory file ^/ "Index" in
   if Sys.file_exists diff_index then begin
     if not quiet then print "[ applying pdiffs to %s ]" (shorten file);
@@ -69,9 +57,9 @@ let update_file file =
       end
     with
     | Not_found ->
-        if not quiet then print "%s: cannot find Release file" (shorten file)
+        if not quiet then file_message file "cannot find Release file"
     | e ->
-        print "%s: %s" (shorten file) (string_of_exception e)
+        file_message file (string_of_exception e)
 
 let update_cache () =
   if not simulate then drop_privileges ~user ~group;
