@@ -87,24 +87,30 @@ let deny name =
   debug_message "Denying %s" name;
   Done (`Std_response (`Not_found, None, None))
 
-(* Attempt to serve the requested file from the local cache *)
+(* Attempt to serve the requested file from the local cache.
+   Always check remotely for a newer version of Release files.
+   Deliver immutable files and valid index files from the cache;
+   otherwise indicate that they need to be downloaded remotely. *)
 
 let serve_local name ims env =
   let deliver_if_newer mod_time =
     if mod_time > ims then deliver_local name env
     else not_modified ()
   in
-  wait_for_download_in_progress name;
-  match stat_file name with
-  | Some { st_mtime = mod_time } ->
-      if Release.is_release name then Cache_miss mod_time
-      else if should_deny name then deny name
-      else if Release.immutable name || Release.valid_file name then
-        deliver_if_newer mod_time
-      else Cache_miss mod_time
-  | None ->
-      if should_deny name then deny name
-      else Cache_miss 0.
+  if should_deny name then deny name
+  else begin
+    wait_for_download_in_progress name;
+    match stat_file name with
+    | Some { st_mtime = mod_time } ->
+        if Release.is_release name then
+          Cache_miss mod_time
+        else if Release.immutable name || Release.valid_file name then
+          deliver_if_newer mod_time
+        else
+          Cache_miss 0.
+    | None ->
+        Cache_miss 0.
+  end
 
 let create_hint name =
   make_directory (Filename.dirname name);
