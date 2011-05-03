@@ -71,16 +71,15 @@ let not_modified () =
 
 (* See if the given file should be denied (reported to the client as
    not found) rather than fetched remotely. This is done in two cases:
-     * the client is requesting a .bz2 version of an index
+     * the client is requesting a non-gzipped version of an index
      * the client is requesting a DiffIndex and an up-to-date .gz version
        of the corresponding index exists in the cache
    By denying the request, the client will fall back to requesting
    the Packages.gz or Sources.gz file.  Using .gz instead of .bz2
-   allows pdiffs to be applied more quickly and ensures correct operation
-   with older apt clients that do not support .bz2 *)
+   or other compressed formats allows pdiffs to be applied more quickly. *)
 
 let should_deny name =
-  (Release.is_index name && extension name = ".bz2") ||
+  (Release.is_index name && extension name <> ".gz") ||
   (pdiffs && Release.is_diff_index name &&
      Release.valid_file (Pdiff.file_of_diff_index name ^ ".gz"))
 
