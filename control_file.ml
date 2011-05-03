@@ -69,8 +69,8 @@ let skip_initial_lines chan =
     | None -> failwith "EOF in PGP header"
     | Some "" -> n + 1
     | Some line ->
-      if is_hash line then loop (n + 1)
-      else failwith ("unexpected line in PGP header: " ^ line)
+        if is_hash line then loop (n + 1)
+        else failwith ("unexpected line in PGP header: " ^ line)
   in
   begin match next_line chan with  (* line 1 *)
   | Some "-----BEGIN PGP SIGNED MESSAGE-----" -> ()
