@@ -1,5 +1,5 @@
 # approx: proxy server for Debian archive files
-# Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+# Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
 # Released under the GNU General Public License
 
 OCAMLBUILD := ocamlbuild
@@ -11,7 +11,7 @@ ifeq ($(TARGET),byte)
     OCAMLBUILD_OPTS += -byte-plugin
 endif
 
-programs = approx approx-gc approx-update approx-import
+programs = approx approx-gc approx-import
 
 all: $(programs)
 
