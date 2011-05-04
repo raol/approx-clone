@@ -1,8 +1,8 @@
 .\" approx: proxy server for Debian archive files
-.\" Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
+.\" Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH APPROX.CONF 5 "June 2010"
+.TH APPROX.CONF 5 "May 2011"
 .\" Please adjust this date when revising the manpage.
 
 .SH NAME
@@ -26,6 +26,10 @@ Specifies the location of the approx cache directory
 .IR /var/cache/approx ).
 It and all its subdirectories must be owned by the approx server
 (see also the $user and $group parameters, below.)
+.IP $interval
+Specifies the time in minutes after which a cached file will be
+considered too old to deliver without first checking with the remote
+repository for a newer version (default: 720, or 12 hours)
 .IP $max_rate
 Specifies the maximum download rate from remote repositories,
 in bytes per second (default: unlimited).

@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 val version : string
@@ -7,18 +7,15 @@ val version : string
 val arguments : string list (* without config file args *)
 
 val cache_dir : string
-
+val interval : int (* minutes *)
 val max_rate : string (* bytes/second with optional K, M, or G suffix *)
 val max_redirects : int
-
 val user : string
 val group : string
 val syslog : string
-
 val pdiffs : bool
 val offline : bool
 val max_wait : int (* seconds *)
-
 val verbose : bool
 val debug : bool
 

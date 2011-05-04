@@ -48,6 +48,9 @@ let shorten path =
   else
     path
 
+let interval = get_int "$interval" ~default: 720
+let params = ("$interval", string_of_int interval) :: params
+
 let max_rate = get "$max_rate" ~default: "unlimited"
 let params = ("$max_rate", max_rate) :: params
 
