@@ -165,13 +165,9 @@ let tmp_dir () =
 
 let rm file = try Sys.remove file with _ -> ()
 
-let decompressors =
-  [(".gz", "/bin/gunzip --stdout"); (".bz2", "/bin/bunzip2 --stdout")]
+let compressed_extensions = [".gz"; ".bz2"; ".lzma"; ".xz"]
 
-let is_compressed file =
-  match extension file with
-  | "" -> false
-  | ext -> List.mem_assoc ext decompressors
+let is_compressed file = List.mem (extension file) compressed_extensions
 
 (* Decompress a file to a temporary file,
    rather than reading from a pipe or using the CamlZip library,
@@ -179,14 +175,12 @@ let is_compressed file =
    This is also significantly faster than using CamlZip. *)
 
 let decompress file =
-  match extension file with
-  | "" -> invalid_arg "decompress"
-  | ext ->
-      let prog = List.assoc ext decompressors in
-      let tmp = (tmp_dir ()) ^/ gensym (Filename.basename file) in
-      let cmd = sprintf "%s %s > %s" prog file tmp in
-      if Sys.command cmd = 0 then tmp
-      else (rm tmp; failwith "decompress")
+  if extension file <> ".gz" then invalid_arg "decompress"
+  else
+    let tmp = (tmp_dir ()) ^/ gensym (Filename.basename file) in
+    let cmd = sprintf "/bin/gunzip --stdout %s > %s" file tmp in
+    if Sys.command cmd = 0 then tmp
+    else (rm tmp; failwith "decompress")
 
 let with_decompressed file = with_resource rm decompress file
 
@@ -200,7 +194,7 @@ let open_file = decompress_and_apply open_in
 
 let compressed_versions name =
   if is_compressed name then invalid_arg "compressed_versions";
-  name :: List.map (fun (ext, _) -> name ^ ext) decompressors
+  name :: List.map (fun ext -> name ^ ext) compressed_extensions
 
 let file_modtime file = (stat file).st_mtime
 
