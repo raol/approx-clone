@@ -46,7 +46,7 @@ let implode_path = join '/'
 let (^/) = Filename.concat
 
 let make_directory path =
-  (* Create a directory component in the path.  Since it might be
+  (* Create a directory component in the path. Since it might be
      created concurrently, we have to ignore the Unix EEXIST error:
      simply testing for existence first introduces a race condition. *)
   let make_dir name =
@@ -198,17 +198,26 @@ let compressed_versions name =
 
 let stat_file file = try Some (stat file) with Unix_error _ -> None
 
+let is_cached_nak name =
+  match stat_file name with
+  | Some { st_size = 0L; st_perm = 0 } -> true
+  | _ -> false
+
 let file_modtime file = (stat file).st_mtime
+
+let file_ctime file = (stat file).st_ctime
+
+let minutes_old t = int_of_float ((Unix.time () -. t) /. 60. +. 0.5)
 
 let newest_file list =
   let newest cur name =
     match stat_file name with
+    | None | Some { st_size = 0L; st_perm = 0 } (* cached NAK *) -> cur
     | Some { st_mtime = modtime } ->
         begin match cur with
         | Some (f, t) -> if modtime > t then Some (name, modtime) else cur
         | None -> Some (name, modtime)
         end
-    | None -> cur
   in
   match List.fold_left newest None list with
   | Some (f, _) -> f

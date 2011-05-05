@@ -184,9 +184,21 @@ val iter_non_dirs : (string -> unit) -> string -> unit
 
 val stat_file : string -> Unix.LargeFile.stats option
 
+(* Check if a file is a cached "file not found" *)
+
+val is_cached_nak : string -> bool
+
 (* Return the modification time of a file *)
 
 val file_modtime : string -> float
+
+(* Return the status change time of a file *)
+
+val file_ctime : string -> float
+
+(* Calculate the age in minutes of a timestamp *)
+
+val minutes_old : float -> int
 
 (* Return the size of a file *)
 

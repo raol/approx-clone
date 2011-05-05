@@ -117,9 +117,14 @@ let mark_generic pf vf checksum (info, file) =
   try
     match get_status path with
     | None ->
-        set_status path (Some (vf path (Control_file.validate ?checksum info)))
-    | Some _ -> (* already marked *)
-        ()
+        if is_cached_nak path then begin
+          if minutes_old (file_ctime path) <= interval then
+            (* keep it since it's reachable and current *)
+            set_status path (Some Control_file.Valid)
+        end else
+          let status = vf path (Control_file.validate ?checksum info) in
+          set_status path (Some status)
+    | Some _ -> (* already marked *) ()
   with
     Not_found -> ()
 

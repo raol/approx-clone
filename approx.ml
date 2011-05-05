@@ -67,18 +67,38 @@ let not_modified () =
   debug_message "  => not modified";
   Done (`Std_response (`Not_modified, None, None))
 
-(* Return the age of a file in minutes, using the last status change
-   time (ctime) rather than the modification time (mtime).
+let nak () =
+  debug_message "  => not found (cached)";
+  Done (`Std_response (`Not_found, None, None))
 
-   The mtime tells when the contents of the file last changed, and is
-   used by the "If-Modified-Since" logic. Whenever we learn that the
-   file is still valid via a "Not Modified" response, we update the
-   ctime so that the file will continue to be considered current. *)
+(* The modification time (mtime) tells when the contents of the file
+   last changed, and is used by the "If-Modified-Since" logic.
 
-let minutes_old t =
-  int_of_float ((time () -. t) /. 60. +. 0.5)
+   The last status change time (ctime) is used to indicate when a file
+   was last "verified" by contacting the remote repository.
 
-let too_old t = minutes_old t > interval
+   Whenever we learn that the file is still valid via a "Not Modified"
+   response, we update the ctime so that the file will continue to be
+   considered current. *)
+
+let print_age mod_time ctime =
+  if debug then begin
+    debug_message "  last modified: %s" (Url.string_of_time mod_time);
+    debug_message "  last verified: %s" (Url.string_of_time ctime)
+  end
+
+(* "File not found" or NAK responses are cached as empty files with
+   permissions = 0. Create a cached NAK as an empty temp file, set
+   its permissions, then atomically rename it. *)
+
+let cache_nak file =
+  debug_message "  caching \"file not found\"";
+  make_directory (Filename.dirname file);
+  let tmp_file = gensym file in
+  let chan = open_out_excl tmp_file in
+  close_out chan;
+  Unix.chmod tmp_file 0;
+  Sys.rename tmp_file file
 
 (* Attempt to serve the requested file from the local cache.
    Deliver immutable files and valid index files from the cache.
@@ -88,16 +108,21 @@ let too_old t = minutes_old t > interval
 let serve_local name ims env =
   wait_for_download_in_progress name;
   match stat_file name with
-  | Some { st_mtime = mod_time; st_ctime = ctime } ->
+  | Some { st_mtime = mod_time; st_ctime = ctime;
+           st_size = size; st_perm = perm } ->
       let deliver_if_newer () =
         if mod_time > ims then deliver_local name env
         else not_modified ()
       in
-      if Release.is_release name then begin
-        debug_message "  last modified: %s" (Url.string_of_time mod_time);
-        debug_message "  last verified: %s" (Url.string_of_time ctime);
-        if too_old ctime then Cache_miss mod_time
-        else deliver_if_newer ()
+      if size = 0L && perm = 0 then begin (* cached NAK *)
+        debug_message "  cached \"file not found\"";
+        print_age mod_time ctime;
+        if minutes_old ctime <= interval then nak ()
+        else Cache_miss mod_time
+      end else if Release.is_release name then begin
+        print_age mod_time ctime;
+        if minutes_old ctime <= interval then deliver_if_newer ()
+        else Cache_miss mod_time
       end else if Release.immutable name || Release.valid_file name then
         deliver_if_newer ()
       else
@@ -431,8 +456,14 @@ let serve_remote url name ims mod_time cgi =
   | Redirect url' ->
       respond `Found ~header: (redirect url' cgi)
   | File_not_found ->
-      if offline && Sys.file_exists name then copy_if_newer ()
-      else respond `Not_found
+      if is_cached_nak name then begin
+        update_ctime name;
+        respond `Not_found
+      end else if offline && Sys.file_exists name then copy_if_newer ()
+      else begin
+        cache_nak name;
+        respond `Not_found
+      end
 
 let remote_service url name ims mod_time =
   object
