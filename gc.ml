@@ -60,11 +60,11 @@ let dist_is_known file =
   Config_file.mem dist
 
 (* Scan the cache and add candidates for garbage collection to the
-   status table.  If a file is not in this table, it will not be
+   status table. If a file is not in this table, it will not be
    removed.
 
    Packages and Sources files ("index files") are collected and
-   returned as the list of roots for the marking phase.  They are
+   returned as the list of roots for the marking phase. They are
    added to the table only if there is a newer version (otherwise all
    the packages they reference would be subject to possible removal).
 
@@ -101,7 +101,7 @@ let scan_files () =
   in
   fold_non_dirs scan [] cache_dir
 
-(* Handle the case of filename fields of the form ./path  *)
+(* Handle the case of filename fields of the form ./path *)
 
 let canonical path =
   if String.length path >= 2 && path.[0] = '.' && path.[1] = '/' then
@@ -186,7 +186,7 @@ let print_gc file status =
     print "%s%s" (shorten file) (if verbose then status_suffix status else "")
 
 let inactive file =
-  Unix.time () -. file_modtime file > 300.  (* 5 minutes *)
+  Unix.time () -. file_modtime file > 300. (* 5 minutes *)
 
 let sweep () =
   let gc file = function
@@ -219,7 +219,7 @@ let remove_dir dir =
 let rec prune () =
   match empty_dirs cache_dir with
   | [] -> ()
-  | [dir] when dir = cache_dir -> ()  (* don't remove cache dir *)
+  | [dir] when dir = cache_dir -> () (* don't remove cache dir *)
   | list -> List.iter remove_dir list; if not simulate then prune ()
 
 let garbage_collect () =

@@ -287,13 +287,13 @@ let process_header resp str =
         (try resp.location <- Neturl.string_of_url (Neturl.parse_url value)
          with Neturl.Malformed_URL ->
            error_message "Cannot parse Location %s" value)
-    | "content-type" ->  (* only used for pass-through content *)
+    | "content-type" -> (* only used for pass-through content *)
         resp.content_type <- value
     | _ -> ()
   in
   debug_message "  %s" str;
   try with_pair header_re str do_header
-  with Not_found ->  (* e.g., status line or CRLF *)
+  with Not_found -> (* e.g., status line or CRLF *)
     try with_pair status_re str do_status
     with Not_found -> error_message "Unrecognized response: %s" str
 
@@ -363,7 +363,7 @@ let download_ftp resp url name ims cgi =
   if 0. < mod_time && mod_time <= ims then Not_modified
   else if head_request cgi#environment then finish_head resp cgi
   else begin
-    resp.status <- 200;  (* for process_body *)
+    resp.status <- 200; (* for process_body *)
     Url.download url (process_body resp cgi);
     finish_delivery resp
   end
