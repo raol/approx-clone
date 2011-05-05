@@ -69,48 +69,43 @@ let not_modified () =
   debug_message "  => not modified";
   Done (`Std_response (`Not_modified, None, None))
 
-(* See if the given file should be denied (reported to the client as
-   not found) rather than fetched remotely. This is done in two cases:
-     * the client is requesting a non-gzipped version of an index
-     * the client is requesting a DiffIndex and an up-to-date .gz version
-       of the corresponding index exists in the cache
-   By denying the request, the client will fall back to requesting
-   the Packages.gz or Sources.gz file.  Using .gz instead of .bz2
-   or other compressed formats allows pdiffs to be applied more quickly. *)
+(* Return the age of a file in minutes, using the last status change
+   time (ctime) rather than the modification time (mtime).
 
-let should_deny name =
-  (Release.is_index name && extension name <> ".gz") ||
-  (pdiffs && Release.is_diff_index name &&
-     Release.valid_file (Pdiff.file_of_diff_index name ^ ".gz"))
+   The mtime tells when the contents of the file last changed, and is
+   used by the "If-Modified-Since" logic. Whenever we learn that the
+   file is still valid via a "Not Modified" response, we update the
+   ctime so that the file will continue to be considered current. *)
 
-let deny name =
-  debug_message "Denying %s" name;
-  Done (`Std_response (`Not_found, None, None))
+let minutes_old t =
+  int_of_float ((time () -. t) /. 60. +. 0.5)
+
+let too_old t = minutes_old t > interval
 
 (* Attempt to serve the requested file from the local cache.
-   Always check remotely for a newer version of Release files.
-   Deliver immutable files and valid index files from the cache;
-   otherwise indicate that they need to be downloaded remotely. *)
+   Deliver immutable files and valid index files from the cache.
+   Deliver Release files if they are not too old.
+   Otherwise contact the remote repository. *)
 
 let serve_local name ims env =
-  let deliver_if_newer mod_time =
-    if mod_time > ims then deliver_local name env
-    else not_modified ()
-  in
-  if should_deny name then deny name
-  else begin
-    wait_for_download_in_progress name;
-    match stat_file name with
-    | Some { st_mtime = mod_time } ->
-        if Release.is_release name then
-          Cache_miss mod_time
-        else if Release.immutable name || Release.valid_file name then
-          deliver_if_newer mod_time
-        else
-          Cache_miss 0.
-    | None ->
+  wait_for_download_in_progress name;
+  match stat_file name with
+  | Some { st_mtime = mod_time; st_ctime = ctime } ->
+      let deliver_if_newer () =
+        if mod_time > ims then deliver_local name env
+        else not_modified ()
+      in
+      if Release.is_release name then begin
+        debug_message "  last modified: %s" (Url.string_of_time mod_time);
+        debug_message "  last verified: %s" (Url.string_of_time ctime);
+        if too_old ctime then Cache_miss mod_time
+        else deliver_if_newer ()
+      end else if Release.immutable name || Release.valid_file name then
+        deliver_if_newer ()
+      else
         Cache_miss 0.
-  end
+  | None ->
+      Cache_miss 0.
 
 let create_hint name =
   make_directory (Filename.dirname name);
@@ -281,7 +276,7 @@ let process_header resp str =
 
 (* Process a chunk of the response body.
    If no Content-Length was present in the header, we cache the whole
-   file before delivering it to the client.  The alternative -- using
+   file before delivering it to the client. The alternative -- using
    chunked transfer encoding -- triggers a bug in APT. *)
 
 let process_body resp cgi str pos len =
@@ -394,6 +389,17 @@ let copy_from_cache name cgi =
     with_in_channel open_in name (copy_to output);
   output#commit_work ()
 
+(* Update the ctime but not the mtime of the file *)
+
+let update_ctime name =
+  match stat_file name with
+  | Some stats ->
+      utimes name stats.st_atime stats.st_mtime;
+      if debug then
+        let ctime = (stat name).st_ctime in
+        debug_message "  updated ctime to %s" (Url.string_of_time ctime)
+  | None -> ()
+
 let redirect url (cgi : cgi) =
   let url' =
     try
@@ -422,6 +428,7 @@ let serve_remote url name ims mod_time cgi =
       copy_from_cache name cgi;
       cleanup_after url name
   | Not_modified ->
+      update_ctime name;
       copy_if_newer ()
   | Redirect url' ->
       respond `Found ~header: (redirect url' cgi)
@@ -449,6 +456,24 @@ let cache_miss url name ims mod_time =
   debug_message "  => cache miss";
   `Accept_body (remote_service url name ims mod_time)
 
+(* See if the given file should be denied (reported to the client as
+   not found) rather than fetched remotely. This is done in two cases:
+     * the client is requesting a non-gzipped version of an index
+     * the client is requesting a DiffIndex and an up-to-date .gz version
+       of the corresponding index exists in the cache
+   By denying the request, the client will fall back to requesting
+   the Packages.gz or Sources.gz file. Using .gz instead of .bz2
+   or other compressed formats allows pdiffs to be applied more quickly. *)
+
+let should_deny name =
+  (Release.is_index name && extension name <> ".gz") ||
+  (pdiffs && Release.is_diff_index name &&
+     Release.valid_file (Pdiff.file_of_diff_index name ^ ".gz"))
+
+let deny name =
+  debug_message "Denying %s" name;
+  `Std_response (`Not_found, None, None)
+
 let ims_time env =
   try Netdate.parse_epoch (env#input_header#field "If-Modified-Since")
   with Not_found | Invalid_argument _ -> 0.
@@ -471,6 +496,7 @@ let serve_file env =
     try
       let url, name = Url.translate_request path in
       if should_pass_through name then cache_miss url name 0. 0.
+      else if should_deny name then deny name
       else
         let ims = ims_time env in
         match serve_local name ims env with
