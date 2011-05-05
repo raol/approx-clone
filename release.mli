@@ -35,6 +35,10 @@ val is_diff_index : string -> bool
 
 val is_pdiff : string -> bool
 
+(* Check if a file is a TranslationIndex *)
+
+val is_i18n_index : string -> bool
+
 (* Check if a file is immutable (deb, source file, or pdiff) *)
 
 val immutable : string -> bool

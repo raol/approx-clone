@@ -2,14 +2,11 @@
    Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-(* Garbage-collect the approx cache using a mark-sweep algorithm.
-   Any file in the cache whose name, size, and checksum match an entry
-   in a Packages, Sources, or DiffIndex file is assumed to be valid,
-   and kept. Anything else, other than a release, index, or DiffIndex file
-   from a known distribution, is assumed to be invalid, and removed. *)
+(* Garbage-collect the approx cache using a mark-sweep algorithm *)
 
 open Util
 open Config
+open Release
 open Program
 
 let usage () =
@@ -53,33 +50,49 @@ let get_status = Hashtbl.find file_table
 let set_status = Hashtbl.replace file_table
 let iter_status proc = Hashtbl.iter proc file_table
 
+(* The known distributions are the first-level directories in the cache *)
+
+let distributions =
+  List.filter
+    (fun f -> Sys.is_directory (cache_dir ^/ f))
+    (Array.to_list (Sys.readdir cache_dir))
+
 (* Check if a file is part of a known distribution *)
 
 let dist_is_known file =
-  let dist, _ = split_cache_path file in
-  Config_file.mem dist
+  List.mem (fst (split_cache_path file)) distributions
+
+(* Check if a Release file is no more than 5 minutes older
+   than an InRelease file in the same directory, or vice versa *)
+
+let is_current_release file =
+  let current_with other =
+    let dir = Filename.dirname file in
+    let file' = dir ^/ other in
+    not (Sys.file_exists file') || is_cached_nak file' ||
+    file_modtime file' -. file_modtime file < 300.
+  in
+  not (is_cached_nak file) &&
+  match Filename.basename file with
+  | "Release" -> current_with "InRelease"
+  | "InRelease" -> current_with "Release"
+  | "Release.gpg" -> true
+  | _ -> false
 
 (* Scan the cache and add candidates for garbage collection to the
    status table. If a file is not in this table, it will not be
    removed.
 
-   Packages and Sources files ("index files") are collected and
-   returned as the list of roots for the marking phase. They are
-   added to the table only if there is a newer version (otherwise all
-   the packages they reference would be subject to possible removal).
+   Packages and Sources files are collected and returned in the list
+   of roots for the marking phase, but are not added to the table
+   themselves.
 
    DiffIndex files are also returned in the list of roots, so that
-   pdiff files will be marked.
+   pdiff files will be marked, and similarly for TranslationIndex files.
 
    Since Release files are unreachable from the roots and would
-   otherwise be removed, they are also added to the table only if
+   otherwise be removed, they are added to the table only if
    there is a newer version. *)
-
-let newest_index file =
-  newest_file (compressed_versions (without_extension file))
-
-let newest_release file =
-  Release.newest (Filename.dirname file)
 
 let scan_files () =
   let scan roots file =
@@ -88,14 +101,10 @@ let scan_files () =
     let skip () = roots in
     if not (dist_is_known file) then
       add ()
-    else if Release.is_index file then
-      if file = newest_index file then skip_root ()
-      else add ()
-    else if Release.is_diff_index file then skip_root ()
-    else if Release.is_release file then
-      (* treat Release.gpg the same as Release *)
-      if without_extension file = newest_release file then skip ()
-      else add ()
+    else if is_index file || is_diff_index file || is_i18n_index file then
+      skip_root ()
+    else if is_current_release file then
+      skip ()
     else
       add ()
   in
@@ -155,25 +164,38 @@ let mark_diff_index prefix index =
   let checksum = if no_checksum then None else Some file_sha1sum in
   List.iter (mark_pdiff prefix checksum) pdiffs
 
+let mark_i18n_index prefix index =
+  let items = Control_file.read index in
+  let translations = Control_file.lookup_info "sha1" items in
+  let checksum = if no_checksum then None else Some file_sha1sum in
+  List.iter (mark_file prefix checksum) translations
+
 let mark_index index =
   if verbose then print "[ %s ]" (shorten index);
-  if Release.is_index index then
+  if is_index index then
     let dist, _ = split_cache_path index in
     let prefix = cache_dir ^/ dist in
-    if Release.is_packages_file index then
+    if is_packages_file index then
       Control_file.iter (mark_package prefix) index
-    else if Release.is_sources_file index then
+    else if is_sources_file index then
       Control_file.iter (mark_source prefix) index
     else
       file_message index "not a Packages or Sources file"
-  else if Release.is_diff_index index then
+  else if is_diff_index index then
     let prefix = Filename.dirname index in
     mark_diff_index prefix index
+  else if is_i18n_index index then
+    let prefix = Filename.dirname index in
+    mark_i18n_index prefix index
   else
     file_message index "unexpected index file"
 
 let mark () =
-  List.iter mark_index (scan_files ())
+  let roots = scan_files () in
+  let mark_root r =
+    if not (is_cached_nak r) then mark_index r
+  in
+  List.iter mark_root roots
 
 let status_suffix = function
   | None -> ""

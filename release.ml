@@ -67,6 +67,10 @@ let is_diff_index file =
 let is_pdiff file =
   Filename.basename file <> "Index" && diff_index_dir file
 
+let is_i18n_index file =
+  Filename.basename file = "Index" &&
+  Filename.basename (Filename.dirname file) = "i18n"
+
 let immutable_suffixes =
   [".deb"; ".udeb"; ".dsc"; ".diff.gz"] @ compressed_versions ".tar"
 
