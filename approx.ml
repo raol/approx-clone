@@ -157,11 +157,11 @@ let close_cache cache size mod_time =
       debug_message "  close cache %s" file;
       close_out chan;
       if size = file_size tmp_file then begin
-        Sys.rename tmp_file file;
         if mod_time <> 0. then begin
           debug_message "  setting mtime to %s" (Url.string_of_time mod_time);
-          utimes file mod_time mod_time
-        end
+          utimes tmp_file mod_time mod_time
+        end;
+        Sys.rename tmp_file file
       end else begin
         error_message "Size of %s should be %Ld, not %Ld"
           file size (file_size tmp_file);
