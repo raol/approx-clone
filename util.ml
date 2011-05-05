@@ -196,16 +196,19 @@ let compressed_versions name =
   if is_compressed name then invalid_arg "compressed_versions";
   name :: List.map (fun ext -> name ^ ext) compressed_extensions
 
+let stat_file file = try Some (stat file) with Unix_error _ -> None
+
 let file_modtime file = (stat file).st_mtime
 
 let newest_file list =
   let newest cur name =
-    try
-      let modtime = file_modtime name in
-      match cur with
-      | Some (f, t) -> if modtime > t then Some (name, modtime) else cur
-      | None -> Some (name, modtime)
-    with Unix_error (ENOENT, "stat", _) -> cur
+    match stat_file name with
+    | Some { st_mtime = modtime } ->
+        begin match cur with
+        | Some (f, t) -> if modtime > t then Some (name, modtime) else cur
+        | None -> Some (name, modtime)
+        end
+    | None -> cur
   in
   match List.fold_left newest None list with
   | Some (f, _) -> f
@@ -230,29 +233,26 @@ let with_temp_file name proc =
   file
 
 let update_ctime name =
-  try
-    let stats = stat name in
-    utimes name stats.st_atime stats.st_mtime
-  with Unix_error (ENOENT, "stat", _) -> ()
+  match stat_file name with
+  | Some { st_atime = atime; st_mtime = mtime } -> utimes name atime mtime
+  | None -> ()
 
 let directory_exists dir =
   Sys.file_exists dir && Sys.is_directory dir
 
 let is_symlink name = (lstat name).st_kind = S_LNK
 
-let directory_uid name =
-  try
-    let stats = stat name in
-    if stats.st_kind = S_DIR then Some (stats.st_dev, stats.st_ino)
-    else None
-  with _ -> None
+let directory_id name =
+  match stat_file name with
+  | Some { st_kind = S_DIR; st_dev = dev; st_ino = ino } -> Some (dev, ino)
+  | _ -> None
 
 let fold_fs_tree non_dirs f init path =
   let rec walk uids_seen init path =
     let visit uids acc name =
       walk uids acc (path ^/ name)
     in
-    let uid = directory_uid path in
+    let uid = directory_id path in
     if uid <> None then
       if List.mem uid uids_seen then (* cycle detected *)
         init

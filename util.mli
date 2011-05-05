@@ -180,6 +180,10 @@ val fold_non_dirs : ('a -> string -> 'a) -> 'a -> string -> 'a
 
 val iter_non_dirs : (string -> unit) -> string -> unit
 
+(* Return the Unix stat information *)
+
+val stat_file : string -> Unix.LargeFile.stats option
+
 (* Return the modification time of a file *)
 
 val file_modtime : string -> float

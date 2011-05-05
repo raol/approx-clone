@@ -10,8 +10,6 @@ open Config
 open Log
 open Program
 
-let stat_file name = try Some (stat name) with Unix_error _ -> None
-
 (* Hint that a download is in progress *)
 
 let in_progress name = name ^ ".hint"
