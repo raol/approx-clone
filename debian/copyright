@@ -1,5 +1,5 @@
 approx: proxy server for Debian archive files
-Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
 Homepage: http://git.debian.org/?p=pkg-ocaml-maint/packages/approx.git
 
 This program is free software; you can redistribute it and/or modify
