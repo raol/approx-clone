@@ -1,7 +1,0 @@
-#!/bin/sh
-
-# Update the approx(8) cache
-
-if [ -x /usr/sbin/approx-update ]; then
-    /usr/sbin/approx-update --quiet
-fi
