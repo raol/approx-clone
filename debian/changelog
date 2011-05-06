@@ -1,3 +1,20 @@
+approx (5.0-1) unstable; urgency=low
+
+  * New upstream version
+  * Deny requests for non-gz index files (closes: #625457)
+  * Cache pdiffs instead of removing them (closes: #607896)
+  * Remove approx-update program
+  * Add $interval configuration parameter
+  * Cache Release files and "file not found" responses
+    for $interval minutes without contacting remote repository
+    (closes: #625458)
+  * Treat i18n/Index files as roots for garbage collection
+  * Run approx-gc cronjob at low priority (closes: #611370)
+  * Include process ID in syslog messages
+  * Defer pdiff application to the end of each connection
+
+ -- Eric Cooper <ecc@cmu.edu>  Tue, 10 May 2011 16:11:00 -0400
+
 approx (4.6-1) unstable; urgency=low
 
   * New upstream version
