@@ -24,7 +24,6 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends},
  adduser,
- bzip2,
  curl,
  openbsd-inetd | inet-superserver,
  update-inetd
