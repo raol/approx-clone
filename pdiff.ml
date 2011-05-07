@@ -6,10 +6,8 @@ open Util
 open Config
 open Log
 
-let file_of_diff_index diff_index =
-  Filename.chop_suffix (Filename.dirname diff_index) ".diff"
-
-let directory file = without_extension file ^ ".diff"
+let index_file path =
+  Filename.chop_suffix (Filename.dirname path) ".diff" ^ ".gz"
 
 let read_diff_index dir =
   let diff_index = dir ^/ "Index" in
@@ -59,7 +57,9 @@ let find_pdiff pdiff (diffs, final) =
 let compress ~src ~dst =
   let cmd = Printf.sprintf "/bin/gzip --rsyncable -9cn %s > %s" src dst in
   debug_message "Compressing: %s" cmd;
-  if Sys.command cmd <> 0 then failwith "compress"
+  if Sys.command cmd <> 0 then failwith "compress";
+  if debug && not (Release.valid_file dst) then
+    debug_message "Compressed file %s is invalid" dst
 
 (* Apply a pdiff to the given file *)
 
@@ -70,30 +70,12 @@ let apply_pdiff cmds file =
   in
   Sys.rename file' file
 
-let apply pdiff =
-  let dir = Filename.dirname pdiff in
-  match find_pdiff pdiff (read_diff_index dir) with
-  | None -> debug_message "%s not found in DiffIndex" pdiff
-  | Some (info, cmds, info') ->
-      let index = Filename.chop_suffix dir ".diff" ^ ".gz" in
-      let patch file =
-        if Control_file.is_valid file_sha1sum info file then begin
-          apply_pdiff cmds file;
-          if Control_file.is_valid file_sha1sum info' file then begin
-            debug_message "Applied %s" pdiff;
-            compress ~src: file ~dst: index
-          end else debug_message "Invalid result from %s" pdiff
-        end else debug_message "Cannot apply %s" pdiff
-      in
-      if Sys.file_exists index then decompress_and_apply patch index
-      else debug_message "Index %s not found" index
-
 let apply_pdiffs file pdiffs final index =
   let patch (index_info, name, pdiff_info) =
     let pdiff = name ^ ".gz" in
     let check_and_apply pdiff' =
       if Control_file.is_valid file_sha1sum pdiff_info pdiff' then begin
-        debug_message "Parsing %s" pdiff;
+        debug_message "Applying %s" pdiff;
         let cmds = with_in_channel open_in pdiff' Patch.parse in
         if Control_file.is_valid file_sha1sum index_info file then
           apply_pdiff cmds file
@@ -106,14 +88,16 @@ let apply_pdiffs file pdiffs final index =
   try
     List.iter patch pdiffs;
     if Control_file.is_valid file_sha1sum final file then begin
-      info_message "Updated %s" (shorten index);
+      info_message "Updated %s" index;
       compress ~src: file ~dst: index
-    end else error_message "Invalid update of %s" (shorten index)
+    end else error_message "Invalid update of %s" index
   with Exit -> ()
 
 let update index =
+  info_message "Updating %s" index;
   if not (Filename.check_suffix index ".gz") then invalid_arg "Pdiff.update";
-  let diffs, final = read_diff_index (directory index) in
+  let dir = Filename.chop_suffix index ".gz" ^ ".diff" in
+  let diffs, final = read_diff_index dir in
   let update_index file =
     let info = (file_sha1sum file, file_size file) in
     if info = final then debug_message "%s is current" index

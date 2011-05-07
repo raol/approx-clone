@@ -385,12 +385,18 @@ let download_url url name ims cgi =
     if e <> Failure url then info_message "%s" (string_of_exception e);
     File_not_found
 
-(* Perform any pdiff processing triggered by downloading a given file *)
+(* Handle any processing triggered by downloading a given file *)
+
+let updates_needed = ref []
 
 let cleanup_after url file =
   if pdiffs && Release.is_pdiff file then
-    try Pdiff.apply file
-    with e -> info_message "%s" (string_of_exception e)
+    (* record the affected index for later update *)
+    let index = Pdiff.index_file file in
+    if not (List.mem index !updates_needed) then begin
+      debug_message "Deferring pdiffs for %s" index;
+      updates_needed := index :: !updates_needed
+    end
 
 let copy_to dst src =
   let len = 4096 in
@@ -497,7 +503,7 @@ let cache_miss url name ims mod_time =
 let should_deny name =
   (Release.is_index name && extension name <> ".gz") ||
   (pdiffs && Release.is_diff_index name &&
-     Release.valid_file (Pdiff.file_of_diff_index name ^ ".gz"))
+     Release.valid_file (Pdiff.index_file name))
 
 let deny name =
   debug_message "Denying %s" name;
@@ -585,6 +591,7 @@ let approx () =
   check_id ~user ~group;
   Sys.chdir cache_dir;
   set_nonblock stdin;
-  Nethttpd_reactor.process_connection config stdin proxy_service
+  Nethttpd_reactor.process_connection config stdin proxy_service;
+  List.iter Pdiff.update !updates_needed
 
 let () = main_program approx ()
