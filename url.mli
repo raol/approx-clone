@@ -11,11 +11,6 @@ val translate_request : string -> string * string
 
 val reverse_translate : string -> string
 
-(* Find the remote URL corresponding to a given file in the cache,
-   or raise Not_found if it does not correspond to a known mapping *)
-
-val translate_file : string -> string
-
 type protocol = HTTP | HTTPS | FTP | FILE
 
 val protocol : string -> protocol

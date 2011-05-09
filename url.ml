@@ -36,10 +36,6 @@ let reverse_translate url =
   | Some (dist, repo) -> dist ^/ substring url ~from: (String.length repo + 1)
   | None -> raise Not_found
 
-let translate_file file =
-  let dist, path = split_cache_path file in
-  Config_file.get dist ^/ path
-
 type protocol = HTTP | HTTPS | FTP | FILE
 
 let protocol url =
@@ -117,6 +113,14 @@ let download url ?(headers=[]) ?header_callback callback =
     (match header_callback with
      | Some proc -> seq (iter_headers proc) (iter_body callback)
      | None -> iter_body callback)
+
+(* Find the remote URL corresponding to a given relative pathname in the cache,
+   or raise Not_found if it does not correspond to a known mapping *)
+
+let translate_file file =
+  match explode_path file with
+  | dist :: path -> Config_file.get dist ^/ implode_path path
+  | _ -> invalid_arg "translate_file"
 
 let download_file file =
   let file' = gensym file in
