@@ -6,24 +6,24 @@ open Util
 open Config
 open Log
 
-let newest dir = newest_file [dir ^/ "InRelease"; dir ^/ "Release"]
-
-(* Find the first Release file in the path leading to the given file
+(* Find the newest InRelease or Release file in the given directory
    or raise Not_found *)
 
+let newest dir = newest_file [dir ^/ "InRelease"; dir ^/ "Release"]
+
+(* Find the Release file for the given file or raise Not_found *)
+
 let find file =
-  let rec loop i =
-    let dir = substring file ~until: i in
-    try newest dir
-    with Not_found -> loop (String.index_from file (i + 1) '/')
-  in
-  (* if pathname is absolute, start relative to the cache directory *)
-  let start =
-    if file.[0] <> '/' then 0
-    else if is_prefix cache_dir file then String.length cache_dir + 1
+  (* start relative to the cache directory *)
+  let path =
+    if file.[0] <> '/' then file
+    else if is_prefix cache_dir file then
+      substring file ~from: (String.length cache_dir + 1)
     else invalid_arg "Release.find"
   in
-  loop start
+  match explode_path path with
+  | dist :: "dists" :: suite :: _ -> newest (dist ^/ "dists" ^/ suite)
+  | _ -> raise Not_found
 
 let read file =
   let release = find file in

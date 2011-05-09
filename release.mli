@@ -2,11 +2,6 @@
    Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-(* Find the newest InRelease or Release file in the given directory
-   or raise Not_found *)
-
-val newest : string -> string
-
 (* Check if a file is valid according to the corresponding Release file *)
 
 val valid_file : string -> bool
