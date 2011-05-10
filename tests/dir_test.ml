@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -12,22 +12,17 @@ let non_dirs, path =
   | [| _; "-n" |] -> true, "."
   | [| _; dir |] -> false, dir
   | [| _; "-n"; dir |] -> true, dir
-  | _ ->
-      eprintf "Usage: %s [-n] [path]\n" Sys.argv.(0);
-      exit 1
+  | _ -> eprintf "Usage: %s [-n] [path]\n" Sys.argv.(0); exit 1
+
+let foldf, metric =
+  if non_dirs then fold_non_dirs, file_size
+  else fold_dirs, fun f -> Int64.of_int (stat f).st_nlink
+
+let bigger (path, n as orig) path' =
+  let n' = metric path' in
+  print_endline path';
+  if n >= n' then orig else (path', n')
 
 let () =
-  if non_dirs then
-    let bigger (path, n as orig) path' =
-      let n' = file_size path' in
-      if n >= n' then orig else (path', n')
-    in
-    let biggest, n = fold_non_dirs bigger ("", 0L) path in
-    printf "%Ld\t%s\n" n biggest
-  else
-    let bigger (path, n as orig) path' =
-      let n' = (stat path').st_nlink in
-      if n >= n' then orig else (path', n')
-    in
-    let biggest, n = fold_dirs bigger ("", 0) path in
-    printf "%d\t%s\n" n biggest
+  let biggest, n = foldf bigger ("", 0L) path in
+  printf "\n%Ld\t%s\n" n biggest
