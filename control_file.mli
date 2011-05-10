@@ -79,4 +79,4 @@ val validate : ?checksum:(string -> string) -> info -> string -> validity
 
 (* Check that a file matches its checksum and size *)
 
-val is_valid : (string -> string) -> info -> string -> bool
+val valid : (string -> string) -> info -> string -> bool

@@ -189,7 +189,7 @@ let validate ?checksum (sum, size) file =
         else Valid
     | None -> Valid
 
-let is_valid checksum ((s, n) as info) file =
+let valid checksum ((s, n) as info) file =
   match validate ~checksum info file with
   | Valid -> true
   | Wrong_size n' ->

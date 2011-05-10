@@ -35,13 +35,13 @@ let validate (release, (info_list, checksum)) file =
   let rfile = substring file ~from: (String.length rdir + 1) in
   try
     let info = fst (List.find (fun (_, name) -> name = rfile) info_list) in
-    Control_file.is_valid checksum info file
+    Control_file.valid checksum info file
   with Not_found ->
     if Filename.dirname file <> rdir then
       debug_message "%s: not found in %s" (shorten file) (shorten release);
     false
 
-let valid_file file =
+let valid file =
   try validate (read file) file
   with Not_found | Control_file.Missing _ -> false
 

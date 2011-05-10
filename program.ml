@@ -35,4 +35,4 @@ let main_program f x =
 
 let print fmt = ksprintf prerr_endline fmt
 
-let file_message file msg = eprintf "%s: %s\n" (Config.shorten file) msg
+let file_message file msg = eprintf "%s: %s\n%!" (Config.shorten file) msg

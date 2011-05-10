@@ -41,7 +41,7 @@ let compress ~src ~dst =
   let cmd = Printf.sprintf "/bin/gzip -9cn --rsyncable < %s > %s" src dst in
   debug_message "Compressing: %s" cmd;
   if Sys.command cmd <> 0 then failwith "compress";
-  if debug && not (Release.valid_file dst) then
+  if debug && not (Release.valid dst) then
     debug_message "Compressed file %s is invalid" dst
 
 (* Apply a parsed pdiff to the given file *)
@@ -53,7 +53,7 @@ let apply_patch cmds file =
   in
   Sys.rename file' file
 
-let valid_file info = Control_file.is_valid file_sha1sum info
+let valid_file info = Control_file.valid file_sha1sum info
 
 let apply_pdiffs file pdiffs final index =
   let patch (index_info, name, pdiff_info) =

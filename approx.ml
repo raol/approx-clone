@@ -123,7 +123,7 @@ let serve_local name ims env =
         print_age mod_time ctime;
         if minutes_old ctime <= interval then deliver_if_newer ()
         else Cache_miss mod_time
-      end else if Release.immutable name || Release.valid_file name then
+      end else if Release.immutable name || Release.valid name then
         deliver_if_newer ()
       else
         Cache_miss 0.
@@ -503,7 +503,7 @@ let cache_miss url name ims mod_time =
 let should_deny name =
   (Release.is_index name && extension name <> ".gz") ||
   (pdiffs && Release.is_diff_index name &&
-     Release.valid_file (Pdiff.index_file name))
+     Release.valid (Pdiff.index_file name))
 
 let deny name =
   debug_message "Denying %s" name;

@@ -4,7 +4,7 @@
 
 (* Check if a file is valid according to the corresponding Release file *)
 
-val valid_file : string -> bool
+val valid : string -> bool
 
 (* Check if a file is a possibly-compressed Packages file *)
 
