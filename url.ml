@@ -20,7 +20,7 @@ let translate_request url =
 	 error_message "No remote repository for %s" dist;
 	 raise Not_found)
   | [] ->
-      invalid_arg "translate_request"
+      invalid_string_arg "translate_request" url
 
 let reverse_translate url =
   let longest_match k v r =
@@ -45,9 +45,9 @@ let protocol url =
     | "https" -> HTTPS
     | "ftp" -> FTP
     | "file" -> FILE
-    | proto -> invalid_arg ("unsupported URL protocol " ^ proto)
+    | proto -> invalid_string_arg "unsupported URL protocol" proto
   with Not_found ->
-    invalid_arg ("no protocol in URL " ^ url)
+    invalid_string_arg "no protocol in URL" url
 
 let rate_option =
   match String.lowercase max_rate with
@@ -120,7 +120,7 @@ let download url ?(headers=[]) ?header_callback callback =
 let translate_file file =
   match explode_path file with
   | dist :: path -> Config_file.get dist ^/ implode_path path
-  | _ -> invalid_arg "translate_file"
+  | _ -> invalid_string_arg "translate_file" file
 
 let download_file file =
   let file' = gensym file in

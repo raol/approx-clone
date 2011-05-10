@@ -95,7 +95,8 @@ let apply_pdiffs file pdiffs final index =
 
 let update index =
   info_message "Updating %s" index;
-  if not (Filename.check_suffix index ".gz") then invalid_arg "Pdiff.update";
+  if not (Filename.check_suffix index ".gz") then
+    invalid_string_arg "Pdiff.update" index;
   let dir = Filename.chop_suffix index ".gz" ^ ".diff" in
   let diffs, final = read_diff_index dir in
   let update_index file =

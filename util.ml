@@ -6,6 +6,8 @@ open Printf
 open Unix
 open Unix.LargeFile
 
+let invalid_string_arg msg arg = invalid_arg (msg ^ ": " ^ arg)
+
 let is_prefix pre str =
   let prefix_len = String.length pre in
   let string_len = String.length str in
@@ -175,7 +177,7 @@ let is_compressed file = List.mem (extension file) compressed_extensions
    This is also significantly faster than using CamlZip. *)
 
 let decompress file =
-  if extension file <> ".gz" then invalid_arg "decompress"
+  if extension file <> ".gz" then invalid_string_arg "decompress" file
   else
     let tmp = (tmp_dir ()) ^/ gensym (Filename.basename file) in
     let cmd = sprintf "/bin/gunzip --stdout %s > %s" file tmp in
@@ -193,7 +195,7 @@ let decompress_and_apply f file =
 let open_file = decompress_and_apply open_in
 
 let compressed_versions name =
-  if is_compressed name then invalid_arg "compressed_versions";
+  if is_compressed name then invalid_string_arg "compressed_versions" name;
   name :: List.map (fun ext -> name ^ ext) compressed_extensions
 
 let stat_file file = try Some (stat file) with Unix_error _ -> None

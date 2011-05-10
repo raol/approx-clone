@@ -19,7 +19,7 @@ let find file =
     if file.[0] <> '/' then file
     else if is_prefix cache_dir file then
       substring file ~from: (String.length cache_dir + 1)
-    else invalid_arg "Release.find"
+    else invalid_string_arg "Release.find" file
   in
   match explode_path path with
   | dist :: "dists" :: suite :: _ -> newest (dist ^/ "dists" ^/ suite)

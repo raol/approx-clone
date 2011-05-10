@@ -40,7 +40,7 @@ let split_cache_path path =
     let j = String.index_from path i '/' in
     substring path ~from: i ~until: j, substring path ~from: (j + 1)
   else
-    invalid_arg "split_cache_path"
+    invalid_string_arg "split_cache_path" path
 
 let shorten path =
   if is_prefix cache_dir path then

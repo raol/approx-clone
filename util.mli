@@ -1,6 +1,8 @@
 (* approx: proxy server for Debian archive files
    Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
+ 
+val invalid_string_arg : string -> string -> 'a
 
 (* Check if the first string is a prefix of the second *)
 
