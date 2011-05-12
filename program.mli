@@ -6,6 +6,10 @@
 
 val string_of_exception : exn -> string
 
+(* Print a backtrace for an uncaught exception *)
+
+val backtrace : unit -> unit
+
 (* Call a procedure and print, but otherwise ignore, any exception *)
 
 val perform : ('a -> unit) -> 'a -> unit

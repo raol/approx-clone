@@ -514,12 +514,7 @@ let ims_time env =
   with Not_found | Invalid_argument _ -> 0.
 
 let server_error e =
-  let bt = Printexc.get_backtrace () in
-  if bt <> "" then begin
-    error_message "%s" "Uncaught exception";
-    let pr s = if s <> "" then error_message "  %s" s in
-    List.iter pr (split_lines bt)
-  end;
+  backtrace ();
   `Std_response (`Internal_server_error, None, Some (string_of_exception e))
 
 let serve_file env =
@@ -588,6 +583,7 @@ let proxy_service =
   end
 
 let approx () =
+  log_to_syslog ();
   check_id ~user ~group;
   Sys.chdir cache_dir;
   set_nonblock stdin;
