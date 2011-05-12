@@ -2,7 +2,9 @@
    Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-(* Check if a file is valid according to the corresponding Release file *)
+(* Check if a file is valid according to the corresponding Release file.
+   The file must be a pathname relative to the cache directory and
+   the caller's working directory must be the cache directory. *)
 
 val valid : string -> bool
 

@@ -6,7 +6,14 @@ open Util
 open Config
 open Program
 
-let check show_immutable file =
+let cache_relative path =
+  if is_prefix cache_dir path then
+    substring path ~from: (String.length cache_dir + 1)
+  else
+    path
+
+let check show_immutable path =
+  let file = cache_relative path in
   let pr = file_message file in
   let pv msg =
     pr ((if Release.valid file then "valid" else "invalid") ^ " " ^ msg)
@@ -21,5 +28,6 @@ let check show_immutable file =
   else pr "unknown"
 
 let () =
+  Sys.chdir cache_dir;
   if arguments = [] then iter_non_dirs (check false) cache_dir
   else List.iter (check true) arguments

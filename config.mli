@@ -31,3 +31,7 @@ val split_cache_path : string -> string * string
 (* Remove cache directory prefix from a pathname, if present *)
 
 val shorten : string -> string
+
+(* Verify that the current directory is the cache directory *)
+
+val check_current_directory : unit -> unit

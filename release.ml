@@ -14,14 +14,7 @@ let newest dir = newest_file [dir ^/ "InRelease"; dir ^/ "Release"]
 (* Find the Release file for the given file or raise Not_found *)
 
 let find file =
-  (* start relative to the cache directory *)
-  let path =
-    if file.[0] <> '/' then file
-    else if is_prefix cache_dir file then
-      substring file ~from: (String.length cache_dir + 1)
-    else invalid_string_arg "Release.find" file
-  in
-  match explode_path path with
+  match explode_path file with
   | dist :: "dists" :: suite :: _ -> newest (dist ^/ "dists" ^/ suite)
   | _ -> raise Not_found
 
@@ -32,16 +25,21 @@ let read file =
 let validate (release, (info_list, checksum)) file =
   Sys.file_exists file &&
   let rdir = Filename.dirname release in
-  let rfile = substring file ~from: (String.length rdir + 1) in
+  let rfile =
+    if is_prefix rdir file then substring file ~from: (String.length rdir + 1)
+    else invalid_string_arg "Release.validate" file
+  in
   try
     let info = fst (List.find (fun (_, name) -> name = rfile) info_list) in
     Control_file.valid checksum info file
   with Not_found ->
     if Filename.dirname file <> rdir then
-      debug_message "%s: not found in %s" (shorten file) (shorten release);
+      debug_message "%s not found in %s" rfile (shorten release);
     false
 
 let valid file =
+  if file.[0] = '/' then invalid_string_arg "Release.valid" file;
+  check_current_directory ();
   try validate (read file) file
   with Not_found | Control_file.Missing _ -> false
 
