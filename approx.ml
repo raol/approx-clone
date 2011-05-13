@@ -5,10 +5,11 @@
 open Printf
 open Unix
 open Unix.LargeFile
-open Util
+
 open Config
 open Log
 open Program
+open Util
 
 (* Hint that a download is in progress *)
 

@@ -2,9 +2,9 @@
    Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-open Util
 open Config
 open Log
+open Util
 
 let string_of_time t =
   Netdate.format ~fmt: "%a, %d %b %Y %T GMT" (Netdate.create ~zone: 0 t)

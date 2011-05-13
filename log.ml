@@ -2,7 +2,6 @@
    Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-open Util
 open Printf
 open Syslog
 

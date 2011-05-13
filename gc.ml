@@ -4,10 +4,10 @@
 
 (* Garbage-collect the approx cache using a mark-sweep algorithm *)
 
-open Util
 open Config
-open Release
 open Program
+open Release
+open Util
 
 let usage () =
   print "Usage: approx-gc [options]

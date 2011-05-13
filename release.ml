@@ -2,9 +2,9 @@
    Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-open Util
 open Config
 open Log
+open Util
 
 (* Find the newest InRelease or Release file in the given directory
    or raise Not_found *)

@@ -2,9 +2,9 @@
    Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-open Util
 open Config
 open Program
+open Util
 
 let cache_relative path =
   if is_prefix cache_dir path then
