@@ -1,6 +1,8 @@
 (* approx: proxy server for Debian archive files
    Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
+ 
+val invalid_string_arg : string -> string -> 'a
 
 (* Check if the first string is a prefix of the second *)
 
@@ -180,9 +182,25 @@ val fold_non_dirs : ('a -> string -> 'a) -> 'a -> string -> 'a
 
 val iter_non_dirs : (string -> unit) -> string -> unit
 
+(* Return the Unix stat information *)
+
+val stat_file : string -> Unix.LargeFile.stats option
+
+(* Check if a file is a cached "file not found" *)
+
+val is_cached_nak : string -> bool
+
 (* Return the modification time of a file *)
 
 val file_modtime : string -> float
+
+(* Return the status change time of a file *)
+
+val file_ctime : string -> float
+
+(* Calculate the age in minutes of a timestamp *)
+
+val minutes_old : float -> int
 
 (* Return the size of a file *)
 

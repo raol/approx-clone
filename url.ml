@@ -2,9 +2,9 @@
    Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-open Util
 open Config
 open Log
+open Util
 
 let string_of_time t =
   Netdate.format ~fmt: "%a, %d %b %Y %T GMT" (Netdate.create ~zone: 0 t)
@@ -20,7 +20,7 @@ let translate_request url =
 	 error_message "No remote repository for %s" dist;
 	 raise Not_found)
   | [] ->
-      invalid_arg "translate_request"
+      invalid_string_arg "translate_request" url
 
 let reverse_translate url =
   let longest_match k v r =
@@ -36,10 +36,6 @@ let reverse_translate url =
   | Some (dist, repo) -> dist ^/ substring url ~from: (String.length repo + 1)
   | None -> raise Not_found
 
-let translate_file file =
-  let dist, path = split_cache_path file in
-  Config_file.get dist ^/ path
-
 type protocol = HTTP | HTTPS | FTP | FILE
 
 let protocol url =
@@ -49,9 +45,9 @@ let protocol url =
     | "https" -> HTTPS
     | "ftp" -> FTP
     | "file" -> FILE
-    | proto -> invalid_arg ("unsupported URL protocol " ^ proto)
+    | proto -> invalid_string_arg "unsupported URL protocol" proto
   with Not_found ->
-    invalid_arg ("no protocol in URL " ^ url)
+    invalid_string_arg "no protocol in URL" url
 
 let rate_option =
   match String.lowercase max_rate with
@@ -117,6 +113,14 @@ let download url ?(headers=[]) ?header_callback callback =
     (match header_callback with
      | Some proc -> seq (iter_headers proc) (iter_body callback)
      | None -> iter_body callback)
+
+(* Find the remote URL corresponding to a given relative pathname in the cache,
+   or raise Not_found if it does not correspond to a known mapping *)
+
+let translate_file file =
+  match explode_path file with
+  | dist :: path -> Config_file.get dist ^/ implode_path path
+  | _ -> invalid_string_arg "translate_file" file
 
 let download_file file =
   let file' = gensym file in

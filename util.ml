@@ -6,6 +6,8 @@ open Printf
 open Unix
 open Unix.LargeFile
 
+let invalid_string_arg msg arg = invalid_arg (msg ^ ": " ^ arg)
+
 let is_prefix pre str =
   let prefix_len = String.length pre in
   let string_len = String.length str in
@@ -46,7 +48,7 @@ let implode_path = join '/'
 let (^/) = Filename.concat
 
 let make_directory path =
-  (* Create a directory component in the path.  Since it might be
+  (* Create a directory component in the path. Since it might be
      created concurrently, we have to ignore the Unix EEXIST error:
      simply testing for existence first introduces a race condition. *)
   let make_dir name =
@@ -165,13 +167,9 @@ let tmp_dir () =
 
 let rm file = try Sys.remove file with _ -> ()
 
-let decompressors =
-  [(".gz", "/bin/gunzip --stdout"); (".bz2", "/bin/bunzip2 --stdout")]
+let compressed_extensions = [".gz"; ".bz2"; ".lzma"; ".xz"]
 
-let is_compressed file =
-  match extension file with
-  | "" -> false
-  | ext -> List.mem_assoc ext decompressors
+let is_compressed file = List.mem (extension file) compressed_extensions
 
 (* Decompress a file to a temporary file,
    rather than reading from a pipe or using the CamlZip library,
@@ -179,14 +177,12 @@ let is_compressed file =
    This is also significantly faster than using CamlZip. *)
 
 let decompress file =
-  match extension file with
-  | "" -> invalid_arg "decompress"
-  | ext ->
-      let prog = List.assoc ext decompressors in
-      let tmp = (tmp_dir ()) ^/ gensym (Filename.basename file) in
-      let cmd = sprintf "%s %s > %s" prog file tmp in
-      if Sys.command cmd = 0 then tmp
-      else (rm tmp; failwith "decompress")
+  if extension file <> ".gz" then invalid_string_arg "decompress" file
+  else
+    let tmp = (tmp_dir ()) ^/ gensym (Filename.basename file) in
+    let cmd = sprintf "/bin/gunzip --stdout %s > %s" file tmp in
+    if Sys.command cmd = 0 then tmp
+    else (rm tmp; failwith "decompress")
 
 let with_decompressed file = with_resource rm decompress file
 
@@ -199,19 +195,31 @@ let decompress_and_apply f file =
 let open_file = decompress_and_apply open_in
 
 let compressed_versions name =
-  if is_compressed name then invalid_arg "compressed_versions";
-  name :: List.map (fun (ext, _) -> name ^ ext) decompressors
+  if is_compressed name then invalid_string_arg "compressed_versions" name;
+  name :: List.map (fun ext -> name ^ ext) compressed_extensions
+
+let stat_file file = try Some (stat file) with Unix_error _ -> None
+
+let is_cached_nak name =
+  match stat_file name with
+  | Some { st_size = 0L; st_perm = 0 } -> true
+  | _ -> false
 
 let file_modtime file = (stat file).st_mtime
 
+let file_ctime file = (stat file).st_ctime
+
+let minutes_old t = int_of_float ((Unix.time () -. t) /. 60. +. 0.5)
+
 let newest_file list =
   let newest cur name =
-    try
-      let modtime = file_modtime name in
-      match cur with
-      | Some (f, t) -> if modtime > t then Some (name, modtime) else cur
-      | None -> Some (name, modtime)
-    with Unix_error (ENOENT, "stat", _) -> cur
+    match stat_file name with
+    | None | Some { st_size = 0L; st_perm = 0 } (* cached NAK *) -> cur
+    | Some { st_mtime = modtime } ->
+        begin match cur with
+        | Some (f, t) -> if modtime > t then Some (name, modtime) else cur
+        | None -> Some (name, modtime)
+        end
   in
   match List.fold_left newest None list with
   | Some (f, _) -> f
@@ -236,29 +244,26 @@ let with_temp_file name proc =
   file
 
 let update_ctime name =
-  try
-    let stats = stat name in
-    utimes name stats.st_atime stats.st_mtime
-  with Unix_error (ENOENT, "stat", _) -> ()
+  match stat_file name with
+  | Some { st_atime = atime; st_mtime = mtime } -> utimes name atime mtime
+  | None -> ()
 
 let directory_exists dir =
   Sys.file_exists dir && Sys.is_directory dir
 
 let is_symlink name = (lstat name).st_kind = S_LNK
 
-let directory_uid name =
-  try
-    let stats = stat name in
-    if stats.st_kind = S_DIR then Some (stats.st_dev, stats.st_ino)
-    else None
-  with _ -> None
+let directory_id name =
+  match stat_file name with
+  | Some { st_kind = S_DIR; st_dev = dev; st_ino = ino } -> Some (dev, ino)
+  | _ -> None
 
 let fold_fs_tree non_dirs f init path =
   let rec walk uids_seen init path =
     let visit uids acc name =
       walk uids acc (path ^/ name)
     in
-    let uid = directory_uid path in
+    let uid = directory_id path in
     if uid <> None then
       if List.mem uid uids_seen then (* cycle detected *)
         init

@@ -1,12 +1,12 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Import local files into the approx cache *)
 
-open Util
 open Config
 open Program
+open Util
 
 let usage () =
   print "Usage: approx-import [options] file ...

@@ -2,14 +2,11 @@
    Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-(* Find the newest InRelease or Release file in the given directory
-   or raise Not_found *)
+(* Check if a file is valid according to the corresponding Release file.
+   The file must be a pathname relative to the cache directory and
+   the caller's working directory must be the cache directory. *)
 
-val newest : string -> string
-
-(* Check if a file is valid according to the corresponding Release file *)
-
-val valid_file : string -> bool
+val valid : string -> bool
 
 (* Check if a file is a possibly-compressed Packages file *)
 
@@ -34,6 +31,10 @@ val is_diff_index : string -> bool
 (* Check if a file is a pdiff *)
 
 val is_pdiff : string -> bool
+
+(* Check if a file is a TranslationIndex *)
+
+val is_i18n_index : string -> bool
 
 (* Check if a file is immutable (deb, source file, or pdiff) *)
 

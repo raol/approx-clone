@@ -5,12 +5,11 @@
 open Printf
 open Unix
 open Unix.LargeFile
-open Util
+
 open Config
 open Log
 open Program
-
-let stat_file name = try Some (stat name) with Unix_error _ -> None
+open Util
 
 (* Hint that a download is in progress *)
 
@@ -69,43 +68,68 @@ let not_modified () =
   debug_message "  => not modified";
   Done (`Std_response (`Not_modified, None, None))
 
-(* See if the given file should be denied (reported to the client as
-   not found) rather than fetched remotely. This is done in two cases:
-     * the client is requesting a .bz2 version of an index
-     * the client is requesting a DiffIndex and an up-to-date .gz version
-       of the corresponding index exists in the cache
-   By denying the request, the client will fall back to requesting
-   the Packages.gz or Sources.gz file.  Using .gz instead of .bz2
-   allows pdiffs to be applied more quickly and ensures correct operation
-   with older apt clients that do not support .bz2 *)
-
-let should_deny name =
-  (Release.is_index name && extension name = ".bz2") ||
-  (pdiffs && Release.is_diff_index name &&
-     Release.valid_file (Pdiff.file_of_diff_index name ^ ".gz"))
-
-let deny name =
-  debug_message "Denying %s" name;
+let nak () =
+  debug_message "  => not found (cached)";
   Done (`Std_response (`Not_found, None, None))
 
-(* Attempt to serve the requested file from the local cache *)
+(* The modification time (mtime) tells when the contents of the file
+   last changed, and is used by the "If-Modified-Since" logic.
+
+   The last status change time (ctime) is used to indicate when a file
+   was last "verified" by contacting the remote repository.
+
+   Whenever we learn that the file is still valid via a "Not Modified"
+   response, we update the ctime so that the file will continue to be
+   considered current. *)
+
+let print_age mod_time ctime =
+  if debug then begin
+    debug_message "  last modified: %s" (Url.string_of_time mod_time);
+    debug_message "  last verified: %s" (Url.string_of_time ctime)
+  end
+
+(* "File not found" or NAK responses are cached as empty files with
+   permissions = 0. Create a cached NAK as an empty temp file, set
+   its permissions, then atomically rename it. *)
+
+let cache_nak file =
+  debug_message "  caching \"file not found\"";
+  make_directory (Filename.dirname file);
+  let tmp_file = gensym file in
+  let chan = open_out_excl tmp_file in
+  close_out chan;
+  Unix.chmod tmp_file 0;
+  Sys.rename tmp_file file
+
+(* Attempt to serve the requested file from the local cache.
+   Deliver immutable files and valid index files from the cache.
+   Deliver Release files if they are not too old.
+   Otherwise contact the remote repository. *)
 
 let serve_local name ims env =
-  let deliver_if_newer mod_time =
-    if mod_time > ims then deliver_local name env
-    else not_modified ()
-  in
   wait_for_download_in_progress name;
   match stat_file name with
-  | Some { st_mtime = mod_time } ->
-      if Release.is_release name then Cache_miss mod_time
-      else if should_deny name then deny name
-      else if Release.immutable name || Release.valid_file name then
-        deliver_if_newer mod_time
-      else Cache_miss mod_time
+  | Some { st_mtime = mod_time; st_ctime = ctime;
+           st_size = size; st_perm = perm } ->
+      let deliver_if_newer () =
+        if mod_time > ims then deliver_local name env
+        else not_modified ()
+      in
+      if size = 0L && perm = 0 then begin (* cached NAK *)
+        debug_message "  cached \"file not found\"";
+        print_age mod_time ctime;
+        if minutes_old ctime <= interval then nak ()
+        else Cache_miss mod_time
+      end else if Release.is_release name then begin
+        print_age mod_time ctime;
+        if minutes_old ctime <= interval then deliver_if_newer ()
+        else Cache_miss mod_time
+      end else if Release.immutable name || Release.valid name then
+        deliver_if_newer ()
+      else
+        Cache_miss 0.
   | None ->
-      if should_deny name then deny name
-      else Cache_miss 0.
+      Cache_miss 0.
 
 let create_hint name =
   make_directory (Filename.dirname name);
@@ -157,11 +181,11 @@ let close_cache cache size mod_time =
       debug_message "  close cache %s" file;
       close_out chan;
       if size = file_size tmp_file then begin
-        Sys.rename tmp_file file;
         if mod_time <> 0. then begin
           debug_message "  setting mtime to %s" (Url.string_of_time mod_time);
-          utimes file mod_time mod_time
-        end
+          utimes tmp_file mod_time mod_time
+        end;
+        Sys.rename tmp_file file
       end else begin
         error_message "Size of %s should be %Ld, not %Ld"
           file size (file_size tmp_file);
@@ -264,19 +288,19 @@ let process_header resp str =
         (try resp.location <- Neturl.string_of_url (Neturl.parse_url value)
          with Neturl.Malformed_URL ->
            error_message "Cannot parse Location %s" value)
-    | "content-type" ->  (* only used for pass-through content *)
+    | "content-type" -> (* only used for pass-through content *)
         resp.content_type <- value
     | _ -> ()
   in
   debug_message "  %s" str;
   try with_pair header_re str do_header
-  with Not_found ->  (* e.g., status line or CRLF *)
+  with Not_found -> (* e.g., status line or CRLF *)
     try with_pair status_re str do_status
     with Not_found -> error_message "Unrecognized response: %s" str
 
 (* Process a chunk of the response body.
    If no Content-Length was present in the header, we cache the whole
-   file before delivering it to the client.  The alternative -- using
+   file before delivering it to the client. The alternative -- using
    chunked transfer encoding -- triggers a bug in APT. *)
 
 let process_body resp cgi str pos len =
@@ -340,7 +364,7 @@ let download_ftp resp url name ims cgi =
   if 0. < mod_time && mod_time <= ims then Not_modified
   else if head_request cgi#environment then finish_head resp cgi
   else begin
-    resp.status <- 200;  (* for process_body *)
+    resp.status <- 200; (* for process_body *)
     Url.download url (process_body resp cgi);
     finish_delivery resp
   end
@@ -362,12 +386,18 @@ let download_url url name ims cgi =
     if e <> Failure url then info_message "%s" (string_of_exception e);
     File_not_found
 
-(* Perform any pdiff processing triggered by downloading a given file *)
+(* Handle any processing triggered by downloading a given file *)
+
+let updates_needed = ref []
 
 let cleanup_after url file =
   if pdiffs && Release.is_pdiff file then
-    try Pdiff.apply file
-    with e -> info_message "%s" (string_of_exception e)
+    (* record the affected index for later update *)
+    let index = Pdiff.index_file file in
+    if not (List.mem index !updates_needed) then begin
+      debug_message "Deferring pdiffs for %s" index;
+      updates_needed := index :: !updates_needed
+    end
 
 let copy_to dst src =
   let len = 4096 in
@@ -388,6 +418,17 @@ let copy_from_cache name cgi =
   if not (head_request cgi#environment) then
     with_in_channel open_in name (copy_to output);
   output#commit_work ()
+
+(* Update the ctime but not the mtime of the file *)
+
+let update_ctime name =
+  match stat_file name with
+  | Some stats ->
+      utimes name stats.st_atime stats.st_mtime;
+      if debug then
+        let ctime = (stat name).st_ctime in
+        debug_message "  updated ctime to %s" (Url.string_of_time ctime)
+  | None -> ()
 
 let redirect url (cgi : cgi) =
   let url' =
@@ -417,12 +458,19 @@ let serve_remote url name ims mod_time cgi =
       copy_from_cache name cgi;
       cleanup_after url name
   | Not_modified ->
+      update_ctime name;
       copy_if_newer ()
   | Redirect url' ->
       respond `Found ~header: (redirect url' cgi)
   | File_not_found ->
-      if offline && Sys.file_exists name then copy_if_newer ()
-      else respond `Not_found
+      if is_cached_nak name then begin
+        update_ctime name;
+        respond `Not_found
+      end else if offline && Sys.file_exists name then copy_if_newer ()
+      else begin
+        cache_nak name;
+        respond `Not_found
+      end
 
 let remote_service url name ims mod_time =
   object
@@ -444,17 +492,30 @@ let cache_miss url name ims mod_time =
   debug_message "  => cache miss";
   `Accept_body (remote_service url name ims mod_time)
 
+(* See if the given file should be denied (reported to the client as
+   not found) rather than fetched remotely. This is done in two cases:
+     * the client is requesting a non-gzipped version of an index
+     * the client is requesting a DiffIndex and an up-to-date .gz version
+       of the corresponding index exists in the cache
+   By denying the request, the client will fall back to requesting
+   the Packages.gz or Sources.gz file. Using .gz instead of .bz2
+   or other compressed formats allows pdiffs to be applied more quickly. *)
+
+let should_deny name =
+  (Release.is_index name && extension name <> ".gz") ||
+  (pdiffs && Release.is_diff_index name &&
+     Release.valid (Pdiff.index_file name))
+
+let deny name =
+  debug_message "Denying %s" name;
+  `Std_response (`Not_found, None, None)
+
 let ims_time env =
   try Netdate.parse_epoch (env#input_header#field "If-Modified-Since")
   with Not_found | Invalid_argument _ -> 0.
 
 let server_error e =
-  let bt = Printexc.get_backtrace () in
-  if bt <> "" then begin
-    error_message "%s" "Uncaught exception";
-    let pr s = if s <> "" then error_message "  %s" s in
-    List.iter pr (split_lines bt)
-  end;
+  backtrace ();
   `Std_response (`Internal_server_error, None, Some (string_of_exception e))
 
 let serve_file env =
@@ -466,6 +527,7 @@ let serve_file env =
     try
       let url, name = Url.translate_request path in
       if should_pass_through name then cache_miss url name 0. 0.
+      else if should_deny name then deny name
       else
         let ims = ims_time env in
         match serve_local name ims env with
@@ -522,9 +584,11 @@ let proxy_service =
   end
 
 let approx () =
+  log_to_syslog ();
   check_id ~user ~group;
   Sys.chdir cache_dir;
   set_nonblock stdin;
-  Nethttpd_reactor.process_connection config stdin proxy_service
+  Nethttpd_reactor.process_connection config stdin proxy_service;
+  List.iter Pdiff.update !updates_needed
 
 let () = main_program approx ()

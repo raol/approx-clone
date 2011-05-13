@@ -2,28 +2,21 @@
    Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-open Util
 open Config
 open Log
+open Util
+
+(* Find the newest InRelease or Release file in the given directory
+   or raise Not_found *)
 
 let newest dir = newest_file [dir ^/ "InRelease"; dir ^/ "Release"]
 
-(* Find the first Release file in the path leading to the given file
-   or raise Not_found *)
+(* Find the Release file for the given file or raise Not_found *)
 
 let find file =
-  let rec loop i =
-    let dir = substring file ~until: i in
-    try newest dir
-    with Not_found -> loop (String.index_from file (i + 1) '/')
-  in
-  (* if pathname is absolute, start relative to the cache directory *)
-  let start =
-    if file.[0] <> '/' then 0
-    else if is_prefix cache_dir file then String.length cache_dir + 1
-    else invalid_arg "Release.find"
-  in
-  loop start
+  match explode_path file with
+  | dist :: "dists" :: suite :: _ -> newest (dist ^/ "dists" ^/ suite)
+  | _ -> raise Not_found
 
 let read file =
   let release = find file in
@@ -32,16 +25,21 @@ let read file =
 let validate (release, (info_list, checksum)) file =
   Sys.file_exists file &&
   let rdir = Filename.dirname release in
-  let rfile = substring file ~from: (String.length rdir + 1) in
+  let rfile =
+    if is_prefix rdir file then substring file ~from: (String.length rdir + 1)
+    else invalid_string_arg "Release.validate" file
+  in
   try
     let info = fst (List.find (fun (_, name) -> name = rfile) info_list) in
-    Control_file.is_valid checksum info file
+    Control_file.valid checksum info file
   with Not_found ->
     if Filename.dirname file <> rdir then
-      debug_message "%s: not found in %s" (shorten file) (shorten release);
+      debug_message "%s not found in %s" rfile (shorten release);
     false
 
-let valid_file file =
+let valid file =
+  if file.[0] = '/' then invalid_string_arg "Release.valid" file;
+  check_current_directory ();
   try validate (read file) file
   with Not_found | Control_file.Missing _ -> false
 
@@ -67,9 +65,12 @@ let is_diff_index file =
 let is_pdiff file =
   Filename.basename file <> "Index" && diff_index_dir file
 
+let is_i18n_index file =
+  Filename.basename file = "Index" &&
+  Filename.basename (Filename.dirname file) = "i18n"
+
 let immutable_suffixes =
-  [".deb"; ".udeb"; ".dsc"; ".diff.gz";
-   ".tar.gz"; ".tar.bz2"; ".tar.lzma"; ".tar.xz"]
+  [".deb"; ".udeb"; ".dsc"; ".diff.gz"] @ compressed_versions ".tar"
 
 let immutable file =
   List.exists (Filename.check_suffix file) immutable_suffixes || is_pdiff file

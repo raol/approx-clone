@@ -2,9 +2,9 @@
    Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-open Util
 open Config
 open Log
+open Util
 
 type paragraph = { file : string; line : int; fields : (string * string) list }
 
@@ -69,14 +69,14 @@ let skip_initial_lines chan =
     | None -> failwith "EOF in PGP header"
     | Some "" -> n + 1
     | Some line ->
-      if is_hash line then loop (n + 1)
-      else failwith ("unexpected line in PGP header: " ^ line)
+        if is_hash line then loop (n + 1)
+        else failwith ("unexpected line in PGP header: " ^ line)
   in
-  begin match next_line chan with  (* line 1 *)
+  begin match next_line chan with (* line 1 *)
   | Some "-----BEGIN PGP SIGNED MESSAGE-----" -> ()
   | _ -> failwith "missing PGP header"
   end;
-  begin match next_line chan with  (* line 2 *)
+  begin match next_line chan with (* line 2 *)
   | None -> failwith "EOF in PGP header"
   | Some line ->
       if not (is_hash line) then failwith "missing Hash in PGP header"
@@ -189,7 +189,7 @@ let validate ?checksum (sum, size) file =
         else Valid
     | None -> Valid
 
-let is_valid checksum ((s, n) as info) file =
+let valid checksum ((s, n) as info) file =
   match validate ~checksum info file with
   | Valid -> true
   | Wrong_size n' ->

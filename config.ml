@@ -5,7 +5,7 @@
 open Config_file
 open Util
 
-let version = "4.6"
+let version = "5.0"
 
 let default_config = "/etc/approx/approx.conf"
 
@@ -40,13 +40,21 @@ let split_cache_path path =
     let j = String.index_from path i '/' in
     substring path ~from: i ~until: j, substring path ~from: (j + 1)
   else
-    invalid_arg "split_cache_path"
+    invalid_string_arg "split_cache_path" path
 
 let shorten path =
   if is_prefix cache_dir path then
     substring path ~from: (String.length cache_dir + 1)
   else
     path
+
+let check_current_directory () =
+  let cwd = Sys.getcwd () in
+  if cwd <> cache_dir then
+    failwith (Printf.sprintf "current directory is %s, not %s" cwd cache_dir)
+
+let interval = get_int "$interval" ~default: 720
+let params = ("$interval", string_of_int interval) :: params
 
 let max_rate = get "$max_rate" ~default: "unlimited"
 let params = ("$max_rate", max_rate) :: params

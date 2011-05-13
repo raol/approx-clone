@@ -1,8 +1,10 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2010  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
+open Util
+open Log
 
 let string_of_uerror = function
   | err, str, "" -> sprintf "%s: %s" str (Unix.error_message err)
@@ -23,14 +25,22 @@ let string_of_exception exc =
 
 let perform f x =
   try f x
-  with e ->
-    prerr_endline (string_of_exception e)
+  with e -> error_message "%s" (string_of_exception e)
+
+let backtrace () =
+  let bt = Printexc.get_backtrace () in
+  if bt <> "" then
+    let lines = split_lines bt in
+    error_message "%s" "Uncaught exception";
+    List.iter (fun s ->  if s <> "" then error_message "  %s" s) lines
 
 let main_program f x =
   try f x
   with e ->
-    prerr_endline (string_of_exception e);
-    Printexc.print_backtrace stderr;
+    backtrace ();
+    error_message "%s" (string_of_exception e);
     exit 1
 
-let print fmt = ksprintf prerr_endline fmt
+let print fmt = error_message fmt
+
+let file_message file msg = print "%s: %s" (Config.shorten file) msg

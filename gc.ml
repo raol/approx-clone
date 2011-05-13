@@ -2,15 +2,12 @@
    Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
-(* Garbage-collect the approx cache using a mark-sweep algorithm.
-   Any file in the cache whose name, size, and checksum match an entry
-   in a Packages or Sources file is assumed to be valid, and kept.
-   Anything else, other than a release or index file from a known
-   distribution, is assumed to be invalid, and removed. *)
+(* Garbage-collect the approx cache using a mark-sweep algorithm *)
 
-open Util
 open Config
 open Program
+open Release
+open Util
 
 let usage () =
   print "Usage: approx-gc [options]
@@ -53,30 +50,49 @@ let get_status = Hashtbl.find file_table
 let set_status = Hashtbl.replace file_table
 let iter_status proc = Hashtbl.iter proc file_table
 
+(* The known distributions are the first-level directories in the cache *)
+
+let distributions =
+  List.filter
+    (fun f -> Sys.is_directory (cache_dir ^/ f))
+    (Array.to_list (Sys.readdir cache_dir))
+
 (* Check if a file is part of a known distribution *)
 
 let dist_is_known file =
-  let dist, _ = split_cache_path file in
-  Config_file.mem dist
+  List.mem (fst (split_cache_path file)) distributions
+
+(* Check if a Release file is no more than 5 minutes older
+   than an InRelease file in the same directory, or vice versa *)
+
+let is_current_release file =
+  let current_with other =
+    let dir = Filename.dirname file in
+    let file' = dir ^/ other in
+    not (Sys.file_exists file') || is_cached_nak file' ||
+    file_modtime file' -. file_modtime file < 300.
+  in
+  not (is_cached_nak file) &&
+  match Filename.basename file with
+  | "Release" -> current_with "InRelease"
+  | "InRelease" -> current_with "Release"
+  | "Release.gpg" -> true
+  | _ -> false
 
 (* Scan the cache and add candidates for garbage collection to the
-   status table.  If a file is not in this table, it will not be
+   status table. If a file is not in this table, it will not be
    removed.
 
-   Packages and Sources files ("index files") are collected and
-   returned as the list of roots for the marking phase.  They are
-   added to the table only if there is a newer version (otherwise all
-   the packages they reference would be subject to possible removal).
+   Packages and Sources files are collected and returned in the list
+   of roots for the marking phase, but are not added to the table
+   themselves.
+
+   DiffIndex files are also returned in the list of roots, so that
+   pdiff files will be marked, and similarly for TranslationIndex files.
 
    Since Release files are unreachable from the roots and would
-   otherwise be removed, they are also added to the table only if
+   otherwise be removed, they are added to the table only if
    there is a newer version. *)
-
-let newest_index file =
-  newest_file (compressed_versions (without_extension file))
-
-let newest_release file =
-  Release.newest (Filename.dirname file)
 
 let scan_files () =
   let scan roots file =
@@ -85,19 +101,16 @@ let scan_files () =
     let skip () = roots in
     if not (dist_is_known file) then
       add ()
-    else if Release.is_index file then
-      if file = newest_index file then skip_root ()
-      else add ()
-    else if Release.is_release file then
-      (* treat Release.gpg the same as Release *)
-      if without_extension file = newest_release file then skip ()
-      else add ()
+    else if is_index file || is_diff_index file || is_i18n_index file then
+      skip_root ()
+    else if is_current_release file then
+      skip ()
     else
       add ()
   in
   fold_non_dirs scan [] cache_dir
 
-(* Handle the case of filename fields of the form ./path  *)
+(* Handle the case of filename fields of the form ./path *)
 
 let canonical path =
   if String.length path >= 2 && path.[0] = '.' && path.[1] = '/' then
@@ -108,39 +121,81 @@ let canonical path =
 (* If a file is present in the status table, mark it with the result
    of checking its size and checksum against the given information *)
 
-let mark_file checksum prefix (info, file) =
-  let path = prefix ^/ canonical file in
+let mark_generic pf vf checksum (info, file) =
+  let path = pf (canonical file) in
   try
     match get_status path with
-    | None -> set_status path (Some (Control_file.validate ?checksum info path))
+    | None ->
+        if is_cached_nak path then begin
+          if minutes_old (file_ctime path) <= interval then
+            (* keep it since it's reachable and current *)
+            set_status path (Some Control_file.Valid)
+        end else
+          let status = vf path (Control_file.validate ?checksum info) in
+          set_status path (Some status)
     | Some _ -> (* already marked *) ()
   with
     Not_found -> ()
+
+let mark_file prefix = mark_generic ((^/) prefix) (fun f k -> k f)
 
 let mark_package prefix fields =
   let filename = Control_file.lookup "filename" fields in
   let size = Int64.of_string (Control_file.lookup "size" fields) in
   let sum, func = Control_file.get_checksum fields in
   let checksum = if no_checksum then None else Some func in
-  mark_file checksum prefix ((sum, size), filename)
+  mark_file prefix checksum ((sum, size), filename)
 
 let mark_source prefix fields =
   let dir = Control_file.lookup "directory" fields in
   let info = Control_file.lookup_info "files" fields in
   let checksum = if no_checksum then None else Some file_md5sum in
-  List.iter (mark_file checksum (prefix ^/ dir)) info
+  List.iter (mark_file (prefix ^/ dir) checksum) info
+
+(* Like mark_file, but deals with the complication that
+   the DiffIndex file refers only to uncompressed pdiffs  *)
+
+let mark_pdiff prefix =
+  mark_generic (fun f -> prefix ^/ f ^ ".gz") with_decompressed
+
+let mark_diff_index prefix index =
+  let items = Control_file.read index in
+  let pdiffs = Control_file.lookup_info "sha1-patches" items in
+  let checksum = if no_checksum then None else Some file_sha1sum in
+  List.iter (mark_pdiff prefix checksum) pdiffs
+
+let mark_i18n_index prefix index =
+  let items = Control_file.read index in
+  let translations = Control_file.lookup_info "sha1" items in
+  let checksum = if no_checksum then None else Some file_sha1sum in
+  List.iter (mark_file prefix checksum) translations
 
 let mark_index index =
-  let dist, path = split_cache_path index in
-  let prefix = cache_dir ^/ dist in
-  if verbose then print "[ %s/%s ]" dist path;
-  if Release.is_sources_file index then
-    Control_file.iter (mark_source prefix) index
+  if verbose then print "[ %s ]" (shorten index);
+  if is_index index then
+    let dist, _ = split_cache_path index in
+    let prefix = cache_dir ^/ dist in
+    if is_packages_file index then
+      Control_file.iter (mark_package prefix) index
+    else if is_sources_file index then
+      Control_file.iter (mark_source prefix) index
+    else
+      file_message index "not a Packages or Sources file"
+  else if is_diff_index index then
+    let prefix = Filename.dirname index in
+    mark_diff_index prefix index
+  else if is_i18n_index index then
+    let prefix = Filename.dirname index in
+    mark_i18n_index prefix index
   else
-    Control_file.iter (mark_package prefix) index
+    file_message index "unexpected index file"
 
 let mark () =
-  List.iter mark_index (scan_files ())
+  let roots = scan_files () in
+  let mark_root r =
+    if not (is_cached_nak r) then mark_index r
+  in
+  List.iter mark_root roots
 
 let status_suffix = function
   | None -> ""
@@ -153,7 +208,7 @@ let print_gc file status =
     print "%s%s" (shorten file) (if verbose then status_suffix status else "")
 
 let inactive file =
-  Unix.time () -. file_modtime file > 300.  (* 5 minutes *)
+  Unix.time () -. file_modtime file > 300. (* 5 minutes *)
 
 let sweep () =
   let gc file = function
@@ -163,7 +218,7 @@ let sweep () =
           (print_gc file status;
            if not simulate then perform Sys.remove file)
         else if verbose then
-          print "%s: not old enough to remove" (shorten file)
+          file_message file "not old enough to remove"
   in
   iter_status gc
 
@@ -186,7 +241,7 @@ let remove_dir dir =
 let rec prune () =
   match empty_dirs cache_dir with
   | [] -> ()
-  | [dir] when dir = cache_dir -> ()  (* don't remove cache dir *)
+  | [dir] when dir = cache_dir -> () (* don't remove cache dir *)
   | list -> List.iter remove_dir list; if not simulate then prune ()
 
 let garbage_collect () =
