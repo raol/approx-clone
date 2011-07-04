@@ -48,11 +48,6 @@ let shorten path =
   else
     path
 
-let check_current_directory () =
-  let cwd = Sys.getcwd () in
-  if cwd <> cache_dir then
-    failwith (Printf.sprintf "current directory is %s, not %s" cwd cache_dir)
-
 let interval = get_int "$interval" ~default: 720
 let params = ("$interval", string_of_int interval) :: params
 

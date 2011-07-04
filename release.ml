@@ -39,7 +39,6 @@ let validate (release, (info_list, checksum)) file =
 
 let valid file =
   if file.[0] = '/' then invalid_string_arg "Release.valid" file;
-  check_current_directory ();
   try validate (read file) file
   with Not_found | Control_file.Missing _ -> false
 
