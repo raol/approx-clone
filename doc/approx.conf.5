@@ -2,7 +2,7 @@
 .\" Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
 .\" Released under the GNU General Public License
 .\" -*- nroff -*-
-.TH APPROX.CONF 5 "May 2011"
+.TH APPROX.CONF 5 "Jul 2011"
 .\" Please adjust this date when revising the manpage.
 
 .SH NAME
@@ -73,10 +73,22 @@ to remote repositories.  For example,
 .IP
 debian          http://ftp.debian.org/debian
 .br
-security        http://security.debian.org/debian-security
+security        http://security.debian.org
+.SH TCP PORT NUMBER
+.PP
+The port on which
+.BR approx (8)
+listens is not specified in this file, but in
+.IR /etc/inetd.conf .
+The default value is 9999, for compatibility with
+.BR apt\-proxy (8),
+but it may be changed by running the command
+.IP
+dpkg-reconfigure approx
 .SH SEE ALSO
 .BR approx (8),
-.BR approx-gc (8)
+.BR approx-gc (8),
+.BR inetd (8)
 
 .SH AUTHOR
 Eric Cooper <ecc@cmu.edu>
