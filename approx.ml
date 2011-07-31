@@ -518,24 +518,29 @@ let server_error e =
   backtrace ();
   `Std_response (`Internal_server_error, None, Some (string_of_exception e))
 
+let static env str =
+  `Static (`Ok, None, if head_request env then "" else str)
+
 let serve_file env =
   (* handle URL-encoded '+', '~', etc. *)
-  let path = Netencoding.Url.decode ~plus: false env#cgi_request_uri in
-  if path = "/" then
-    `Static (`Ok, None, if head_request env then "" else Config.index)
-  else
-    try
-      let url, name = Url.translate_request path in
-      if should_pass_through name then cache_miss url name 0. 0.
-      else if should_deny name then deny name
-      else
-        let ims = ims_time env in
-        match serve_local name ims env with
-        | Done reaction -> reaction
-        | Cache_miss mod_time -> cache_miss url name ims mod_time
-    with
-    | Not_found -> `Std_response (`Not_found, None, None)
-    | e -> server_error e
+  match Netencoding.Url.decode ~plus: false env#cgi_request_uri with
+  | "/" -> static env Config.index
+  | "/robots.txt" -> static env "User-agent: *\nDisallow: /\n"
+  | path ->
+      begin
+	try
+	  let url, name = Url.translate_request path in
+	  if should_pass_through name then cache_miss url name 0. 0.
+	  else if should_deny name then deny name
+	  else
+            let ims = ims_time env in
+            match serve_local name ims env with
+            | Done reaction -> reaction
+            | Cache_miss mod_time -> cache_miss url name ims mod_time
+	with
+	| Not_found -> `Std_response (`Not_found, None, None)
+	| e -> server_error e
+      end
 
 let process_request env =
   debug_message "Connection from %s"
