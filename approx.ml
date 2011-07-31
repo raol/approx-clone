@@ -237,7 +237,7 @@ let new_response url name =
     body_seen = false;
     cache = Undefined }
 
-type cgi = Netcgi1_compat.Netcgi_types.cgi_activation
+type cgi = Netcgi.cgi_activation
 
 let send_header size modtime (cgi : cgi) =
   let headers = proxy_headers size modtime in
@@ -518,24 +518,29 @@ let server_error e =
   backtrace ();
   `Std_response (`Internal_server_error, None, Some (string_of_exception e))
 
+let static env str =
+  `Static (`Ok, None, if head_request env then "" else str)
+
 let serve_file env =
   (* handle URL-encoded '+', '~', etc. *)
-  let path = Netencoding.Url.decode ~plus: false env#cgi_request_uri in
-  if path = "/" then
-    `Static (`Ok, None, if head_request env then "" else Config.index)
-  else
-    try
-      let url, name = Url.translate_request path in
-      if should_pass_through name then cache_miss url name 0. 0.
-      else if should_deny name then deny name
-      else
-        let ims = ims_time env in
-        match serve_local name ims env with
-        | Done reaction -> reaction
-        | Cache_miss mod_time -> cache_miss url name ims mod_time
-    with
-    | Not_found -> `Std_response (`Not_found, None, None)
-    | e -> server_error e
+  match Netencoding.Url.decode ~plus: false env#cgi_request_uri with
+  | "/" -> static env Config.index
+  | "/robots.txt" -> static env "User-agent: *\nDisallow: /\n"
+  | path ->
+      begin
+	try
+	  let url, name = Url.translate_request path in
+	  if should_pass_through name then cache_miss url name 0. 0.
+	  else if should_deny name then deny name
+	  else
+            let ims = ims_time env in
+            match serve_local name ims env with
+            | Done reaction -> reaction
+            | Cache_miss mod_time -> cache_miss url name ims mod_time
+	with
+	| Not_found -> `Std_response (`Not_found, None, None)
+	| e -> server_error e
+      end
 
 let process_request env =
   debug_message "Connection from %s"
@@ -548,31 +553,30 @@ let process_request env =
   else
     `Std_response (`Forbidden, None, Some "invalid HTTP request")
 
-let error_response code =
+let error_response info =
+  let code = info#response_status_code in
   let msg =
-    try Nethttp.string_of_http_status (Nethttp.http_status_of_int code)
-    with Not_found -> "???"
+    string_of_int code ^ ": " ^
+      try Nethttp.string_of_http_status (Nethttp.http_status_of_int code)
+      with Not_found -> "???"
   in
-  sprintf "<html><title>%d %s</title><body><h1>%d: %s</h1></body></html>"
-    code msg code msg
+  let detail =
+    match info#error_message with
+    | "" -> ""
+    | s -> "<p>" ^ s ^ "</p>"
+  in
+  sprintf "<html><body><h1>%s</h1>%s</body></html>" msg detail
+
+open Nethttpd_reactor
 
 let config =
   object
-    (* http_protocol_config *)
-    method config_max_reqline_length = 256
-    method config_max_header_length = 32768
-    method config_max_trailer_length = 32768
-    method config_limit_pipeline_length = 5
-    method config_limit_pipeline_size = 250000
+    inherit modify_http_reactor_config default_http_reactor_config
+    (* changes from default_http_protocol_config *)
     method config_announce_server = `Ocamlnet_and ("approx/" ^ version)
-    (* http_processor_config *)
-    method config_timeout_next_request = 15.
-    method config_timeout = 300.
-    method config_cgi = Netcgi1_compat.Netcgi_env.default_config
-    method config_error_response n = error_response n
-    method config_log_error _ _ _ _ msg = error_message "%s" msg
-    (* http_reactor_config *)
-    method config_reactor_synch = `Write
+    (* changes from default_http_processor_config *)
+    method config_error_response = error_response
+    method config_log_error _ msg = error_message "%s" msg
   end
 
 let proxy_service =

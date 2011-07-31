@@ -5,7 +5,7 @@
 open Config_file
 open Util
 
-let version = "5.0"
+let version = "5.1"
 
 let default_config = "/etc/approx/approx.conf"
 
@@ -47,11 +47,6 @@ let shorten path =
     substring path ~from: (String.length cache_dir + 1)
   else
     path
-
-let check_current_directory () =
-  let cwd = Sys.getcwd () in
-  if cwd <> cache_dir then
-    failwith (Printf.sprintf "current directory is %s, not %s" cwd cache_dir)
 
 let interval = get_int "$interval" ~default: 720
 let params = ("$interval", string_of_int interval) :: params
