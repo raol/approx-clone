@@ -1,3 +1,13 @@
+approx (5.1-1) unstable; urgency=low
+
+  * New upstream version
+  * Build with ocamlnet3 (closes: #610597, #635886)
+  * Remove unnecessary check_current_directory function (closes: #632670)
+  * Document default port number and how to change it (closes: #633811)
+  * Serve simple robots.txt file (closes: #626721)
+
+ -- Eric Cooper <ecc@cmu.edu>  Sun, 31 Jul 2011 18:30:00 -0400
+
 approx (5.0-1) unstable; urgency=low
 
   * New upstream version
