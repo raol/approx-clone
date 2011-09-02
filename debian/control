@@ -7,7 +7,7 @@ DM-Upload-Allowed: yes
 Build-Depends:
  debhelper (>= 8.0),
  dh-ocaml,
- libnethttpd-ocaml-dev,
+ libnethttpd-ocaml-dev (>= 3),
  libpcre-ocaml-dev,
  libsha-ocaml-dev,
  libsyslog-ocaml-dev,
