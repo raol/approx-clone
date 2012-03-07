@@ -1,0 +1,23 @@
+From: Stephane Glondu <steph@glondu.net>
+Date: Wed, 7 Mar 2012 07:53:01 +0100
+Subject: Fix FTBFS with ocamlnet 3.5.1
+
+Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=661775
+---
+ url.ml |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/url.ml b/url.ml
+index 661d8ac..d73ba17 100644
+--- a/url.ml
++++ b/url.ml
+@@ -9,7 +9,7 @@ open Util
+ let string_of_time t =
+   Netdate.format ~fmt: "%a, %d %b %Y %T GMT" (Netdate.create ~zone: 0 t)
+ 
+-let time_of_string = Netdate.parse_epoch ?zone: None
++let time_of_string x = Netdate.parse_epoch ?zone: None x
+ 
+ let translate_request url =
+   let path = relative_url url in
+-- 
