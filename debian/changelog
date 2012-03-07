@@ -1,3 +1,11 @@
+approx (5.1-1.1) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Fix FTBFS with ocamlnet 3.5.1 (Closes: #661775)
+  * Add versioned dependency to libnethttpd-ocaml-dev in Build-Depends
+
+ -- Stéphane Glondu <glondu@debian.org>  Wed, 07 Mar 2012 07:54:57 +0100
+
 approx (5.1-1) unstable; urgency=low
 
   * New upstream version
