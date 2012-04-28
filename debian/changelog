@@ -1,3 +1,28 @@
+approx (5.2-1) unstable; urgency=low
+
+  [ Eric Cooper ]
+  * New upstream version
+  * Check for custom inetd.conf entry when updating (closes: #627053)
+  * Handle Sources files with missing Directory fields (closes: #641928)
+  * Change default $interval to 60 (closes: #658694)
+  * Applied "Fix FTBFS with ocamlnet 3.5.1" upstream
+  * Add debian/watch file
+  * Update Standards-Version to 3.9.3
+
+  [ Adriano Rafael Gomes ]
+  * add Brazilian Portuguese debconf translation (closes: #661359)
+
+  [ Jeroen Schot ]
+  * add Dutch debconf translation (closes: #661438)
+
+  [ Andika Triwidada ]
+  * add Indonesian debconf translation (closes: #670916)
+
+  [ Michał Kułach ]
+  * add Polish debconf translation (closes: #671346)
+
+ -- Eric Cooper <ecc@cmu.edu>  Wed, 23 May 2012 15:52:32 -0400
+
 approx (5.1-1.2) unstable; urgency=low
 
   * Non-maintainer upload.
