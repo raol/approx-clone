@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2012  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Config_file
@@ -48,7 +48,7 @@ let shorten path =
   else
     path
 
-let interval = get_int "$interval" ~default: 720
+let interval = get_int "$interval" ~default: 60
 let params = ("$interval", string_of_int interval) :: params
 
 let max_rate = get "$max_rate" ~default: "unlimited"
