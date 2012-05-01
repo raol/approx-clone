@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2012  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Config
@@ -9,7 +9,7 @@ open Util
 let string_of_time t =
   Netdate.format ~fmt: "%a, %d %b %Y %T GMT" (Netdate.create ~zone: 0 t)
 
-let time_of_string = Netdate.parse_epoch ?zone: None
+let time_of_string s = Netdate.parse_epoch ?zone: None s
 
 let translate_request url =
   let path = relative_url url in

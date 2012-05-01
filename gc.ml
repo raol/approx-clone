@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2012  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Garbage-collect the approx cache using a mark-sweep algorithm *)
@@ -146,14 +146,22 @@ let mark_package prefix fields =
   let checksum = if no_checksum then None else Some func in
   mark_file prefix checksum ((sum, size), filename)
 
+let source_directory prefix fields =
+  match
+    try Control_file.lookup "directory" fields
+    with Control_file.Missing _ -> "."
+  with
+  | "." -> prefix
+  | dir -> prefix ^/ dir
+
 let mark_source prefix fields =
-  let dir = Control_file.lookup "directory" fields in
+  let dir = source_directory prefix fields in
   let info = Control_file.lookup_info "files" fields in
   let checksum = if no_checksum then None else Some file_md5sum in
-  List.iter (mark_file (prefix ^/ dir) checksum) info
+  List.iter (mark_file dir checksum) info
 
 (* Like mark_file, but deals with the complication that
-   the DiffIndex file refers only to uncompressed pdiffs  *)
+   the DiffIndex file refers only to uncompressed pdiffs *)
 
 let mark_pdiff prefix =
   mark_generic (fun f -> prefix ^/ f ^ ".gz") with_decompressed
