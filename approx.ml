@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2012  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -180,7 +180,7 @@ let close_cache cache size mod_time =
   | Cache { file = file; tmp_file = tmp_file; chan = chan } ->
       debug_message "  close cache %s" file;
       close_out chan;
-      if size = file_size tmp_file then begin
+      if size = -1L or size = file_size tmp_file then begin
         if mod_time <> 0. then begin
           debug_message "  setting mtime to %s" (Url.string_of_time mod_time);
           utimes tmp_file mod_time mod_time
