@@ -1,3 +1,11 @@
+approx (5.3-1) unstable; urgency=low
+
+  * New upstream version
+  * Check for chunked transfer encoding when closing cache file
+    (closes: #685724)
+
+ -- Eric Cooper <ecc@cmu.edu>  Fri, 24 Aug 2012 14:56:45 -0400
+
 approx (5.2-1) unstable; urgency=low
 
   [ Eric Cooper ]
