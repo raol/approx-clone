@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2012  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -332,7 +332,7 @@ let download_http resp url name ims cgi =
   let rec loop redirects =
     resp.status <- 0;
     if is_head then
-      Url.head url header_callback
+      Url.head resp.location header_callback
     else
       Url.download resp.location ~headers ~header_callback body_callback;
     match resp.status with
