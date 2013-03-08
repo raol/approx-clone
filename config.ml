@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2012  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Config_file
@@ -35,12 +35,13 @@ let cache_dir = get "$cache" ~default: "/var/cache/approx"
 let params = ("$cache", cache_dir) :: params
 
 let split_cache_path path =
+  let err () = invalid_string_arg "split_cache_path" path in
   if is_prefix cache_dir path then
     let i = String.length cache_dir + 1 in
-    let j = String.index_from path i '/' in
+    let j = try String.index_from path i '/' with Not_found -> err () in
     substring path ~from: i ~until: j, substring path ~from: (j + 1)
   else
-    invalid_string_arg "split_cache_path" path
+    err ()
 
 let shorten path =
   if is_prefix cache_dir path then

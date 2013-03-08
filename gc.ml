@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2012  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Garbage-collect the approx cache using a mark-sweep algorithm *)
@@ -60,7 +60,8 @@ let distributions =
 (* Check if a file is part of a known distribution *)
 
 let dist_is_known file =
-  List.mem (fst (split_cache_path file)) distributions
+  try List.mem (fst (split_cache_path file)) distributions
+  with Invalid_argument _ -> false
 
 (* Check if a Release file is no more than 5 minutes older
    than an InRelease file in the same directory, or vice versa *)
