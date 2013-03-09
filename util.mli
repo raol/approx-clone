@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
  
 val invalid_string_arg : string -> string -> 'a
@@ -47,22 +47,9 @@ val make_directory : string -> unit
 
 val quoted_string : string -> string
 
-(* Return the relative portion of a pathname *)
-
-val relative_path : string -> string
-
 (* Return the relative portion of a URL *)
 
 val relative_url : string -> string
-
-(* Split a filename into the leading portion without an extension
-   and the extension, if any, beginning with '.' *)
-
-val split_extension : string -> string * string
-
-(* Return a filename with its extension, if any, removed *)
-
-val without_extension : string -> string
 
 (* Return the extension of a filename, including the initial '.' *)
 
@@ -76,11 +63,6 @@ val the : 'a option -> 'a
    before returning the result of the function or raising an exception *)
 
 val unwind_protect : (unit -> 'a) -> (unit -> unit) -> 'a
-
-(* Apply a function to a resource that is acquired and released by
-   the given functions *)
-
-val with_resource : ('t -> unit) -> ('a -> 't) -> 'a -> ('t -> 'b) -> 'b
 
 (* Open an input channel and apply a function to the channel,
    using unwind_protect to ensure that the channel gets closed *)
@@ -101,22 +83,9 @@ val with_process : ?error:string -> string -> (in_channel -> 'a) -> 'a
 
 val gensym : string -> string
 
-(* Return the name of the temporary file directory *)
-
-val tmp_dir : unit -> string
-
 (* Attempt to remove a file but ignore any errors *)
 
 val rm : string -> unit
-
-(* Check if a file is compressed by examining its extension *)
-
-val is_compressed : string -> bool
-
-(* Decompress a file to a temporary location and return
-   the temporary file name, which must be removed by the caller *)
-
-val decompress : string -> string
 
 (* Decompress a file and apply a function to the temporary file name,
    using unwind_protect to ensure that the temporary file gets removed *)
@@ -143,10 +112,6 @@ val open_file : string -> in_channel
 
 val open_out_excl : string -> out_channel
 
-(* Copy an input channel to an output channel *)
-
-val copy_channel : in_channel -> out_channel -> unit
-
 (* Open a temporary file for output in the same directory as the given one
    (so that it can be renamed back to the original), apply the given function,
    and return the file name *)
@@ -158,14 +123,6 @@ val with_temp_file : string -> (out_channel -> unit) -> string
 
 val update_ctime : string -> unit
 
-(* Check if a filename exists and is a directory *)
-
-val directory_exists : string -> bool
-
-(* Check if a filename is a symbolic link *)
-
-val is_symlink : string -> bool
-
 (* Create a generic iterator function from a fold function *)
 
 val iter_of_fold : ((unit -> 'a) -> unit -> 'b) -> 'a -> 'b
@@ -174,11 +131,15 @@ val iter_of_fold : ((unit -> 'a) -> unit -> 'b) -> 'a -> 'b
 
 val fold_dirs : ('a -> string -> 'a) -> 'a -> string -> 'a
 
+(* Apply a function to each directory below a given path *)
+
 val iter_dirs : (string -> unit) -> string -> unit
 
 (* Fold a function over each non-directory below a given path *)
 
 val fold_non_dirs : ('a -> string -> 'a) -> 'a -> string -> 'a
+
+(* Apply a function to each non-directory below a given path *)
 
 val iter_non_dirs : (string -> unit) -> string -> unit
 

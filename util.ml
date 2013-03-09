@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -70,6 +70,8 @@ let make_directory path =
 
 let quoted_string = sprintf "%S"
 
+(* Return the relative portion of a pathname *)
+
 let relative_path path =
   let n = String.length path in
   let rec loop i =
@@ -92,6 +94,9 @@ let relative_url path =
   with _ ->
     failwith ("malformed URL: " ^ path)
 
+(* Split a filename into the leading portion without an extension
+   and the extension, if any, beginning with '.' *)
+
 let split_extension file =
   let base = Filename.basename file in
   (* look for '.' in basename only, not parent directories *)
@@ -102,6 +107,8 @@ let split_extension file =
     let ext = substring base ~from: i in
     (if dir = "." then name else dir ^/ name), ext
   with Not_found -> (file, "")
+
+(* Return a filename with its extension, if any, removed *)
 
 let without_extension file = fst (split_extension file)
 
@@ -120,6 +127,9 @@ let unwind_protect body post =
   with
   | Unwind e -> raise e    (* assume cleanup has been done *)
   | e -> post (); raise e
+
+(* Apply a function to a resource that is acquired and released by
+   the given functions *)
 
 let with_resource release acquire x f =
   let res = acquire x in
@@ -151,6 +161,8 @@ let gensym str =
 
 let tmp_dir_name = ref None
 
+(* Return the name of the temporary file directory *)
+
 let tmp_dir () =
   match !tmp_dir_name with
   | Some dir -> dir
@@ -169,12 +181,15 @@ let rm file = try Sys.remove file with _ -> ()
 
 let compressed_extensions = [".gz"; ".bz2"; ".lzma"; ".xz"]
 
+(* Check if a file is compressed by examining its extension *)
+
 let is_compressed file = List.mem (extension file) compressed_extensions
 
 (* Decompress a file to a temporary file,
    rather than reading from a pipe or using the CamlZip library,
    so that we detect corrupted files before partially processing them.
-   This is also significantly faster than using CamlZip. *)
+   This is also significantly faster than using CamlZip.
+   Return the temporary file name, which must be removed by the caller *)
 
 let decompress file =
   if extension file <> ".gz" then invalid_string_arg "decompress" file
@@ -225,16 +240,6 @@ let newest_file list =
   | Some (f, _) -> f
   | None -> raise Not_found
 
-let copy_channel src dst =
-  let len = 4096 in
-  let buf = String.create len in
-  let rec loop () =
-    match input src buf 0 len with
-    | 0 -> ()
-    | n -> output dst buf 0 n; loop ()
-  in
-  loop ()
-
 let open_out_excl file =
   out_channel_of_descr (openfile file [O_CREAT; O_WRONLY; O_EXCL] 0o644)
 
@@ -247,11 +252,6 @@ let update_ctime name =
   match stat_file name with
   | Some { st_atime = atime; st_mtime = mtime } -> utimes name atime mtime
   | None -> ()
-
-let directory_exists dir =
-  Sys.file_exists dir && Sys.is_directory dir
-
-let is_symlink name = (lstat name).st_kind = S_LNK
 
 let directory_id name =
   match stat_file name with
