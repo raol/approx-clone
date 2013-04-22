@@ -179,7 +179,14 @@ let tmp_dir () =
 
 let rm file = try Sys.remove file with _ -> ()
 
-let compressed_extensions = [".gz"; ".bz2"; ".lzma"; ".xz"]
+(* Decompression programs for supported compression formats *)
+
+let decompressors =
+  [".bz2", "/bin/bzcat";
+   ".gz", "/bin/zcat";
+   ".xz", "/usr/bin/xzcat"]
+
+let compressed_extensions = List.map fst decompressors
 
 (* Check if a file is compressed by examining its extension *)
 
@@ -192,12 +199,14 @@ let is_compressed file = List.mem (extension file) compressed_extensions
    Return the temporary file name, which must be removed by the caller *)
 
 let decompress file =
-  if extension file <> ".gz" then invalid_string_arg "decompress" file
-  else
-    let tmp = (tmp_dir ()) ^/ gensym (Filename.basename file) in
-    let cmd = sprintf "/bin/gunzip --stdout %s > %s" file tmp in
-    if Sys.command cmd = 0 then tmp
-    else (rm tmp; failwith ("decompress " ^ file))
+  let prog =
+    try List.assoc (extension file) decompressors
+    with Not_found -> invalid_string_arg "decompress" file
+  in
+  let tmp = (tmp_dir ()) ^/ gensym (Filename.basename file) in
+  let cmd = sprintf "%s %s > %s" prog file tmp in
+  if Sys.command cmd = 0 then tmp
+  else (rm tmp; failwith ("decompress " ^ file))
 
 let with_decompressed file = with_resource rm decompress file
 

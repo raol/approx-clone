@@ -34,7 +34,7 @@ B: between concurrent approx processes
 The atomic renaming of downloaded files prevents one approx process
 from delivering a file that has been partially downloaded by another.
 
-But suppose a large download, like the main Packages.gz file, is in
+But suppose a large download, like the main Packages.bz2 file, is in
 progress.  Another approx process might decide to download it also.
 To avoid this, approx creates a hint file in the cache directory
 before starting the download.  We use the presence of a current hint

@@ -7,7 +7,7 @@ open Log
 open Util
 
 let index_file path =
-  Filename.chop_suffix (Filename.dirname path) ".diff" ^ ".gz"
+  Filename.chop_suffix (Filename.dirname path) ".diff" ^ ".bz2"
 
 let read_diff_index dir =
   let diff_index = dir ^/ "Index" in
@@ -34,11 +34,11 @@ let rec find_tail p = function
 
 (* Pdiff application must result in a Packages or Sources file
    that is identical to the one in the official archive,
-   so this function must use the same gzip parameters that dak does.
+   so this function must use the same bzip2 parameters that dak does.
    See http://ftp-master.debian.org/git/dak.git *)
 
 let compress ~src ~dst =
-  let cmd = Printf.sprintf "/bin/gzip -9cn --rsyncable < %s > %s" src dst in
+  let cmd = Printf.sprintf "/usr/bin/nice /usr/bin/ionice -c3 /bin/bzip2 -9 < %s > %s" src dst in
   debug_message "Compressing: %s" cmd;
   if Sys.command cmd <> 0 then failwith "compress";
   if debug && not (Release.valid dst) then
@@ -81,11 +81,11 @@ let apply_pdiffs file pdiffs final index =
 
 let update index =
   info_message "Updating %s" index;
-  if not (Filename.check_suffix index ".gz") then
+  if not (Filename.check_suffix index ".bz2") then
     invalid_string_arg "Pdiff.update" index;
   if not (Sys.file_exists index) then
     Url.download_file index;
-  let dir = Filename.chop_suffix index ".gz" ^ ".diff" in
+  let dir = Filename.chop_suffix index ".bz2" ^ ".diff" in
   let diffs, final = read_diff_index dir in
   let update_index file =
     let info = (file_sha1sum file, file_size file) in

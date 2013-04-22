@@ -494,15 +494,14 @@ let cache_miss url name ims mod_time =
 
 (* See if the given file should be denied (reported to the client as
    not found) rather than fetched remotely. This is done in two cases:
-     * the client is requesting a non-gzipped version of an index
-     * the client is requesting a DiffIndex and an up-to-date .gz version
+     * the client is requesting a non-bz2 version of an index
+     * the client is requesting a DiffIndex and an up-to-date .bz2 version
        of the corresponding index exists in the cache
    By denying the request, the client will fall back to requesting
-   the Packages.gz or Sources.gz file. Using .gz instead of .bz2
-   or other compressed formats allows pdiffs to be applied more quickly. *)
+   the Packages.bz2 or Sources.bz2 file. *)
 
 let should_deny name =
-  (Release.is_index name && extension name <> ".gz") ||
+  (Release.is_index name && extension name <> ".bz2") ||
   (pdiffs && Release.is_diff_index name &&
      Release.valid (Pdiff.index_file name))
 
