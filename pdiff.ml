@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Config
@@ -83,6 +83,8 @@ let update index =
   info_message "Updating %s" index;
   if not (Filename.check_suffix index ".gz") then
     invalid_string_arg "Pdiff.update" index;
+  if not (Sys.file_exists index) then
+    Url.download_file index;
   let dir = Filename.chop_suffix index ".gz" ^ ".diff" in
   let diffs, final = read_diff_index dir in
   let update_index file =
@@ -90,7 +92,7 @@ let update index =
     if info = final then debug_message "%s is current" index
     else
       match find_tail (fun (i, _, _) -> i = info) diffs with
-      | [] -> debug_message "%s not found in DiffIndex" index; raise Not_found
+      | [] -> failwith (index ^ " not found in DiffIndex")
       | list -> apply_pdiffs file list final index
   in
   decompress_and_apply update_index index
