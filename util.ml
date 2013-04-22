@@ -197,7 +197,7 @@ let decompress file =
     let tmp = (tmp_dir ()) ^/ gensym (Filename.basename file) in
     let cmd = sprintf "/bin/gunzip --stdout %s > %s" file tmp in
     if Sys.command cmd = 0 then tmp
-    else (rm tmp; failwith "decompress")
+    else (rm tmp; failwith ("decompress " ^ file))
 
 let with_decompressed file = with_resource rm decompress file
 
