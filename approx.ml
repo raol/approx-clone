@@ -492,23 +492,6 @@ let cache_miss url name ims mod_time =
   debug_message "  => cache miss";
   `Accept_body (remote_service url name ims mod_time)
 
-(* See if the given file should be denied (reported to the client as
-   not found) rather than fetched remotely. This is done in two cases:
-     * the client is requesting a non-bz2 version of an index
-     * the client is requesting a DiffIndex and an up-to-date .bz2 version
-       of the corresponding index exists in the cache
-   By denying the request, the client will fall back to requesting
-   the Packages.bz2 or Sources.bz2 file. *)
-
-let should_deny name =
-  (Release.is_index name && extension name <> ".bz2") ||
-  (pdiffs && Release.is_diff_index name &&
-     Release.valid (Pdiff.index_file name))
-
-let deny name =
-  debug_message "Denying %s" name;
-  `Std_response (`Not_found, None, None)
-
 let ims_time env =
   try Netdate.parse_epoch (env#input_header#field "If-Modified-Since")
   with Not_found | Invalid_argument _ -> 0.
@@ -530,7 +513,6 @@ let serve_file env =
 	try
 	  let url, name = Url.translate_request path in
 	  if should_pass_through name then cache_miss url name 0. 0.
-	  else if should_deny name then deny name
 	  else
             let ims = ims_time env in
             match serve_local name ims env with
