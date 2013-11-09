@@ -3,7 +3,6 @@ Section: admin
 Priority: optional
 Maintainer: Eric Cooper <ecc@cmu.edu>
 Uploaders: Sylvain Le Gall <gildor@debian.org>, Ralf Treinen <treinen@debian.org>
-DM-Upload-Allowed: yes
 Build-Depends:
  debhelper (>= 9.0),
  dh-ocaml,
@@ -12,7 +11,7 @@ Build-Depends:
  libsha-ocaml-dev,
  libsyslog-ocaml-dev,
  ocaml-nox
-Standards-Version: 3.9.3
+Standards-Version: 3.9.4
 Vcs-Git: git://git.debian.org/git/pkg-ocaml-maint/packages/approx.git
 Vcs-Browser: http://git.debian.org/?p=pkg-ocaml-maint/packages/approx.git
 Homepage: http://git.debian.org/?p=pkg-ocaml-maint/packages/approx.git
