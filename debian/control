@@ -5,7 +5,7 @@ Maintainer: Eric Cooper <ecc@cmu.edu>
 Uploaders: Sylvain Le Gall <gildor@debian.org>, Ralf Treinen <treinen@debian.org>
 DM-Upload-Allowed: yes
 Build-Depends:
- debhelper (>= 8.0),
+ debhelper (>= 9.0),
  dh-ocaml,
  libnethttpd-ocaml-dev (>= 3),
  libpcre-ocaml-dev,
