@@ -12,5 +12,5 @@
 <util.ml>: use_pcre, use_sha
 
 <**/*.{byte,native}>: use_unix, use_pcre, use_sha
-<*.{byte,native}>: use_bigarray, use_netsys_oothr, use_netsys, use_netstring
+<*.{byte,native}>: use_bigarray, use_netsys_oothr, use_netsys, use_str, use_netstring
 <approx.{byte,native}>: use_equeue, use_netcgi, use_nethttpd
