@@ -180,7 +180,7 @@ let close_cache cache size mod_time =
   | Cache { file = file; tmp_file = tmp_file; chan = chan } ->
       debug_message "  close cache %s" file;
       close_out chan;
-      if size = -1L or size = file_size tmp_file then begin
+      if size = -1L || size = file_size tmp_file then begin
         if mod_time <> 0. then begin
           debug_message "  setting mtime to %s" (Url.string_of_time mod_time);
           utimes tmp_file mod_time mod_time
@@ -256,7 +256,7 @@ let pass_through_header resp (cgi : cgi) =
 
 let finish_delivery resp =
   close_cache resp.cache resp.length resp.last_modified;
-  if resp.length >= 0L or resp.cache = Pass_through then Delivered else Cached
+  if resp.length >= 0L || resp.cache = Pass_through then Delivered else Cached
 
 let finish_head resp cgi =
   send_header resp.length resp.last_modified cgi;
