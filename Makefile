@@ -41,11 +41,8 @@ tests: $(subst .ml,,$(wildcard tests/*.ml))
 	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) $@.$(TARGET)
 
 version := $(shell sed -n 's/^let version = "\(.*\)"$$/\1/p' config.ml)
-tarball := approx_$(version).orig.tar.gz
 package := approx-$(version)
-excludes := $(tarball) .git _build "*~" "\#*"
+tarball := $(package).tar.gz
 
 tarball:
-	touch $(tarball)
-	tar -czf $(tarball) $(excludes:%=--exclude=%) \
-	    --transform "s:^\.$$:$(package):;s:^\./:$(package)/:" .
+	git archive -o $(tarball) --prefix $(package)/ HEAD
