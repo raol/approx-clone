@@ -2,3 +2,5 @@ approx		usr/sbin
 approx-gc	usr/sbin
 approx-import	usr/sbin
 etc/approx.conf	etc/approx
+etc/approx.socket	lib/systemd/system
+etc/approx@.service	lib/systemd/system
