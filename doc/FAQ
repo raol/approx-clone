@@ -78,3 +78,11 @@ Passing environment variables to approx
   2. Modify the inetd.conf entry for approx to run the "/usr/bin/env" command,
      with the desired environment variable settings and "/usr/sbin/approx"
      as arguments.
+
+Passing options to the curl(1) command used by approx
+
+  You can specify options in a .curlrc file in the approx user's home directory
+  (/var/cache/approx/ by default).
+
+  For example, adding the line "--ipv4" to this file will force curl to
+  resolve hostnames to IPv4 addresses only.
