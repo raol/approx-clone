@@ -12,6 +12,11 @@ Changing the temporary directory used by approx
   directory used by approx. Please see the section on
   "Passing environment variables to approx", below.
 
+Using approx with xinetd
+
+  An example configuration file is provided in
+  /usr/share/doc/approx/examples/approx.xinetd
+
 Exporting a local package repository
 
   This is supported with file URLs. Note that the syntax for file URLs

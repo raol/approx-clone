@@ -1,0 +1,7 @@
+service approx
+{
+	socket_type	= stream
+	wait		= no
+	user		= approx
+	server		= /usr/sbin/approx
+}
