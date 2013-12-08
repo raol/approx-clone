@@ -1,0 +1,10 @@
+[Unit]
+Description=caching proxy server for Debian archive files
+Documentation=man:approx(8)
+
+[Socket]
+ListenStream=9999
+Accept=yes
+
+[Install]
+WantedBy=sockets.target
