@@ -1,5 +1,5 @@
 # approx: proxy server for Debian archive files
-# Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
+# Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
 # Released under the GNU General Public License
 
 OCAMLBUILD := ocamlbuild
@@ -19,9 +19,13 @@ approx:
 	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) approx.$(TARGET)
 	cp -p _build/approx.$(TARGET) $@
 
-approx-%:
-	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) $(@:approx-%=%).$(TARGET)
-	cp -pv _build/$(@:approx-%=%).$(TARGET) $@
+approx-gc:
+	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) gc_cache.$(TARGET)
+	cp -pv _build/gc_cache.$(TARGET) $@
+
+approx-import:
+	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) import.$(TARGET)
+	cp -pv _build/import.$(TARGET) $@
 
 $(programs): $(wildcard *.ml*)
 
@@ -37,11 +41,8 @@ tests: $(subst .ml,,$(wildcard tests/*.ml))
 	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) $@.$(TARGET)
 
 version := $(shell sed -n 's/^let version = "\(.*\)"$$/\1/p' config.ml)
-tarball := approx_$(version).orig.tar.gz
 package := approx-$(version)
-excludes := $(tarball) .git _build "*~" "\#*"
+tarball := $(package).tar.gz
 
 tarball:
-	touch $(tarball)
-	tar -czf $(tarball) $(excludes:%=--exclude=%) \
-	    --transform "s:^\.$$:$(package):;s:^\./:$(package)/:" .
+	git archive -o $(tarball) --prefix $(package)/ HEAD

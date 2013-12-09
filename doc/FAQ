@@ -12,6 +12,11 @@ Changing the temporary directory used by approx
   directory used by approx. Please see the section on
   "Passing environment variables to approx", below.
 
+Using approx with xinetd
+
+  An example configuration file is provided in
+  /usr/share/doc/approx/examples/approx.xinetd
+
 Exporting a local package repository
 
   This is supported with file URLs. Note that the syntax for file URLs
@@ -22,7 +27,7 @@ Exporting a local package repository
       local   file:///my/local/repo
 
   The repo must have the structure that apt expects, including a
-  Packages.gz index. You can maintain a local repo with a tool like
+  Packages.bz2 index. You can maintain a local repo with a tool like
   dpkg-scanpackages or reprepro.
 
 Changing the TCP port on which approx listens
@@ -73,3 +78,11 @@ Passing environment variables to approx
   2. Modify the inetd.conf entry for approx to run the "/usr/bin/env" command,
      with the desired environment variable settings and "/usr/sbin/approx"
      as arguments.
+
+Passing options to the curl(1) command used by approx
+
+  You can specify options in a .curlrc file in the approx user's home directory
+  (/var/cache/approx/ by default).
+
+  For example, adding the line "--ipv4" to this file will force curl to
+  resolve hostnames to IPv4 addresses only.

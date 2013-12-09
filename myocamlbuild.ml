@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Ocamlbuild_plugin
@@ -7,7 +7,7 @@ open Command
 open Pathname
 
 let libraries =
-  ["pcre"; "sha"; "syslog";
+  ["pcre"; "sha";
    "netsys_oothr"; "netsys"; "equeue";
    "netstring"; "netcgi2:netcgi"; "nethttpd"]
 

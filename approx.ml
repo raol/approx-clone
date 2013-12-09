@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2012  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -180,7 +180,7 @@ let close_cache cache size mod_time =
   | Cache { file = file; tmp_file = tmp_file; chan = chan } ->
       debug_message "  close cache %s" file;
       close_out chan;
-      if size = -1L or size = file_size tmp_file then begin
+      if size = -1L || size = file_size tmp_file then begin
         if mod_time <> 0. then begin
           debug_message "  setting mtime to %s" (Url.string_of_time mod_time);
           utimes tmp_file mod_time mod_time
@@ -256,7 +256,7 @@ let pass_through_header resp (cgi : cgi) =
 
 let finish_delivery resp =
   close_cache resp.cache resp.length resp.last_modified;
-  if resp.length >= 0L or resp.cache = Pass_through then Delivered else Cached
+  if resp.length >= 0L || resp.cache = Pass_through then Delivered else Cached
 
 let finish_head resp cgi =
   send_header resp.length resp.last_modified cgi;
@@ -332,7 +332,7 @@ let download_http resp url name ims cgi =
   let rec loop redirects =
     resp.status <- 0;
     if is_head then
-      Url.head url header_callback
+      Url.head resp.location header_callback
     else
       Url.download resp.location ~headers ~header_callback body_callback;
     match resp.status with
@@ -492,24 +492,6 @@ let cache_miss url name ims mod_time =
   debug_message "  => cache miss";
   `Accept_body (remote_service url name ims mod_time)
 
-(* See if the given file should be denied (reported to the client as
-   not found) rather than fetched remotely. This is done in two cases:
-     * the client is requesting a non-gzipped version of an index
-     * the client is requesting a DiffIndex and an up-to-date .gz version
-       of the corresponding index exists in the cache
-   By denying the request, the client will fall back to requesting
-   the Packages.gz or Sources.gz file. Using .gz instead of .bz2
-   or other compressed formats allows pdiffs to be applied more quickly. *)
-
-let should_deny name =
-  (Release.is_index name && extension name <> ".gz") ||
-  (pdiffs && Release.is_diff_index name &&
-     Release.valid (Pdiff.index_file name))
-
-let deny name =
-  debug_message "Denying %s" name;
-  `Std_response (`Not_found, None, None)
-
 let ims_time env =
   try Netdate.parse_epoch (env#input_header#field "If-Modified-Since")
   with Not_found | Invalid_argument _ -> 0.
@@ -531,7 +513,6 @@ let serve_file env =
 	try
 	  let url, name = Url.translate_request path in
 	  if should_pass_through name then cache_miss url name 0. 0.
-	  else if should_deny name then deny name
 	  else
             let ims = ims_time env in
             match serve_local name ims env with
