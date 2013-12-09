@@ -22,10 +22,12 @@ Depends:
  ${misc:Depends},
  ${shlibs:Depends},
  adduser,
+ bzip2,
  curl,
  openbsd-inetd | inet-superserver,
  update-inetd,
- rsyslog | system-log-daemon
+ rsyslog | system-log-daemon,
+ xz-utils
 Suggests: libconfig-model-approx-perl
 Description: caching proxy server for Debian archive files
  Approx is an HTTP-based proxy server for Debian-style package archives.
