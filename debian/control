@@ -2,7 +2,8 @@ Source: approx
 Section: admin
 Priority: optional
 Maintainer: Eric Cooper <ecc@cmu.edu>
-Uploaders: Sylvain Le Gall <gildor@debian.org>, Ralf Treinen <treinen@debian.org>
+Uploaders: Ralf Treinen <treinen@debian.org>
+DM-Upload-Allowed: yes
 Build-Depends:
  debhelper (>= 9.0),
  dh-ocaml,
