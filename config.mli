@@ -16,6 +16,7 @@ val syslog : string
 val pdiffs : bool
 val offline : bool
 val max_wait : int (* seconds *)
+val curl_path : string
 val verbose : bool
 val debug : bool
 

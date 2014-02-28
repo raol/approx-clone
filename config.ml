@@ -89,6 +89,9 @@ let params = ("$offline", string_of_bool offline) :: params
 let max_wait = get_int "$max_wait" ~default: 10 (* seconds *)
 let params = ("$max_wait", string_of_int max_wait) :: params
 
+let curl_path = get "$curl_path" ~default: "/usr/bin/curl"
+let params = ("$curl_path", curl_path) :: params
+
 let debug = get_bool "$debug" ~default: false
 let params = ("$debug", string_of_bool debug) :: params
 

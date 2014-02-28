@@ -56,8 +56,8 @@ let rate_option =
 
 let curl_command options url =
   Printf.sprintf
-    "/usr/bin/curl --fail --silent --header \"Pragma: no-cache\" %s %s %s"
-    rate_option (String.concat " " options) (quoted_string url)
+    "%s --fail --silent --header \"Pragma: no-cache\" %s %s %s"
+    curl_path rate_option (String.concat " " options) (quoted_string url)
 
 let head_command = curl_command ["--head"]
 
