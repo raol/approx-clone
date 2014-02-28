@@ -126,8 +126,11 @@ let serve_local name ims env =
         else Cache_miss mod_time
       end else if Release.immutable name || Release.valid name then
         deliver_if_newer ()
-      else
-        Cache_miss 0.
+      else begin
+        print_age mod_time ctime;
+        if minutes_old ctime <= interval then deliver_if_newer ()
+        else Cache_miss mod_time
+      end
   | None ->
       Cache_miss 0.
 
