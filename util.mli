@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2014  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
  
 val invalid_string_arg : string -> string -> 'a
@@ -64,6 +64,11 @@ val the : 'a option -> 'a
 
 val unwind_protect : (unit -> 'a) -> (unit -> unit) -> 'a
 
+(* Apply a function to a resource that is acquired and released by
+   the given functions *)
+
+val with_resource : ('t -> unit) -> ('a -> 't) -> 'a -> ('t -> 'b) -> 'b
+
 (* Open an input channel and apply a function to the channel,
    using unwind_protect to ensure that the channel gets closed *)
 
@@ -73,11 +78,6 @@ val with_in_channel : ('a -> in_channel) -> 'a -> (in_channel -> 'b) -> 'b
    using unwind_protect to ensure that the channel gets closed *)
 
 val with_out_channel : ('a -> out_channel) -> 'a -> (out_channel -> 'b) -> 'b
-
-(* Spawn a shell command and apply a function to its output,
-   using unwind_protect to ensure that the channel gets closed *)
-
-val with_process : ?error:string -> string -> (in_channel -> 'a) -> 'a
 
 (* Generate a unique string, suitable for use as a filename *)
 

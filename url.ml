@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2012  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2014  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Config
@@ -80,10 +80,31 @@ let iter_headers proc chan =
   in
   loop ()
 
+exception File_not_found
+exception Download_error
+
+let process_status = function
+  | Unix.WEXITED n -> Printf.sprintf "exited with status %d" n
+  | Unix.WSIGNALED _ -> "killed"
+  | Unix.WSTOPPED _ -> "stopped"
+
+(* Spawn a curl command and apply a function to its output. *)
+
+let with_curl_process cmd =
+  let close chan =
+    match Unix.close_process_in chan with
+    | Unix.WEXITED 0 -> ()
+    | Unix.WEXITED 22 -> raise File_not_found  (* see curl(1) *)
+    | e ->
+        error_message "Command [%s] %s" cmd (process_status e);
+        raise Download_error
+  in
+  with_resource close Unix.open_process_in cmd
+
 let head url callback =
   let cmd = head_command url in
   debug_message "Command: %s" cmd;
-  with_process cmd ~error: url (iter_headers callback)
+  with_curl_process cmd (iter_headers callback)
 
 let download_command headers header_callback =
   let hdr_opts = List.map (fun h -> "--header " ^ quoted_string h) headers in
@@ -109,7 +130,7 @@ let seq f g x = (f x; g x)
 let download url ?(headers=[]) ?header_callback callback =
   let cmd = download_command headers header_callback url in
   debug_message "Command: %s" cmd;
-  with_process cmd ~error: url
+  with_curl_process cmd
     (match header_callback with
      | Some proc -> seq (iter_headers proc) (iter_body callback)
      | None -> iter_body callback)
