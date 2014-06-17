@@ -89,19 +89,15 @@ let sort_config = List.sort (fun x y -> compare (fst x) (fst y))
 let section str =
   "<tr><td colspan=\"2\"><h2>" ^ str ^ "</h2></td></tr>\n"
 
-let repository_table items =
+let rows fmt items =
   String.concat ""
-    (List.map
-       (fun (k, v) ->
-          "<tr><td><a href=\"/" ^ k ^ "\">" ^ k ^ "</a></td>\
-               <td><a href=\"" ^ v ^ "\">" ^ v ^ "</a></td></tr>\n")
+    (List.map (fun (k, v) -> "<tr>" ^ fmt k ^ fmt v ^ "</tr>\n")
        (sort_config items))
 
-let parameter_table items =
-  String.concat ""
-    (List.map
-       (fun (k, v) -> "<tr><td>" ^ k ^ "</td><td>" ^ v ^ "</td></tr>\n")
-       (sort_config items))
+let repository_table =
+  rows (fun x -> "<td><a href=\"" ^ x ^ "\">" ^ x ^ "</a></td>")
+
+let parameter_table = rows (fun x -> "<td>" ^ x ^ "</td>")
 
 let css =
   "body { margin: 24pt }\n\
