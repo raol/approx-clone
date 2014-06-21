@@ -1,3 +1,12 @@
+approx (5.5-1) unstable; urgency=medium
+
+  * New upstream version
+  * Only cache "not found" for true 404 responses (closes: #655986)
+  * Incorporate patch for #732021 into upstream branch
+  * Update Standards-Version to 3.9.5
+
+ -- Eric Cooper <ecc@cmu.edu>  Sat, 21 Jun 2014 17:41:30 -0400
+
 approx (5.4-2) unstable; urgency=low
 
   * patch doc/FAQ to avoid FHS violation (closes: #732021)
