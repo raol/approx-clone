@@ -10,7 +10,7 @@ Build-Depends:
  libpcre-ocaml-dev,
  libsha-ocaml-dev,
  ocaml-nox
-Standards-Version: 3.9.4
+Standards-Version: 3.9.5
 Vcs-Git: git://git.debian.org/git/pkg-ocaml-maint/packages/approx.git
 Vcs-Browser: http://git.debian.org/?p=pkg-ocaml-maint/packages/approx.git
 Homepage: http://git.debian.org/?p=pkg-ocaml-maint/packages/approx.git
