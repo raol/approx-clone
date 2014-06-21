@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2014  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -209,6 +209,7 @@ type download_status =
   | Not_modified
   | Redirect of string
   | File_not_found
+  | Download_error
 
 let string_of_download_status = function
   | Delivered -> "delivered"
@@ -216,6 +217,7 @@ let string_of_download_status = function
   | Not_modified -> "not modified"
   | Redirect url -> "redirected to " ^ url
   | File_not_found -> "not found"
+  | Download_error -> "download error"
 
 type response_state =
   { name : string;
@@ -350,7 +352,7 @@ let download_http resp url name ims cgi =
         end else
           loop (redirects + 1)
     | 404 -> File_not_found
-    | n -> error_message "Unexpected status code: %d" n; File_not_found
+    | n -> error_message "Unexpected status code: %d" n; Download_error
   in
   loop 0
 
@@ -383,8 +385,10 @@ let download_url url name ims cgi =
       (fun () -> remove_hint name)
   with e ->
     remove_cache resp.cache;
-    if e <> Failure url then info_message "%s" (string_of_exception e);
-    File_not_found
+    match e with
+    | Url.File_not_found -> File_not_found
+    | Url.Download_error -> Download_error
+    | e -> info_message "%s" (string_of_exception e); Download_error
 
 (* Handle any processing triggered by downloading a given file *)
 
@@ -471,6 +475,11 @@ let serve_remote url name ims mod_time cgi =
         cache_nak name;
         respond `Not_found
       end
+  | Download_error ->
+      if not (is_cached_nak name) && offline && Sys.file_exists name then
+        copy_if_newer ()
+      else
+        respond `Not_found
 
 let remote_service url name ims mod_time =
   object

@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2014  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -128,9 +128,6 @@ let unwind_protect body post =
   | Unwind e -> raise e    (* assume cleanup has been done *)
   | e -> post (); raise e
 
-(* Apply a function to a resource that is acquired and released by
-   the given functions *)
-
 let with_resource release acquire x f =
   let res = acquire x in
   unwind_protect
@@ -140,15 +137,6 @@ let with_resource release acquire x f =
 let with_in_channel openf = with_resource close_in openf
 
 let with_out_channel openf = with_resource close_out openf
-
-let with_process ?error cmd =
-  let close chan =
-    if close_process_in chan <> WEXITED 0 then
-      failwith (match error with
-                | None -> cmd
-                | Some msg -> msg)
-  in
-  with_resource close open_process_in cmd
 
 let gensym str =
   sprintf "%s.%d.%09.0f"

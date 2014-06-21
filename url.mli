@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2014  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 (* Translate a request URL to the remote repository URL and
@@ -14,6 +14,9 @@ val reverse_translate : string -> string
 type protocol = HTTP | HTTPS | FTP | FILE
 
 val protocol : string -> protocol
+
+exception File_not_found  (* raised when remote server returns 404 *)  
+exception Download_error  (* raised when any other failure occurs *)
 
 (* Perform HTTP HEAD (or equivalent for FTP and FILE) on the given URL
    and apply a callback to each header that is returned *)

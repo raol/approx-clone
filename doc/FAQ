@@ -81,8 +81,8 @@ Passing environment variables to approx
 
 Passing options to the curl(1) command used by approx
 
-  You can specify options in a .curlrc file in the approx user's home directory
-  (/var/cache/approx/ by default).
+  Use the above method to pass the CURL_HOME environment variable to approx,
+  and use the file $CURL_HOME/.curlrc to specify the desired curl options.
 
   For example, adding the line "--ipv4" to this file will force curl to
   resolve hostnames to IPv4 addresses only.
