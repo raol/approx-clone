@@ -55,10 +55,6 @@ val relative_url : string -> string
 
 val extension : string -> string
 
-(* Return the underlying value of an option, otherwise raise Not_found *)
-
-val the : 'a option -> 'a
-
 (* Call a function making sure that a cleanup procedure is called
    before returning the result of the function or raising an exception *)
 
