@@ -25,8 +25,6 @@ Depends:
  adduser,
  bzip2,
  curl,
- openbsd-inetd | inet-superserver,
- update-inetd,
  rsyslog | system-log-daemon,
  xz-utils
 Suggests: libconfig-model-approx-perl
