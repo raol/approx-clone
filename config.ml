@@ -5,7 +5,7 @@
 open Config_file
 open Util
 
-let version = "5.5"
+let version = "5.6"
 
 let default_config = "/etc/approx/approx.conf"
 
