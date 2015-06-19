@@ -38,6 +38,14 @@ val implode_path : string list -> string
 
 val (^/) : string -> string -> string
 
+(* Remove leading occurrences of the given char from a string *)
+
+val remove_leading : char -> string -> string
+
+(* Remove trailing occurrences of the given char from a string *)
+
+val remove_trailing : char -> string -> string
+
 (* Create a directory, including any intermediate directories
    along the specified path (like "mkdir --parents") *)
 
@@ -47,9 +55,18 @@ val make_directory : string -> unit
 
 val quoted_string : string -> string
 
+(* Return the relative portion of a pathname *)
+
+val relative_path : string -> string
+
 (* Return the relative portion of a URL *)
 
 val relative_url : string -> string
+
+(* Split a filename into the leading portion without an extension
+   and the extension, if any, beginning with '.' *)
+
+val split_extension : string -> (string * string)
 
 (* Return the extension of a filename, including the initial '.' *)
 

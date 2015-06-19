@@ -31,21 +31,34 @@ let () =
 
 let params = []
 
-let cache_dir = get "$cache" ~default: "/var/cache/approx"
+let cache_dir =
+  let dir = remove_trailing '/' (get "$cache" ~default: "/var/cache/approx") in
+  let n = String.length dir in
+  if n > 0 && dir.[0] = '/' then dir
+  else invalid_arg "$cache"
+
 let params = ("$cache", cache_dir) :: params
 
 let split_cache_path path =
   let err () = invalid_string_arg "split_cache_path" path in
-  if is_prefix cache_dir path then
-    let i = String.length cache_dir + 1 in
-    let j = try String.index_from path i '/' with Not_found -> err () in
-    substring path ~from: i ~until: j, substring path ~from: (j + 1)
+  let dir = cache_dir ^ "/" in
+  if is_prefix dir path then
+    let i = String.length dir in
+    let rest = remove_leading '/' (substring path ~from: i) in
+    let j = try String.index rest '/' with Not_found -> err () in
+    match (substring rest ~until: j,
+           remove_leading '/' (substring rest ~from: (j + 1))) with
+    | ("", _) | (_, "") -> err ()
+    | pair -> pair
   else
     err ()
 
 let shorten path =
-  if is_prefix cache_dir path then
-    substring path ~from: (String.length cache_dir + 1)
+  let dir = cache_dir ^ "/" in
+  if is_prefix dir path then
+    match remove_leading '/' (substring path ~from: (String.length dir)) with
+    | "" -> path
+    | str -> str
   else
     path
 

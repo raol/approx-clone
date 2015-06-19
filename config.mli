@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2014  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 val version : string
@@ -23,7 +23,7 @@ val index : string (* simple HTML index for the server *)
 
 (* Extract the distribution and relative filename
    from the absolute pathname of a file in the cache.
-   Example: split_pathname "/var/cache/approx/debian/pool/main/..."
+   Example: split_cache_path "/var/cache/approx/debian/pool/main/..."
    returns ("debian", "pool/main/...") *)
 
 val split_cache_path : string -> string * string

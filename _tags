@@ -13,3 +13,5 @@
 
 <**/*.{byte,native}>: package(netsys), package(pcre), package(sha)
 <approx.{byte,native}>: package(nethttpd)
+
+<tests/*>: package(oUnit)
