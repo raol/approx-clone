@@ -1,3 +1,9 @@
+approx (5.5-2) unstable; urgency=medium
+
+  * handle String.create deprecation warning during transition to OCaml 4.02
+
+ -- Eric Cooper <ecc@cmu.edu>  Sat, 20 Jun 2015 12:40:26 -0400
+
 approx (5.5-1) unstable; urgency=medium
 
   * New upstream version
