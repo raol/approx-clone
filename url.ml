@@ -56,8 +56,8 @@ let rate_option =
 
 let curl_command options url =
   Printf.sprintf
-    "/usr/bin/curl --fail --silent --header \"Pragma: no-cache\" %s %s %s"
-    rate_option (String.concat " " options) (quoted_string url)
+    "%s --fail --silent --header \"Pragma: no-cache\" %s %s %s"
+    curl_path rate_option (String.concat " " options) (quoted_string url)
 
 let head_command = curl_command ["--head"]
 
@@ -117,7 +117,7 @@ let download_command headers header_callback =
 
 let iter_body proc chan =
   let len = 4096 in
-  let buf = String.create len in
+  let buf = Bytes.create len in
   let rec loop () =
     match input chan buf 0 len with
     | 0 -> ()

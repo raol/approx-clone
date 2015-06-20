@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2009  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2014  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Util
@@ -23,6 +23,8 @@ let remove_comment str = Pcre.qreplace ~rex: comment_re str ~templ: ""
 let words_of_line line = Pcre.split (remove_comment line)
 
 let map = ref []
+
+let reset () = map := []
 
 let mem k = List.mem_assoc k !map
 

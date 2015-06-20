@@ -126,8 +126,11 @@ let serve_local name ims env =
         else Cache_miss mod_time
       end else if Release.immutable name || Release.valid name then
         deliver_if_newer ()
-      else
-        Cache_miss 0.
+      else begin
+        print_age mod_time ctime;
+        if minutes_old ctime <= interval then deliver_if_newer ()
+        else Cache_miss mod_time
+      end
   | None ->
       Cache_miss 0.
 
@@ -405,7 +408,7 @@ let cleanup_after url file =
 
 let copy_to dst src =
   let len = 4096 in
-  let buf = String.create len in
+  let buf = Bytes.create len in
   let rec loop () =
     match input src buf 0 len with
     | 0 -> ()

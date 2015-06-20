@@ -47,6 +47,23 @@ let implode_path = join '/'
 
 let (^/) = Filename.concat
 
+let remove_leading c str =
+  let n = String.length str in
+  let rec loop i =
+    if i = n then ""
+    else if str.[i] <> c then substring str ~from: i
+    else loop (i + 1)
+  in
+  loop 0
+
+let remove_trailing c str =
+  let rec loop i =
+    if i < 0 then ""
+    else if str.[i] <> c then substring str ~until: (i + 1)
+    else loop (i - 1)
+  in
+  loop (String.length str - 1)
+
 let make_directory path =
   (* Create a directory component in the path. Since it might be
      created concurrently, we have to ignore the Unix EEXIST error:
@@ -70,8 +87,6 @@ let make_directory path =
 
 let quoted_string = sprintf "%S"
 
-(* Return the relative portion of a pathname *)
-
 let relative_path path =
   let n = String.length path in
   let rec loop i =
@@ -94,18 +109,13 @@ let relative_url path =
   with _ ->
     failwith ("malformed URL: " ^ path)
 
-(* Split a filename into the leading portion without an extension
-   and the extension, if any, beginning with '.' *)
-
 let split_extension file =
-  let base = Filename.basename file in
   (* look for '.' in basename only, not parent directories *)
+  let left = try String.rindex file '/' with Not_found -> -1 in
   try
-    let i = String.rindex base '.' in
-    let dir = Filename.dirname file in
-    let name = substring base ~until: i in
-    let ext = substring base ~from: i in
-    (if dir = "." then name else dir ^/ name), ext
+    let i = String.rindex file '.' in
+    if i > left then (substring file ~until: i, substring file ~from: i)
+    else (file, "")
   with Not_found -> (file, "")
 
 (* Return a filename with its extension, if any, removed *)
@@ -113,8 +123,6 @@ let split_extension file =
 let without_extension file = fst (split_extension file)
 
 let extension file = snd (split_extension file)
-
-let the = function Some x -> x | None -> raise Not_found
 
 (* private exception to wrap any exception raised during cleanup action *)
 
@@ -157,7 +165,7 @@ let tmp_dir () =
   | None ->
       let dir =
         try
-          let dir = Filename.temp_dir_name in
+          let dir = Filename.get_temp_dir_name () in
           access dir [R_OK; W_OK; X_OK];
           dir
         with Unix_error _ -> "/tmp"

@@ -1,16 +1,17 @@
 # approx: proxy server for Debian archive files
-# Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
+# Copyright (C) 2014  Eric C. Cooper <ecc@cmu.edu>
 # Released under the GNU General Public License
 
-<**/*.{mli,ml}>: warn_error_A
+<**/*>: warn_error_A
 
-<approx.ml>: use_pcre, use_netstring, use_netcgi, use_nethttpd
-<config_file.ml>: use_pcre
-<import.ml>: use_pcre
-<log.ml>: use_netsys
-<url.ml>: use_netstring
-<util.ml>: use_pcre, use_sha
+<approx.ml>: package(nethttpd), package(pcre)
+<config_file.ml>: package(pcre)
+<log.ml>: package(netsys)
+<url.ml>: package(netstring)
+<util.ml>: package(sha)
+<import.ml>: package(pcre)
 
-<**/*.{byte,native}>: use_unix, use_pcre, use_sha
-<*.{byte,native}>: use_bigarray, use_netsys_oothr, use_netsys, use_str, use_netstring
-<approx.{byte,native}>: use_equeue, use_netcgi, use_nethttpd
+<**/*.{byte,native}>: package(netsys), package(pcre), package(sha)
+<approx.{byte,native}>: package(nethttpd)
+
+<tests/*>: package(oUnit)

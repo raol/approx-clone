@@ -1,15 +1,11 @@
 # approx: proxy server for Debian archive files
-# Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
+# Copyright (C) 2015  Eric C. Cooper <ecc@cmu.edu>
 # Released under the GNU General Public License
 
 OCAMLBUILD := ocamlbuild
-OCAMLBUILD_OPTS := -classic-display
+OCAMLBUILD_OPTS := -classic-display -use-ocamlfind
 
 TARGET := native
-
-ifeq ($(TARGET),byte)
-    OCAMLBUILD_OPTS += -byte-plugin
-endif
 
 programs = approx approx-gc approx-import
 
@@ -33,11 +29,10 @@ clean:
 	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) -clean
 	rm -f $(programs)
 
-.PHONY: tests
+test: tests/runtests
+	./$(<F).$(TARGET)
 
-tests: $(subst .ml,,$(wildcard tests/*.ml))
-
-%_test:
+tests/runtests::
 	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) $@.$(TARGET)
 
 version := $(shell sed -n 's/^let version = "\(.*\)"$$/\1/p' config.ml)
