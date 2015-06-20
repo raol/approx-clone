@@ -73,15 +73,15 @@ let suite = [
      Some 6, None,   "abcdef", "";
      Some 6, Some 6, "abcdef", ""]
   @
-  map (fun (from, until, str, e) ->
+  map (fun (from, until, str) ->
     sprintf "(substring %s %s %s)"
       (p_opt p_int from) (p_opt p_int until) (p_str str) >::
-    (fun _ -> assert_raises e (fun () -> Util.substring ?from ?until str)))
-    [None,   Some 7, "abcdef", Invalid_argument "String.sub";
-     Some 0, Some 7, "abcdef", Invalid_argument "String.sub";
-     Some 1, None,   "",       Invalid_argument "String.sub";
-     Some 7, None,   "abcdef", Invalid_argument "String.sub";
-     Some 4, Some 3, "abcdef", Invalid_argument "String.sub"];
+    (fun _ -> assert_invalid (fun () -> Util.substring ?from ?until str)))
+    [None,   Some 7, "abcdef";
+     Some 0, Some 7, "abcdef";
+     Some 1, None,   "";
+     Some 7, None,   "abcdef";
+     Some 4, Some 3, "abcdef"];
 
   "split_tests" >:::
   map (fun (c, str, res) ->

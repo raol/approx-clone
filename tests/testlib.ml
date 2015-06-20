@@ -2,6 +2,7 @@
    Copyright (C) 2015  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
+open OUnit
 open Printf
 
 let p_bool = sprintf "%b"
@@ -16,3 +17,14 @@ let p_opt pf = function | Some x -> pf x | None -> "-"
 let p_exn = Printexc.to_string
 
 let tear_down _ _ = ()
+
+let assert_invalid ?msg f =
+  let result =
+    try f (); None
+    with e -> Some e
+  in
+  match result with
+  | None ->
+      assert_failure "expected Invalid_argument exception, but no exception was raised."
+  | Some (Invalid_argument _) -> ()
+  | Some e -> assert_failure ("expected Invalid_argument exception, but " ^ p_exn e ^ " was raised.")
