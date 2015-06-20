@@ -1,9 +1,10 @@
 # approx: proxy server for Debian archive files
-# Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
+# Copyright (C) 2015  Eric C. Cooper <ecc@cmu.edu>
 # Released under the GNU General Public License
 
 OCAMLBUILD := ocamlbuild
-OCAMLBUILD_OPTS := -classic-display
+# Don't fail on deprecation warning 3 during transition to OCaml 4.02
+OCAMLBUILD_OPTS := -classic-display -cflags -warn-error,A,-warn-error,-3
 
 TARGET := native
 
