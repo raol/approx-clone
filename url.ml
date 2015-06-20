@@ -117,7 +117,7 @@ let download_command headers header_callback =
 
 let iter_body proc chan =
   let len = 4096 in
-  let buf = String.create len in
+  let buf = Bytes.create len in
   let rec loop () =
     match input chan buf 0 len with
     | 0 -> ()

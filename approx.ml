@@ -408,7 +408,7 @@ let cleanup_after url file =
 
 let copy_to dst src =
   let len = 4096 in
-  let buf = String.create len in
+  let buf = Bytes.create len in
   let rec loop () =
     match input src buf 0 len with
     | 0 -> ()
