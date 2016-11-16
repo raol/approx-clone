@@ -26,6 +26,7 @@ Depends:
  bzip2,
  curl,
  rsyslog | system-log-daemon,
+ update-inetd,
  xz-utils
 Suggests: libconfig-model-approx-perl
 Description: caching proxy server for Debian archive files
