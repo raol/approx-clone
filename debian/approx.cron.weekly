@@ -1,7 +1,15 @@
 #!/bin/sh
 
-# Garbage collect the approx(8) cache
+# Remove old files from the approx(8) cache
 
-if [ -x /usr/sbin/approx-gc ]; then
-    nice -n19 ionice -c3 /usr/sbin/approx-gc --quiet
-fi
+# Location of the cache
+cache=/var/cache/approx
+
+# Maximum age of files to keep, in days
+max_age=1000
+
+# Remove old files
+find $cache -type f -mtime +$max_age -delete -print
+
+# Remove empty files and directories
+find $cache -empty -delete
