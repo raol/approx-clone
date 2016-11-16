@@ -1,9 +1,8 @@
 # approx: proxy server for Debian archive files
-# Copyright (C) 2015  Eric C. Cooper <ecc@cmu.edu>
+# Copyright (C) 2013  Eric C. Cooper <ecc@cmu.edu>
 # Released under the GNU General Public License
 
-# Disable this during transition to OCaml 4.02 due to String.create deprecation
-#<**/*.{mli,ml}>: warn_error_A
+<**/*.{mli,ml}>: warn_error_A
 
 <approx.ml>: use_pcre, use_netstring, use_netcgi, use_nethttpd
 <config_file.ml>: use_pcre
