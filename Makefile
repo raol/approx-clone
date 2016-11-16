@@ -1,5 +1,5 @@
 # approx: proxy server for Debian archive files
-# Copyright (C) 2015  Eric C. Cooper <ecc@cmu.edu>
+# Copyright (C) 2016  Eric C. Cooper <ecc@cmu.edu>
 # Released under the GNU General Public License
 
 OCAMLBUILD := ocamlbuild
@@ -7,17 +7,13 @@ OCAMLBUILD_OPTS := -classic-display -use-ocamlfind
 
 TARGET := native
 
-programs = approx approx-gc approx-import
+programs = approx approx-import
 
 all: $(programs)
 
 approx:
 	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) approx.$(TARGET)
 	cp -p _build/approx.$(TARGET) $@
-
-approx-gc:
-	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) gc_cache.$(TARGET)
-	cp -pv _build/gc_cache.$(TARGET) $@
 
 approx-import:
 	$(OCAMLBUILD) $(OCAMLBUILD_OPTS) import.$(TARGET)
