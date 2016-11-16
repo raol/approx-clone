@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2014  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 val read : string -> unit
@@ -11,3 +11,7 @@ val get_bool : ?default:bool -> string -> bool
 val fold : (string -> string -> 'a -> 'a) -> 'a -> 'a
 
 val iter : (string -> string -> unit) -> unit
+
+(* For use by unit tests: remove all bindings *)
+
+val reset : unit -> unit

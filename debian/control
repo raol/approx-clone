@@ -7,10 +7,11 @@ Build-Depends:
  debhelper (>= 9.0),
  dh-ocaml,
  libnethttpd-ocaml-dev (>= 3),
+ libounit-ocaml-dev,
  libpcre-ocaml-dev,
  libsha-ocaml-dev,
- ocaml-nox
-Standards-Version: 3.9.5
+ ocaml-nox (>= 4.02)
+Standards-Version: 3.9.6
 Vcs-Git: git://git.debian.org/git/pkg-ocaml-maint/packages/approx.git
 Vcs-Browser: http://git.debian.org/?p=pkg-ocaml-maint/packages/approx.git
 Homepage: http://git.debian.org/?p=pkg-ocaml-maint/packages/approx.git
@@ -24,8 +25,6 @@ Depends:
  adduser,
  bzip2,
  curl,
- openbsd-inetd | inet-superserver,
- update-inetd,
  rsyslog | system-log-daemon,
  xz-utils
 Suggests: libconfig-model-approx-perl
