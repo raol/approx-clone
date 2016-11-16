@@ -1,3 +1,11 @@
+approx (5.7-1) unstable; urgency=medium
+
+  The approx-gc program has been removed.
+  Cleanup of the approx cache is now done using a simple find(1)
+  command that removes files older than a specified number of days.
+
+ -- Eric Cooper <ecc@cmu.edu>  Wed, 16 Nov 2016 16:42:00 -0500
+
 approx (5.0-1) unstable; urgency=low
 
   The $interval parameter is back, and approx once again caches

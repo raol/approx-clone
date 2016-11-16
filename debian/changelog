@@ -1,3 +1,32 @@
+approx (5.7-1) unstable; urgency=medium
+
+  [ Eric Cooper ]
+  * New upstream version
+  * remove unused code
+  * simplify build using findlib
+  * use OUnit for tests
+  * change String.create to Bytes.create
+  * relax check for Invalid_argument exception
+  * increment version number
+  * depend on OCaml 4.02 for Bytes module
+  * add build dependency on OUnit
+  * remove approx-gc program (closes: #465473, #632926, #686062, #818731)
+  * use find(1) command in weekly cron job
+  * update Standards-Version to 3.9.8
+  * add dependency on update-inetd
+
+  [ Mark White ]
+  * add $curl_path configuration parameter
+  * cache unknown file types for $interval
+
+  [ Kai Harries ]
+  * remove dependencies on inet-superserver (closes: #784312)
+
+  [ Romain Francoise ]
+  * Bug#818633: approx: fails to connect to HTTP/2 servers (closes: #818633)
+
+ -- Eric Cooper <ecc@cmu.edu>  Wed, 16 Nov 2016 18:08:24 -0500
+
 approx (5.5-2) unstable; urgency=medium
 
   * handle String.create deprecation warning during transition to OCaml 4.02
