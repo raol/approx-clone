@@ -1,3 +1,10 @@
+approx (5.7-2) unstable; urgency=medium
+
+  * remove broken debian/watch file
+  * fix build failure for tests on architectures lacking ocamlopt
+
+ -- Eric Cooper <ecc@cmu.edu>  Sun, 04 Dec 2016 13:30:02 -0500
+
 approx (5.7-1) unstable; urgency=medium
 
   [ Eric Cooper ]
