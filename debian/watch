@@ -1,5 +1,0 @@
-version=3
-
-opts=downloadurlmangle=s/(.)a=shortlog/$1sf=tgz$1a=snapshot/;s/heads/tags/,\
-filenamemangle=s/.*upstream.([\d\.]+)$/approx-$1.tar.gz/ \
-  http://anonscm.debian.org/gitweb/?p=pkg-ocaml-maint/packages/approx.git;a=shortlog;h=refs/heads/upstream  ^.*/upstream/([\d\.]+)
