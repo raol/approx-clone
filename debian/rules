@@ -6,4 +6,7 @@
 ifeq ($(wildcard /usr/bin/ocamlopt),)
 override_dh_auto_build:
 	$(MAKE) TARGET=byte
+
+override_dh_auto_test:
+	$(MAKE) TARGET=byte test
 endif
