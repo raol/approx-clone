@@ -17,16 +17,6 @@ if [ ! -d /var/cache/approx ]; then
     chown approx:approx /var/cache/approx
 fi
 
-# first remove any "vanilla" entry from /etc/inetd.conf
-update-inetd --remove '^(\d|\w)+\s.*\bapprox\s+/usr/sbin/approx'
-
-# add entry to /etc/inetd.conf unless there is already a custom one
-if ! egrep -q '^[^#].*\s/usr/sbin/approx\b' /etc/inetd.conf; then
-    db_get approx/port
-    port="$RET"
-    update-inetd --add "$port\t\tstream\ttcp\tnowait\tapprox\t/usr/sbin/approx /usr/sbin/approx"
-fi
-
 if dpkg --compare-versions "$2" lt "4.0"; then
     if [ -f /etc/default/approx ]; then
         rm -f /etc/default/approx
