@@ -1,3 +1,10 @@
+approx (5.7-3) unstable; urgency=medium
+
+  * use dh support for systemd unit files (closes: #848312)
+  * eliminate debconf configuration of port number
+
+ -- Eric Cooper <ecc@cmu.edu>  Sat, 17 Dec 2016 19:16:34 -0500
+
 approx (5.7-2) unstable; urgency=medium
 
   * remove broken debian/watch file

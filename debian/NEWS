@@ -1,3 +1,11 @@
+approx (5.7-3) unstable; urgency=medium
+
+  Debconf is no longer used to set a custom port number for the approx
+  server. To use something other than the default, port 9999, please
+  modify the "ListenStream" line in the approx.socket file.
+
+ -- Eric Cooper <ecc@cmu.edu>  Sat, 17 Dec 2016 19:23:24 -0500
+
 approx (5.7-1) unstable; urgency=medium
 
   The approx-gc program has been removed.
