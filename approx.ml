@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2014  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2017  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
@@ -272,7 +272,7 @@ let with_pair rex str proc =
   | [| a; b |] -> proc (a, b)
   | _ -> assert false
 
-let status_re = Pcre.regexp "^HTTP/\\d+\\.\\d+\\s+(\\d{3})(?:\\s+(.*?)\\s*)?$"
+let status_re = Pcre.regexp "^HTTP/\\d+(?:\\.\\d+)?\\s+(\\d{3})(?:\\s+(.*?)\\s*)?$"
 let header_re = Pcre.regexp "^(.*?):\\s*(.*?)\\s*$"
 
 let process_header resp str =
