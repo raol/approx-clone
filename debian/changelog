@@ -1,3 +1,12 @@
+approx (5.8-1) unstable; urgency=medium
+
+  * New upstream version
+  * handle HTTP/2 status (closes: #867048)
+  * update Standards-Version and Build-Depends for debhelper
+  * remove unused approx.config file
+
+ -- Eric Cooper <ecc@cmu.edu>  Tue, 04 Jul 2017 12:55:00 -0400
+
 approx (5.7-3) unstable; urgency=medium
 
   * use dh support for systemd unit files (closes: #848312)
