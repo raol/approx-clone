@@ -4,14 +4,14 @@ Priority: optional
 Maintainer: Eric Cooper <ecc@cmu.edu>
 Uploaders: Ralf Treinen <treinen@debian.org>
 Build-Depends:
- debhelper (>= 9.0),
+ debhelper (>= 10),
  dh-ocaml,
  libnethttpd-ocaml-dev (>= 3),
  libounit-ocaml-dev,
  libpcre-ocaml-dev,
  libsha-ocaml-dev,
  ocaml-nox (>= 4.02)
-Standards-Version: 3.9.8
+Standards-Version: 4.0.0
 Vcs-Git: git://git.debian.org/git/pkg-ocaml-maint/packages/approx.git
 Vcs-Browser: http://git.debian.org/?p=pkg-ocaml-maint/packages/approx.git
 Homepage: http://git.debian.org/?p=pkg-ocaml-maint/packages/approx.git
