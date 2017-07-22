@@ -19,7 +19,7 @@ let create_non_empty_file ctx =
   bracket
     (fun ctx ->
       let file, chan = bracket_tmpfile ctx in
-      for i = 1 to 100 do
+      for _ = 1 to 100 do
 	output_string chan "All work and no play makes Jack a dull boy\n"
       done;
       close_out chan;
@@ -31,7 +31,7 @@ let create_tree ctx =
     (fun ctx ->
       let root = bracket_tmpdir ctx in
       with_bracket_chdir ctx root
-	(fun ctx ->
+	(fun _ ->
 	  close_out (open_out "a");
 	  Unix.mkdir "b" 0o755;
 	  Unix.mkdir "c" 0o755;

@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2014  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2017  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Util
@@ -25,8 +25,6 @@ let words_of_line line = Pcre.split (remove_comment line)
 let map = ref []
 
 let reset () = map := []
-
-let mem k = List.mem_assoc k !map
 
 let get_generic convert ?default k =
   try convert (List.assoc k !map)

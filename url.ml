@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2014  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2017  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Config
@@ -26,7 +26,7 @@ let reverse_translate url =
   let longest_match k v r =
     if k.[0] <> '$' && is_prefix v url then
       match r with
-      | Some (dist, repo) as orig ->
+      | Some (_, repo) as orig ->
           if String.length v > String.length repo then Some (k, v) else orig
       | None -> Some (k, v)
     else
@@ -95,7 +95,7 @@ let with_curl_process cmd =
     match Unix.close_process_in chan with
     | Unix.WEXITED 0 -> ()
     | Unix.WEXITED 22 -> raise File_not_found  (* see curl(1) *)
-    | e ->
+    | (Unix.WEXITED _ as e) | (Unix.WSIGNALED _ as e) | (Unix.WSTOPPED _ as e) ->
         error_message "Command [%s] %s" cmd (process_status e);
         raise Download_error
   in

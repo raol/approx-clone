@@ -3,7 +3,6 @@
    Released under the GNU General Public License *)
 
 open OUnit2
-open Printf
 open Testlib
 
 let bad_line = "one two three"
@@ -15,22 +14,22 @@ let create_bad ctx =
   file
 
 let test_contents =
-  "Origin: Debian
-Label: Debian
-Suite: stable
-Version: 8.1
-Codename: jessie
-Date: Sat, 06 Jun 2015 11:09:34 UTC
-Description: Debian 8.1 Released 06 June 2015
-MD5Sum:
- a2ff86b08a2f114d6f0594ff69ef5c4d 14019410 main/binary-all/Packages
- 9539760c49756bcaaf8640fd903ccbcf       92 main/binary-all/Release
-SHA1:
- 6b8b6dde32d863a7cde06b0c457b7ee4fb36bdbf 14019410 main/binary-all/Packages
- 98fcd7b597b05f3f86acb0ec07c4d11ddcb670c4       92 main/binary-all/Release
-SHA256:
- 299181e362caae665aa68399bacde59f439a41b900e903c7104feea7a8377af1 14019410 main/binary-all/Packages
- 84caeff910de244e607524c9b5fd370f064cbb849d3e67a8dac658cc21bba35c       92 main/binary-all/Release
+  "Origin: Debian\n\
+Label: Debian\n\
+Suite: stable\n\
+Version: 8.1\n\
+Codename: jessie\n\
+Date: Sat, 06 Jun 2015 11:09:34 UTC\n\
+Description: Debian 8.1 Released 06 June 2015\n\
+MD5Sum:\n\
+\ a2ff86b08a2f114d6f0594ff69ef5c4d 14019410 main/binary-all/Packages\n\
+\ 9539760c49756bcaaf8640fd903ccbcf       92 main/binary-all/Release\n\
+SHA1:\n\
+\ 6b8b6dde32d863a7cde06b0c457b7ee4fb36bdbf 14019410 main/binary-all/Packages\n\
+\ 98fcd7b597b05f3f86acb0ec07c4d11ddcb670c4       92 main/binary-all/Release\n\
+SHA256:\n\
+\ 299181e362caae665aa68399bacde59f439a41b900e903c7104feea7a8377af1 14019410 main/binary-all/Packages\n\
+\ 84caeff910de244e607524c9b5fd370f064cbb849d3e67a8dac658cc21bba35c       92 main/binary-all/Release\n\
 "
 
 let test_paragraph =

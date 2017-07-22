@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2015  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2017  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open OUnit
@@ -18,7 +18,7 @@ let p_exn = Printexc.to_string
 
 let tear_down _ _ = ()
 
-let assert_invalid ?msg f =
+let assert_invalid f =
   let result =
     try f (); None
     with e -> Some e

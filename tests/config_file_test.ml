@@ -31,7 +31,7 @@ let create_good ctx =
   close_out chan;
   file
 
-let cleanup () ctx = Config_file.reset ()
+let cleanup () _ = Config_file.reset ()
 
 let read_good ctx =
   bracket

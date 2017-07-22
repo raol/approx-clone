@@ -30,7 +30,7 @@ let trim_left s i =
   in
   loop i
 
-let rec trim_right s i =
+let trim_right s i =
   let rec loop i =
     if i > 0 && (s.[i - 1] = ' ' || s.[i - 1] = '\t') then loop (i - 1)
     else i

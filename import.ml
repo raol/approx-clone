@@ -9,12 +9,12 @@ open Program
 open Util
 
 let usage () =
-  print "Usage: approx-import [options] file ...
-Import local files into the approx cache
-Options:
-    -s|--simulate   scan but do not actually import any files
-    -q|--quiet      do not print the file names that are imported
-    -v|--verbose    print information about each file";
+  print "Usage: approx-import [options] file ...\n\
+Import local files into the approx cache\n\
+Options:\n\
+\    -s|--simulate   scan but do not actually import any files\n\
+\    -q|--quiet      do not print the file names that are imported\n\
+\    -v|--verbose    print information about each file";
   exit 1
 
 let simulate = ref false
@@ -46,8 +46,8 @@ type import_status =
   | Imported of string
 
 let imported = function
+  | Not_seen | Exists _ -> false
   | Imported _ -> true
-  | _ -> false
 
 let string_of_import_status = function
   | Not_seen -> "not referenced by any Packages file"
@@ -160,7 +160,7 @@ let import_files index =
     if verbose then print "[ %s/%s ]" dist path;
     Control_file.iter check_package index
 
-let print_package { base = base; status = status } =
+let print_package { base = base; status = status; _ } =
   if verbose || imported status then
     print "%s: %s" base (string_of_import_status status)
 

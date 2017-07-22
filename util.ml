@@ -1,10 +1,11 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2014  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2017  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Printf
-open Unix
-open Unix.LargeFile
+
+module U = Unix
+module ULF = U.LargeFile
 
 let invalid_string_arg msg arg = invalid_arg (msg ^ ": " ^ arg)
 
@@ -69,8 +70,8 @@ let make_directory path =
      created concurrently, we have to ignore the Unix EEXIST error:
      simply testing for existence first introduces a race condition. *)
   let make_dir name =
-    try mkdir name 0o755
-    with Unix_error (EEXIST, _, _) ->
+    try U.mkdir name 0o755
+    with U.Unix_error (U.EEXIST, _, _) ->
       if not (Sys.is_directory name) then
         failwith ("file " ^ name ^ " is not a directory")
   in
@@ -149,8 +150,8 @@ let with_out_channel openf = with_resource close_out openf
 let gensym str =
   sprintf "%s.%d.%09.0f"
     (without_extension str)
-    (getpid ())
-    (fst (modf (gettimeofday ())) *. 1e9)
+    (U.getpid ())
+    (fst (modf (U.gettimeofday ())) *. 1e9)
 
 (* Use the default temporary directory unless it has been set
    to something inaccessible, in which case use "/tmp" *)
@@ -166,9 +167,9 @@ let tmp_dir () =
       let dir =
         try
           let dir = Filename.get_temp_dir_name () in
-          access dir [R_OK; W_OK; X_OK];
+          U.access dir [U.R_OK; U.W_OK; U.X_OK];
           dir
-        with Unix_error _ -> "/tmp"
+        with U.Unix_error _ -> "/tmp"
       in
       tmp_dir_name := Some dir;
       dir
@@ -218,26 +219,28 @@ let compressed_versions name =
   if is_compressed name then invalid_string_arg "compressed_versions" name;
   name :: List.map (fun ext -> name ^ ext) compressed_extensions
 
-let stat_file file = try Some (stat file) with Unix_error _ -> None
+let stat_file file = try Some (ULF.stat file) with U.Unix_error _ -> None
 
 let is_cached_nak name =
   match stat_file name with
-  | Some { st_size = 0L; st_perm = 0 } -> true
+  | Some { ULF.st_size = 0L; st_perm = 0; _ } -> true
   | _ -> false
 
-let file_modtime file = (stat file).st_mtime
+let file_size file = (ULF.stat file).ULF.st_size
 
-let file_ctime file = (stat file).st_ctime
+let file_modtime file = (ULF.stat file).ULF.st_mtime
 
-let minutes_old t = int_of_float ((Unix.time () -. t) /. 60. +. 0.5)
+let file_ctime file = (ULF.stat file).ULF.st_ctime
+
+let minutes_old t = int_of_float ((U.time () -. t) /. 60. +. 0.5)
 
 let newest_file list =
   let newest cur name =
     match stat_file name with
-    | None | Some { st_size = 0L; st_perm = 0 } (* cached NAK *) -> cur
-    | Some { st_mtime = modtime } ->
+    | None | Some { ULF.st_size = 0L; st_perm = 0; _ } (* cached NAK *) -> cur
+    | Some { ULF.st_mtime = modtime; _ } ->
         begin match cur with
-        | Some (f, t) -> if modtime > t then Some (name, modtime) else cur
+        | Some (_, t) -> if modtime > t then Some (name, modtime) else cur
         | None -> Some (name, modtime)
         end
   in
@@ -246,7 +249,7 @@ let newest_file list =
   | None -> raise Not_found
 
 let open_out_excl file =
-  out_channel_of_descr (openfile file [O_CREAT; O_WRONLY; O_EXCL] 0o644)
+  U.out_channel_of_descr (U.openfile file [U.O_CREAT; U.O_WRONLY; U.O_EXCL] 0o644)
 
 let with_temp_file name proc =
   let file = gensym name in
@@ -255,13 +258,17 @@ let with_temp_file name proc =
 
 let update_ctime name =
   match stat_file name with
-  | Some { st_atime = atime; st_mtime = mtime } -> utimes name atime mtime
+  | Some { ULF.st_atime = atime; st_mtime = mtime; _ } -> U.utimes name atime mtime
   | None -> ()
 
 let directory_id name =
   match stat_file name with
-  | Some { st_kind = S_DIR; st_dev = dev; st_ino = ino } -> Some (dev, ino)
-  | _ -> None
+  | Some s ->
+      if s.ULF.st_kind = U.S_DIR then
+	Some (s.ULF.st_dev, s.ULF.st_ino)
+      else
+	None
+  | None -> None
 
 let fold_fs_tree non_dirs f init path =
   let rec walk uids_seen init path =
@@ -294,38 +301,35 @@ let iter_dirs = iter_of_fold fold_dirs
 
 let iter_non_dirs = iter_of_fold fold_non_dirs
 
-let file_size file = (stat file).st_size
+let to_hex s =
+  let n = String.length s in
+  let hex = Bytes.create (2*n) in
+  for i = 0 to n-1 do
+    Bytes.blit_string (sprintf "%02x" (Char.code s.[i])) 0 hex (2*i) 2
+  done;
+  hex
 
-module type MD =
-  sig
-    type t
-    val file : string -> t
-    val to_hex : t -> string
-  end
+let hash_file hash file =
+  to_hex (with_in_channel open_in file (Cryptokit.hash_channel hash ?len:None))
 
-module FileDigest (MsgDigest : MD) =
-  struct
-    let sum file = MsgDigest.to_hex (MsgDigest.file file)
-  end
-
-let file_md5sum = let module F = FileDigest(Digest) in F.sum
-let file_sha1sum = let module F = FileDigest(Sha1) in F.sum
-let file_sha256sum = let module F = FileDigest(Sha256) in F.sum
+let file_md5sum = hash_file (Cryptokit.Hash.md5 ())
+let file_sha1sum = hash_file (Cryptokit.Hash.sha1 ())
+let file_sha256sum = hash_file (Cryptokit.Hash.sha256 ())
 
 let user_id =
   object
     method kind = "user"
-    method get = getuid
-    method set = setuid
-    method lookup x = (getpwnam x).pw_uid
+    method get = U.getuid
+    method set = U.setuid
+    method lookup x = (U.getpwnam x).U.pw_uid
   end
 
 let group_id =
   object
     method kind = "group"
-    method get = getgid
-    method set = setgid
-    method lookup x = (getgrnam x).gr_gid
+    method get = U.getgid
+    method set = U.setgid
+    method lookup x = (U.getgrnam x).U.gr_gid
   end
 
 let drop_privileges ~user ~group =
@@ -333,7 +337,7 @@ let drop_privileges ~user ~group =
     try id#set (id#lookup name)
     with
     | Not_found -> failwith ("unknown " ^ id#kind ^ " " ^ name)
-    | Unix_error (EPERM, _, _) ->
+    | U.Unix_error (U.EPERM, _, _) ->
         failwith (Sys.argv.(0) ^ " must be run by root"
                   ^ (if user <> "root" then " or by " ^ user else ""))
   in
@@ -353,8 +357,8 @@ let check_id ~user ~group =
 
 let string_of_sockaddr sockaddr ~with_port =
   match sockaddr with
-  | ADDR_INET (host, port) ->
-      let addr = string_of_inet_addr host in
+  | U.ADDR_INET (host, port) ->
+      let addr = U.string_of_inet_addr host in
       if with_port then sprintf "%s port %d" addr port else addr
-  | ADDR_UNIX path ->
+  | U.ADDR_UNIX path ->
       failwith ("Unix domain socket " ^ path)
