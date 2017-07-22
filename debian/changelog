@@ -1,3 +1,14 @@
+approx (5.9-1) unstable; urgency=medium
+
+  * New upstream version
+  * use cryptokit for checksum functions
+  * add Build-Depends for cryptokit (instead of sha) and ocamlbuild
+  * enable all compiler warnings but don't treat them as errors
+  * fix all code that caused compiler warnings
+  * fix compiler warnings in test code
+
+ -- Eric Cooper <ecc@cmu.edu>  Sat, 22 Jul 2017 15:26:05 -0400
+
 approx (5.8-1) unstable; urgency=medium
 
   * New upstream version
