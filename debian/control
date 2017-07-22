@@ -6,10 +6,11 @@ Uploaders: Ralf Treinen <treinen@debian.org>
 Build-Depends:
  debhelper (>= 10),
  dh-ocaml,
+ libcryptokit-ocaml-dev,
  libnethttpd-ocaml-dev (>= 3),
  libounit-ocaml-dev,
  libpcre-ocaml-dev,
- libsha-ocaml-dev,
+ ocamlbuild,
  ocaml-nox (>= 4.02)
 Standards-Version: 4.0.0
 Vcs-Git: git://git.debian.org/git/pkg-ocaml-maint/packages/approx.git
