@@ -301,21 +301,20 @@ let iter_dirs = iter_of_fold fold_dirs
 
 let iter_non_dirs = iter_of_fold fold_non_dirs
 
-module type MD =
-  sig
-    type t
-    val file : string -> t
-    val to_hex : t -> string
-  end
+let to_hex s =
+  let n = String.length s in
+  let hex = Bytes.create (2*n) in
+  for i = 0 to n-1 do
+    Bytes.blit_string (sprintf "%02x" (Char.code s.[i])) 0 hex (2*i) 2
+  done;
+  hex
 
-module FileDigest (MsgDigest : MD) =
-  struct
-    let sum file = MsgDigest.to_hex (MsgDigest.file file)
-  end
+let hash_file hash file =
+  to_hex (with_in_channel open_in file (Cryptokit.hash_channel hash ?len:None))
 
-let file_md5sum = let module F = FileDigest(Digest) in F.sum
-let file_sha1sum = let module F = FileDigest(Sha1) in F.sum
-let file_sha256sum = let module F = FileDigest(Sha256) in F.sum
+let file_md5sum = hash_file (Cryptokit.Hash.md5 ())
+let file_sha1sum = hash_file (Cryptokit.Hash.sha1 ())
+let file_sha256sum = hash_file (Cryptokit.Hash.sha256 ())
 
 let user_id =
   object
