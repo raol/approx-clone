@@ -1,8 +1,8 @@
 # approx: proxy server for Debian archive files
-# Copyright (C) 2014  Eric C. Cooper <ecc@cmu.edu>
+# Copyright (C) 2017  Eric C. Cooper <ecc@cmu.edu>
 # Released under the GNU General Public License
 
-<**/*>: warn_error_A
+<**/*>: warn_A
 
 <approx.ml>: package(nethttpd), package(pcre)
 <config_file.ml>: package(pcre)
