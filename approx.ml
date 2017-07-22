@@ -3,8 +3,9 @@
    Released under the GNU General Public License *)
 
 open Printf
-open Unix
-open Unix.LargeFile
+
+module U = Unix
+module ULF = U.LargeFile
 
 open Config
 open Log
@@ -20,8 +21,8 @@ let wait_for_download_in_progress name =
   let timeout = float_of_int max_wait in
   let rec wait n =
     match stat_file hint with
-    | Some { st_mtime = mtime } ->
-        if time () -. mtime > timeout then begin
+    | Some { ULF.st_mtime = mtime; _ } ->
+        if U.time () -. mtime > timeout then begin
           error_message "Concurrent download of %s is taking too long" name;
           (* remove the other process's hint file if it still exists,
              so we can create our own *)
@@ -29,7 +30,7 @@ let wait_for_download_in_progress name =
         end else begin
           if n = 0 then
             debug_message "Waiting for concurrent download of %s" name;
-          sleep 1;
+          U.sleep 1;
           wait (n + 1)
         end
     | None -> ()
@@ -98,7 +99,7 @@ let cache_nak file =
   let tmp_file = gensym file in
   let chan = open_out_excl tmp_file in
   close_out chan;
-  Unix.chmod tmp_file 0;
+  U.chmod tmp_file 0;
   Sys.rename tmp_file file
 
 (* Attempt to serve the requested file from the local cache.
@@ -109,8 +110,8 @@ let cache_nak file =
 let serve_local name ims env =
   wait_for_download_in_progress name;
   match stat_file name with
-  | Some { st_mtime = mod_time; st_ctime = ctime;
-           st_size = size; st_perm = perm } ->
+  | Some { ULF.st_mtime = mod_time; st_ctime = ctime;
+           st_size = size; st_perm = perm; _ } ->
       let deliver_if_newer () =
         if mod_time > ims then deliver_local name env
         else not_modified ()
@@ -136,7 +137,7 @@ let serve_local name ims env =
 
 let create_hint name =
   make_directory (Filename.dirname name);
-  close (openfile (in_progress name) [O_CREAT; O_WRONLY] 0o644)
+  U.close (U.openfile (in_progress name) [U.O_CREAT; U.O_WRONLY] 0o644)
 
 let remove_hint name = rm (in_progress name)
 
@@ -172,7 +173,7 @@ let open_cache file =
 
 let write_cache cache str pos len =
   match cache with
-  | Cache { chan = chan } -> output chan str pos len
+  | Cache { chan = chan; _ } -> output chan str pos len
   | Pass_through -> ()
   | Undefined -> assert false
 
@@ -186,7 +187,7 @@ let close_cache cache size mod_time =
       if size = -1L || size = file_size tmp_file then begin
         if mod_time <> 0. then begin
           debug_message "  setting mtime to %s" (Url.string_of_time mod_time);
-          utimes tmp_file mod_time mod_time
+          U.utimes tmp_file mod_time mod_time
         end;
         Sys.rename tmp_file file
       end else begin
@@ -200,7 +201,7 @@ let close_cache cache size mod_time =
 
 let remove_cache cache =
   match cache with
-  | Cache { tmp_file = tmp_file; chan = chan } ->
+  | Cache { tmp_file = tmp_file; chan = chan; _ } ->
       close_out chan;
       error_message "Removing %s (size: %Ld)" tmp_file (file_size tmp_file);
       rm tmp_file
@@ -327,7 +328,7 @@ let process_body resp cgi str pos len =
 
 (* Download a file from an HTTP or HTTPS repository *)
 
-let download_http resp url name ims cgi =
+let download_http resp url ims cgi =
   let headers =
     if ims > 0. then ["If-Modified-Since: " ^ Url.string_of_time ims] else []
   in
@@ -361,7 +362,7 @@ let download_http resp url name ims cgi =
 
 (* Download a file from an FTP repository *)
 
-let download_ftp resp url name ims cgi =
+let download_ftp resp url ims cgi =
   Url.head url (process_header resp);
   let mod_time = resp.last_modified in
   debug_message "  ims %s  mtime %s"
@@ -384,7 +385,7 @@ let download_url url name ims cgi =
   try
     create_hint name;
     unwind_protect
-      (fun () -> dl resp url name ims cgi)
+      (fun () -> dl resp url ims cgi)
       (fun () -> remove_hint name)
   with e ->
     remove_cache resp.cache;
@@ -397,7 +398,7 @@ let download_url url name ims cgi =
 
 let updates_needed = ref []
 
-let cleanup_after url file =
+let cleanup_after file =
   if pdiffs && Release.is_pdiff file then
     (* record the affected index for later update *)
     let index = Pdiff.index_file file in
@@ -430,10 +431,9 @@ let copy_from_cache name cgi =
 
 let update_ctime name =
   match stat_file name with
-  | Some stats ->
-      utimes name stats.st_atime stats.st_mtime;
+  | Some { ULF.st_atime = atime; st_mtime = mtime; st_ctime = ctime; _ } ->
+      U.utimes name atime mtime;
       if debug then
-        let ctime = (stat name).st_ctime in
         debug_message "  updated ctime to %s" (Url.string_of_time ctime)
   | None -> ()
 
@@ -460,10 +460,10 @@ let serve_remote url name ims mod_time cgi =
   match status with
   | Delivered ->
       cgi#output#commit_work ();
-      if not (head_request cgi#environment) then cleanup_after url name
+      if not (head_request cgi#environment) then cleanup_after name
   | Cached ->
       copy_from_cache name cgi;
-      cleanup_after url name
+      cleanup_after name
   | Not_modified ->
       update_ctime name;
       copy_if_newer ()
@@ -566,10 +566,10 @@ let config =
   object
     inherit modify_http_reactor_config default_http_reactor_config
     (* changes from default_http_protocol_config *)
-    method config_announce_server = `Ocamlnet_and ("approx/" ^ version)
+    method! config_announce_server = `Ocamlnet_and ("approx/" ^ version)
     (* changes from default_http_processor_config *)
-    method config_error_response = error_response
-    method config_log_error _ msg = error_message "%s" msg
+    method! config_error_response = error_response
+    method! config_log_error _ msg = error_message "%s" msg
   end
 
 let proxy_service =
@@ -584,8 +584,8 @@ let approx () =
   log_to_syslog ();
   check_id ~user ~group;
   Sys.chdir cache_dir;
-  set_nonblock stdin;
-  Nethttpd_reactor.process_connection config stdin proxy_service;
+  U.set_nonblock U.stdin;
+  Nethttpd_reactor.process_connection config U.stdin proxy_service;
   List.iter Pdiff.update !updates_needed
 
 let () = main_program approx ()

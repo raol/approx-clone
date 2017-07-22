@@ -1,5 +1,5 @@
 (* approx: proxy server for Debian archive files
-   Copyright (C) 2008  Eric C. Cooper <ecc@cmu.edu>
+   Copyright (C) 2017  Eric C. Cooper <ecc@cmu.edu>
    Released under the GNU General Public License *)
 
 open Util
@@ -49,7 +49,7 @@ let change lines m n ic oc cur =
 
 let delete = change []
 
-let copy_tail ic oc cur =
+let copy_tail ic oc _ =
   iter_eof (output_line oc) ic;
   0
 
