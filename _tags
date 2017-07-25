@@ -8,10 +8,10 @@
 <config_file.ml>: package(pcre)
 <log.ml>: package(netsys)
 <url.ml>: package(netstring)
-<util.ml>: package(cryptokit)
+<util.ml>: package(sha)
 <import.ml>: package(pcre)
 
-<**/*.{byte,native}>: package(netsys), package(pcre), package(cryptokit)
+<**/*.{byte,native}>: package(netsys), package(pcre), package(sha)
 <approx.{byte,native}>: package(nethttpd)
 
 <tests/*>: package(oUnit)
