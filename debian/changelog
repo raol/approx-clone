@@ -1,3 +1,10 @@
+approx (5.10-1) unstable; urgency=medium
+
+  * New upstream version
+  * revert to ocaml-sha instead of cryptokit
+
+ -- Eric Cooper <ecc@cmu.edu>  Tue, 25 Jul 2017 12:30:00 -0400
+
 approx (5.9-1) unstable; urgency=medium
 
   * New upstream version
