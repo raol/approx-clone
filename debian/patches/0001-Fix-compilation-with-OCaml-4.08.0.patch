@@ -1,0 +1,21 @@
+From: Stephane Glondu <steph@glondu.net>
+Date: Sun, 1 Sep 2019 08:26:14 +0200
+Subject: Fix compilation with OCaml 4.08.0
+
+---
+ url.mli | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/url.mli b/url.mli
+index 420866a..89466a0 100644
+--- a/url.mli
++++ b/url.mli
+@@ -30,7 +30,7 @@ val download :
+   string ->
+   ?headers:string list ->
+   ?header_callback:(string -> unit) ->
+-  (string -> int -> int -> unit) -> unit
++  (bytes -> int -> int -> unit) -> unit
+ 
+ (* Download a file from a remote repository *)
+ 
