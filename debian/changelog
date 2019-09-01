@@ -1,9 +1,10 @@
-approx (5.10-1.1) UNRELEASED; urgency=medium
+approx (5.10-2) unstable; urgency=medium
 
-  * Non-maintainer upload
+  * Team upload
   * Update Vcs-*
+  * Fix compilation with OCaml 4.08.0
 
- -- Stéphane Glondu <glondu@debian.org>  Fri, 26 Jul 2019 11:09:18 +0200
+ -- Stéphane Glondu <glondu@debian.org>  Sun, 01 Sep 2019 08:26:46 +0200
 
 approx (5.10-1) unstable; urgency=medium
 
