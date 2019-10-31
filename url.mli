@@ -13,6 +13,8 @@ val reverse_translate : string -> string
 
 type protocol = HTTP | HTTPS | FTP | FILE
 
+type header = STATUS of string * string | OTHER
+
 val protocol : string -> protocol
 
 exception File_not_found  (* raised when remote server returns 404 *)  
@@ -21,7 +23,7 @@ exception Download_error  (* raised when any other failure occurs *)
 (* Perform HTTP HEAD (or equivalent for FTP and FILE) on the given URL
    and apply a callback to each header that is returned *)
 
-val head : string -> (string -> unit) -> unit
+val head : string -> (string -> header) -> unit
 
 (* Download the specified URL with optional request headers,
    then apply callbacks to the headers and body chunks *)
@@ -29,7 +31,7 @@ val head : string -> (string -> unit) -> unit
 val download :
   string ->
   ?headers:string list ->
-  ?header_callback:(string -> unit) ->
+  ?header_callback:(string -> header) ->
   (string -> int -> int -> unit) -> unit
 
 (* Download a file from a remote repository *)

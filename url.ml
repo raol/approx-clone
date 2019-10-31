@@ -38,6 +38,10 @@ let reverse_translate url =
 
 type protocol = HTTP | HTTPS | FTP | FILE
 
+type header = STATUS of string * string | OTHER
+
+type header_state = PROXY_RESPONSE | NORMAL
+
 let protocol url =
   try
     match String.lowercase (substring url ~until: (String.index url ':')) with
@@ -66,19 +70,28 @@ let iter_headers proc chan =
     try Some (input_line chan)
     with End_of_file -> None
   in
-  let rec loop () =
+  let rec loop state =
     match next () with
     | Some header ->
         let n = String.length header in
         if n > 0 && header.[n - 1] = '\r' then
-          if n > 1 then begin
-            proc (String.sub header 0 (n - 1));
-            loop ()
+          if n > 1 || state = PROXY_RESPONSE then begin (* Continue consuming input when we have response from proxy *)
+            match proc (String.sub header 0 (n - 1)) with
+            | STATUS (_,value) -> 
+              (* 
+                When we get reponse from the proxy "Connection established"
+                we switch to proxy mode and will ignore empty line delimiter
+                until we get next status header which will switch loop to normal mode.
+               *)
+              if String.lowercase value = "connection established" 
+              then loop PROXY_RESPONSE
+              else loop NORMAL
+            | OTHER -> loop state
           end else () (* CRLF terminates headers *)
         else error_message "Unexpected header: %s" header
     | None -> ()
   in
-  loop ()
+  loop NORMAL
 
 exception File_not_found
 exception Download_error

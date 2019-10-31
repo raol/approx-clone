@@ -277,11 +277,12 @@ let status_re = Pcre.regexp "^HTTP/\\d+(?:\\.\\d+)?\\s+(\\d{3})(?:\\s+(.*?)\\s*)
 let header_re = Pcre.regexp "^(.*?):\\s*(.*?)\\s*$"
 
 let process_header resp str =
-  let do_status (code, _) =
-    resp.status <- int_of_string code
+  let do_status (code, value) =
+    resp.status <- int_of_string code;
+    Url.STATUS (code, value)
   in
   let do_header (header, value) =
-    match String.lowercase header with
+    (match String.lowercase header with
     | "content-length" ->
         (try resp.length <- Int64.of_string value
          with Failure _ ->
@@ -296,13 +297,16 @@ let process_header resp str =
            error_message "Cannot parse Location %s" value)
     | "content-type" -> (* only used for pass-through content *)
         resp.content_type <- value
-    | _ -> ()
+    | _ -> ());
+    Url.OTHER
   in
   debug_message "  %s" str;
   try with_pair header_re str do_header
   with Not_found -> (* e.g., status line or CRLF *)
     try with_pair status_re str do_status
-    with Not_found -> error_message "Unrecognized response: %s" str
+    with Not_found -> (
+      error_message "Unrecognized response: %s" str;
+      Url.OTHER)
 
 (* Process a chunk of the response body.
    If no Content-Length was present in the header, we cache the whole
